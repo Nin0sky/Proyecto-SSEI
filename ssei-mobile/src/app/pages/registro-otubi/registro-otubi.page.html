@@ -14,7 +14,12 @@
     <ion-card-content>
       <ion-item>
         <ion-label position="stacked">Seleccionar Cliente</ion-label>
-        <ion-select [(ngModel)]="cliente" interface="popover" placeholder="Elija un cliente">
+        <ion-select
+          [(ngModel)]="cliente"
+          (ionChange)="onClienteChange()"
+          interface="popover"
+          placeholder="Elija un cliente"
+        >
           <ion-select-option value="Banco de Chile">Banco de Chile</ion-select-option>
           <ion-select-option value="Loomis">Loomis</ion-select-option>
           <ion-select-option value="Santander">Santander</ion-select-option>
@@ -22,8 +27,18 @@
       </ion-item>
 
       <ion-item>
-        <ion-label position="stacked">ID Maestro del ATM</ion-label>
-        <ion-input [(ngModel)]="atmId" (ionInput)="onAtmInput()" placeholder="Ej: 6122"></ion-input>
+        <ion-label position="stacked">Numero de ATM (desde Formulario OT)</ion-label>
+        <ion-select
+          [(ngModel)]="atmId"
+          (ionChange)="onAtmChange()"
+          interface="popover"
+          [disabled]="atmOptions.length === 0"
+          placeholder="Primero registre ATM en Formulario OT"
+        >
+          <ion-select-option *ngFor="let atmNumero of atmOptions" [value]="atmNumero">
+            {{ atmNumero }}
+          </ion-select-option>
+        </ion-select>
       </ion-item>
 
       <ion-item>
@@ -35,6 +50,47 @@
         <ion-label position="stacked">Dirección</ion-label>
         <ion-input [value]="direccion" readonly="true"></ion-input>
       </ion-item>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-card>
+    <ion-card-content>
+      <section class="photo-head">
+        <h3>Fotos del Reporte</h3>
+        <p>Adjunte evidencia fotográfica para el ATM seleccionado.</p>
+      </section>
+
+      <label class="upload-control" [class.disabled]="!atmId">
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          [disabled]="!atmId"
+          (change)="onSeleccionFotos($event)"
+        />
+        <span>{{ atmId ? 'Seleccionar fotos' : 'Seleccione un ATM para cargar fotos' }}</span>
+      </label>
+
+      <p class="photo-empty" *ngIf="atmId && fotosAtmActual.length === 0">
+        Aún no hay fotos para este ATM.
+      </p>
+
+      <p class="photo-empty" *ngIf="!atmId">
+        Debe seleccionar un ATM para adjuntar fotos.
+      </p>
+
+      <div class="photo-grid" *ngIf="fotosAtmActual.length > 0">
+        <article class="photo-card" *ngFor="let foto of fotosAtmActual">
+          <img [src]="foto.previewDataUrl" [alt]="foto.nombreArchivo" />
+          <div class="photo-meta">
+            <strong>{{ foto.nombreArchivo }}</strong>
+            <small>{{ foto.fechaRegistro | date : 'short' }}</small>
+          </div>
+          <ion-button size="small" color="danger" fill="clear" (click)="eliminarFoto(foto.id)">
+            Eliminar
+          </ion-button>
+        </article>
+      </div>
     </ion-card-content>
   </ion-card>
 

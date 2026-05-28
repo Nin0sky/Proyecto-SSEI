@@ -19,3 +19,75 @@
   margin: 0;
   opacity: 0.75;
 }
+
+.photo-head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.photo-head p {
+  margin: 4px 0 12px;
+  opacity: 0.75;
+}
+
+.upload-control {
+  display: block;
+  border: 1px dashed var(--ion-color-medium);
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+.upload-control input {
+  display: none;
+}
+
+.upload-control.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.photo-empty {
+  margin: 0;
+  opacity: 0.75;
+}
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.photo-card {
+  border: 1px solid var(--ion-color-step-150, #e2e2e2);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--ion-card-background, #fff);
+}
+
+.photo-card img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+}
+
+.photo-meta {
+  padding: 8px 10px 0;
+  display: grid;
+  gap: 2px;
+}
+
+.photo-meta strong {
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.photo-meta small {
+  opacity: 0.7;
+}

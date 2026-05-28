@@ -14,6 +14,8 @@ import {
   IonItem,
   IonLabel,
   IonInput,
+  IonSegment,
+  IonSegmentButton,
   IonSelect,
   IonSelectOption,
   IonTextarea,
@@ -21,11 +23,7 @@ import {
   IonButtons,
   IonFooter,
 } from '@ionic/angular/standalone';
-
-interface ServicioEjecutado {
-  tipo: string;
-  cantidad: number;
-}
+import { OtAtmDetalle, OtContextService } from '../../ot-context.service';
 
 @Component({
   selector: 'app-formulario-ot',
@@ -47,6 +45,8 @@ interface ServicioEjecutado {
     IonItem,
     IonLabel,
     IonInput,
+    IonSegment,
+    IonSegmentButton,
     IonSelect,
     IonSelectOption,
     IonTextarea,
@@ -56,24 +56,75 @@ interface ServicioEjecutado {
   ]
 })
 export class FormularioOtPage {
-  servicios: ServicioEjecutado[] = [{ tipo: 'instalacion', cantidad: 1 }];
+  atms: OtAtmDetalle[] = [];
+  indiceAtmActivo = 0;
 
-  atmIndividualId = '';
-  serieChasis = '';
-  serieMmbb = '';
-  observaciones = '';
+  validacionZonas = '';
+  nombreTecnico = '';
+  nombreETV = '';
+  nombreAlarma = '';
+  firmaTecnico = '';
+  firmaETV = '';
+  firmaAlarma = '';
 
-  agregarServicio(): void {
-    this.servicios.push({ tipo: 'instalacion', cantidad: 1 });
+  constructor(private readonly otContextService: OtContextService) {
+    const atmsGuardados = this.otContextService.getAtms();
+    this.atms = atmsGuardados.length > 0 ? atmsGuardados : [this.crearAtm(1)];
   }
 
-  increment(index: number): void {
-    this.servicios[index].cantidad += 1;
+  get atmActivo(): OtAtmDetalle {
+    return this.atms[this.indiceAtmActivo];
   }
 
-  decrement(index: number): void {
-    if (this.servicios[index].cantidad > 1) {
-      this.servicios[index].cantidad -= 1;
+  agregarAtm(): void {
+    this.atms.push(this.crearAtm(this.atms.length + 1));
+    this.indiceAtmActivo = this.atms.length - 1;
+    this.sincronizarAtms();
+  }
+
+  eliminarAtm(): void {
+    if (this.atms.length === 1) {
+      return;
     }
+
+    this.atms.splice(this.indiceAtmActivo, 1);
+    this.reenumerarAtms();
+    this.indiceAtmActivo = Math.max(0, this.indiceAtmActivo - 1);
+    this.sincronizarAtms();
+  }
+
+  cambiarAtm(event: CustomEvent): void {
+    const nuevoIndice = Number(event.detail.value);
+
+    if (!Number.isNaN(nuevoIndice) && this.atms[nuevoIndice]) {
+      this.indiceAtmActivo = nuevoIndice;
+    }
+  }
+
+  ionViewWillLeave(): void {
+    this.sincronizarAtms();
+  }
+
+  sincronizarAtms(): void {
+    this.otContextService.setAtms(this.atms);
+  }
+
+  private crearAtm(numero: number): OtAtmDetalle {
+    return {
+      etiqueta: `ATM ${numero}`,
+      tipoServicio: 'instalacion',
+      numeroAtm: '',
+      serieCajero: '',
+      serieMmbb: '',
+      detallesServicio: '',
+      observaciones: '',
+    };
+  }
+
+  private reenumerarAtms(): void {
+    this.atms = this.atms.map((atm, index) => ({
+      ...atm,
+      etiqueta: `ATM ${index + 1}`,
+    }));
   }
 }

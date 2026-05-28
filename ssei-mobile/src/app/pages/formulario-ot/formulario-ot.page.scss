@@ -5,19 +5,15 @@
   --padding-bottom: 24px;
 }
 
-.service-row {
-  border: 1px solid var(--ion-color-step-150, #e6e6e6);
-  border-radius: 12px;
-  padding: 10px;
+.atm-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 10px;
 }
 
-.qty-controls {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin: 10px 0;
+ion-segment {
+  margin-bottom: 10px;
 }
 
 .actions {
@@ -25,4 +21,72 @@
   gap: 12px;
   justify-content: space-between;
   margin: 12px 0 6px;
+}
+
+.personal-card {
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.personal-content {
+  padding-top: 6px;
+}
+
+.personal-rows {
+  display: grid;
+  gap: 10px;
+}
+
+.personal-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.boxed-item {
+  --background: #ffffff;
+  --padding-start: 0;
+  --inner-padding-end: 0;
+  border: 1px solid var(--ion-color-step-150, #dcdcdc);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.signature-box {
+  --background: #ffffff;
+  --padding-start: 0;
+  --inner-padding-end: 0;
+  border: 1px dashed var(--ion-color-medium);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+@media (max-width: 700px) {
+  .personal-row {
+    grid-template-columns: 1fr;
+  }
+
+  .signature-box {
+    min-height: 0;
+  }
+
+  .atm-controls {
+    justify-content: space-between;
+  }
+}
+
+ion-textarea {
+  --color: #1f2937;
+  --placeholder-color: #6b7280;
+  --placeholder-opacity: 1;
+  color: #1f2937;
+}
+
+ion-label {
+  --color: #1f2937;
+  --placeholder-color: #6b7280;
+  --placeholder-opacity: 1;
+  color: #1f2937;
 }

@@ -7,84 +7,174 @@
 <ion-content [fullscreen]="true" class="page-content">
   <ion-card>
     <ion-card-header>
-      <ion-card-title>Servicios Ejecutados</ion-card-title>
-    </ion-card-header>
-
-    <ion-card-content>
-      <div class="service-row" *ngFor="let s of servicios; let i = index">
-        <ion-item>
-          <ion-label position="stacked">Tipo de Servicio</ion-label>
-          <ion-select [(ngModel)]="s.tipo" interface="popover">
-            <ion-select-option value="instalacion">Instalación</ion-select-option>
-            <ion-select-option value="desanclaje">Desanclaje</ion-select-option>
-            <ion-select-option value="mantenimiento">Mantenimiento</ion-select-option>
-            <ion-select-option value="grafica">Gráfica</ion-select-option>
-          </ion-select>
-        </ion-item>
-
-        <div class="qty-controls">
-          <ion-button fill="outline" (click)="decrement(i)">-</ion-button>
-          <span>{{ s.cantidad }}</span>
-          <ion-button fill="outline" (click)="increment(i)">+</ion-button>
-        </div>
-      </div>
-
-      <ion-button expand="block" fill="outline" (click)="agregarServicio()">
-        Agregar otro servicio
-      </ion-button>
-    </ion-card-content>
-  </ion-card>
-
-  <ion-card>
-    <ion-card-header>
       <ion-card-title>Detalles de ATM</ion-card-title>
     </ion-card-header>
     <ion-card-content>
+      <div class="atm-controls">
+        <ion-button size="small" fill="outline" (click)="agregarAtm()">Agregar ATM</ion-button>
+        <ion-button
+          size="small"
+          color="danger"
+          fill="outline"
+          [disabled]="atms.length === 1"
+          (click)="eliminarAtm()"
+        >
+          Eliminar ATM
+        </ion-button>
+      </div>
+
+      <ion-segment [value]="indiceAtmActivo.toString()" (ionChange)="cambiarAtm($event)">
+        <ion-segment-button *ngFor="let atm of atms; let i = index" [value]="i.toString()">
+          <ion-label>{{ atm.etiqueta }}</ion-label>
+        </ion-segment-button>
+      </ion-segment>
+
+      <ion-item>
+        <ion-label position="stacked">Tipo de Servicio</ion-label>
+        <ion-select [(ngModel)]="atmActivo.tipoServicio" (ionChange)="sincronizarAtms()" interface="popover">
+          <ion-select-option value="instalacion">Instalación</ion-select-option>
+          <ion-select-option value="desanclaje">Desanclaje</ion-select-option>
+          <ion-select-option value="mantenimiento">Mantenimiento</ion-select-option>
+          <ion-select-option value="grafica">Gráfica</ion-select-option>
+        </ion-select>
+      </ion-item>
+
       <ion-item>
         <ion-label position="stacked">Numero de ATM</ion-label>
-        <ion-input [(ngModel)]="atmIndividualId"></ion-input>
+        <ion-input
+          placeholder="Ejemplo: ATM-001"
+          (ionInput)="sincronizarAtms()"
+          [(ngModel)]="atmActivo.numeroAtm"
+        ></ion-input>
       </ion-item>
       <ion-item>
         <ion-label position="stacked">Serie Cajero</ion-label>
-        <ion-input [(ngModel)]="serieChasis"></ion-input>
+        <ion-input
+          placeholder="Ingresa serie del cajero"
+          (ionInput)="sincronizarAtms()"
+          [(ngModel)]="atmActivo.serieCajero"
+        ></ion-input>
       </ion-item>
       <ion-item>
         <ion-label position="stacked">Serie MMBB</ion-label>
-        <ion-input [(ngModel)]="serieMmbb"></ion-input>
+        <ion-input
+          placeholder="Ingresa serie MMBB"
+          (ionInput)="sincronizarAtms()"
+          [(ngModel)]="atmActivo.serieMmbb"
+        ></ion-input>
       </ion-item>
     </ion-card-content>
   </ion-card>
 
   <ion-card>
     <ion-card-header>
-      <ion-card-title>Reportar Daños</ion-card-title>
+      <ion-card-title>Observaciones</ion-card-title>
     </ion-card-header>
     <ion-card-content>
       <ion-item>
-        <ion-label position="stacked">Detalles</ion-label>
-        <ion-textarea></ion-textarea>
+        <ion-label position="stacked">Detalles de servicio</ion-label>
+        <ion-textarea
+          placeholder="Describe brevemente las actividades realizadas en el servicio"
+          (ionInput)="sincronizarAtms()"
+          [(ngModel)]="atmActivo.detallesServicio"
+        ></ion-textarea>
       </ion-item>
     </ion-card-content>
     <ion-card-content>
       <ion-item>
-        <ion-label position="stacked">Observaciones</ion-label>
-        <ion-textarea [(ngModel)]="observaciones"></ion-textarea>
+        <ion-label position="stacked">Reportar Daños</ion-label>
+        <ion-textarea
+          placeholder="Indica los danos detectados, ubicacion y nivel de criticidad"
+          (ionInput)="sincronizarAtms()"
+          [(ngModel)]="atmActivo.observaciones"
+        ></ion-textarea>
+      </ion-item>
+    </ion-card-content>
+    <ion-card-content>
+      <ion-item>
+        <ion-label position="stacked">Validacion de zonas por UCENCO</ion-label>
+        <ion-textarea
+          placeholder="Registra el resultado de la validacion de zonas realizada por UCENCO"
+          [(ngModel)]="validacionZonas"
+        ></ion-textarea>
       </ion-item>
     </ion-card-content>
   </ion-card>
+  <ion-card class="personal-card">
+    <ion-card-header>
+      <ion-card-title>Datos de Personal</ion-card-title>
+    </ion-card-header>
+    <ion-card-content class="personal-content">
+      <div class="personal-rows">
+        <div class="personal-row">
+          <ion-item lines="none" class="boxed-item">  
+            <ion-label position="stacked">Nombre del Tecnico</ion-label>
+            <ion-input fill="outline" [(ngModel)]="nombreTecnico"></ion-input>
+          </ion-item>
+          <ion-item lines="none" class="signature-box">
+            <ion-label position="stacked">Firma</ion-label>
+            <ion-textarea
+              rows="3"
+              autoGrow="false"
+              placeholder="Espacio para firma del tecnico"
+              [(ngModel)]="firmaTecnico"
+            ></ion-textarea>
+          </ion-item>
+        </div>
+
+        <div class="personal-row">
+          <ion-item lines="none" class="boxed-item">
+            <ion-label position="stacked">Nombre ETV</ion-label>
+            <ion-input fill="outline" [(ngModel)]="nombreETV"></ion-input>
+          </ion-item>
+          <ion-item lines="none" class="signature-box">
+            <ion-label position="stacked">Firma</ion-label>
+            <ion-textarea
+              rows="3"
+              autoGrow="false"
+              placeholder="Espacio para firma del personal ETV"
+              [(ngModel)]="firmaETV"
+            ></ion-textarea>
+          </ion-item>
+        </div>
+
+        <div class="personal-row">
+          <ion-item lines="none" class="boxed-item">
+            <ion-label position="stacked">Nombre Alarma</ion-label>
+            <ion-input fill="outline" [(ngModel)]="nombreAlarma"></ion-input>
+          </ion-item>
+          <ion-item lines="none" class="signature-box">
+            <ion-label position="stacked">Firma</ion-label>
+            <ion-textarea
+              rows="3"
+              autoGrow="false"
+              placeholder="Espacio para firma del responsable de alarma"
+              [(ngModel)]="firmaAlarma"
+            ></ion-textarea>
+          </ion-item>
+        </div>
+      </div>
+    </ion-card-content>
+  </ion-card>
+
+
+
+
   <div class="actions">
-    <ion-button fill="outline" [routerLink]="['/registro-otubi']">Atrás</ion-button>
-    <ion-button [routerLink]="['/dashboard']">Siguiente: Cierre</ion-button>
+    <ion-button fill="outline" [routerLink]="['/dashboard']">Atrás</ion-button>
+    <ion-button [routerLink]="['/registro-otubi']">Siguiente: Cierre</ion-button>
   </div>
+
 </ion-content>
 
-<ion-footer>
-  <ion-toolbar>
-    <ion-buttons class="bottom-nav" slot="start">
-      <ion-button [routerLink]="['/dashboard']">Mis Ordenes</ion-button>
-      <ion-button [routerLink]="['/formulario-ot']">Formulario OT</ion-button>
-      <ion-button [routerLink]="['/registro-otubi']">Historial</ion-button>
-      <ion-button [routerLink]="['/login']">Perfil</ion-button>
-    </ion-buttons>
-  </ion-toolbar>
-</ion-footer>
+
+  <ion-footer>
+    <ion-toolbar>
+      <ion-buttons class="bottom-nav" slot="start">
+        <ion-button [routerLink]="['/dashboard']">Mis Ordenes</ion-button>
+        <ion-button [routerLink]="['/formulario-ot']">Formulario OT</ion-button>
+        <ion-button [routerLink]="['/registro-otubi']">Historial</ion-button>
+        <ion-button [routerLink]="['/login']">Perfil</ion-button>
+      </ion-buttons>
+    </ion-toolbar>
+  </ion-footer>
