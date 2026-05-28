@@ -37,19 +37,19 @@
 
   <ion-card>
     <ion-card-header>
-      <ion-card-title>Trazabilidad de Componentes</ion-card-title>
+      <ion-card-title>Detalles de ATM</ion-card-title>
     </ion-card-header>
     <ion-card-content>
       <ion-item>
-        <ion-label position="stacked">ID Individual del ATM</ion-label>
+        <ion-label position="stacked">Numero de ATM</ion-label>
         <ion-input [(ngModel)]="atmIndividualId"></ion-input>
       </ion-item>
       <ion-item>
-        <ion-label position="stacked">Serie Chasis/Cajero</ion-label>
+        <ion-label position="stacked">Serie Cajero</ion-label>
         <ion-input [(ngModel)]="serieChasis"></ion-input>
       </ion-item>
       <ion-item>
-        <ion-label position="stacked">Serie Mecanismo (MMBB)</ion-label>
+        <ion-label position="stacked">Serie MMBB</ion-label>
         <ion-input [(ngModel)]="serieMmbb"></ion-input>
       </ion-item>
     </ion-card-content>
@@ -61,12 +61,17 @@
     </ion-card-header>
     <ion-card-content>
       <ion-item>
+        <ion-label position="stacked">Detalles</ion-label>
+        <ion-textarea></ion-textarea>
+      </ion-item>
+    </ion-card-content>
+    <ion-card-content>
+      <ion-item>
         <ion-label position="stacked">Observaciones</ion-label>
         <ion-textarea [(ngModel)]="observaciones"></ion-textarea>
       </ion-item>
     </ion-card-content>
   </ion-card>
-
   <div class="actions">
     <ion-button fill="outline" [routerLink]="['/registro-otubi']">Atrás</ion-button>
     <ion-button [routerLink]="['/dashboard']">Siguiente: Cierre</ion-button>
