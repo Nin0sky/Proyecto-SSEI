@@ -10,3 +10,19 @@ class Requirement:
     priority: str
     status: str
     created_at: datetime
+
+
+@dataclass(slots=True)
+class UseCase:
+    id: int
+    code: str
+    name: str
+    description: str
+    created_at: datetime
+
+
+@dataclass(slots=True)
+class RequirementUseCaseTrace:
+    requirement_id: int
+    use_case_id: int
+    created_at: datetime

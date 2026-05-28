@@ -1,0 +1,320 @@
+<!-- Dashboard Técnico - SSEI -->
+<!DOCTYPE html><html class="light" lang="es"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>SSEI Field Tech - Technician Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "inverse-primary": "#adc7f7",
+                    "secondary": "#0a6c44",
+                    "on-background": "#181c1e",
+                    "surface-dim": "#d7dadc",
+                    "on-primary": "#ffffff",
+                    "surface-tint": "#455f88",
+                    "background": "#f7fafc",
+                    "on-surface": "#181c1e",
+                    "surface-container-high": "#e5e9eb",
+                    "primary-fixed": "#d6e3ff",
+                    "inverse-on-surface": "#eef1f3",
+                    "on-primary-container": "#86a0cd",
+                    "on-secondary-fixed-variant": "#005231",
+                    "primary": "#002045",
+                    "tertiary-fixed-dim": "#ffb77d",
+                    "error": "#ba1a1a",
+                    "inverse-surface": "#2d3133",
+                    "on-error-container": "#93000a",
+                    "on-primary-fixed": "#001b3c",
+                    "surface-variant": "#e0e3e5",
+                    "tertiary": "#361900",
+                    "outline-variant": "#c4c6cf",
+                    "tertiary-fixed": "#ffdcc3",
+                    "on-tertiary": "#ffffff",
+                    "tertiary-container": "#552b00",
+                    "on-secondary-fixed": "#002111",
+                    "on-secondary": "#ffffff",
+                    "primary-fixed-dim": "#adc7f7",
+                    "on-tertiary-fixed-variant": "#6e3900",
+                    "primary-container": "#1a365d",
+                    "surface-container": "#ebeef0",
+                    "surface-bright": "#f7fafc",
+                    "surface": "#f7fafc",
+                    "on-tertiary-fixed": "#2f1500",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-container": "#9ff5c1",
+                    "secondary-fixed": "#9ff5c1",
+                    "error-container": "#ffdad6",
+                    "on-primary-fixed-variant": "#2d476f",
+                    "on-surface-variant": "#43474e",
+                    "surface-container-low": "#f1f4f6",
+                    "on-tertiary-container": "#eb851c",
+                    "outline": "#74777f",
+                    "surface-container-highest": "#e0e3e5",
+                    "secondary-fixed-dim": "#83d8a6",
+                    "on-secondary-container": "#167249",
+                    "on-error": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "unit-8": "32px",
+                    "container-padding": "16px",
+                    "unit-12": "48px",
+                    "unit-2": "8px",
+                    "unit-3": "12px",
+                    "stack-gap": "12px",
+                    "unit-1": "4px",
+                    "unit-6": "24px",
+                    "unit-4": "16px",
+                    "base": "4px"
+            },
+            "fontFamily": {
+                    "label-sm": ["Inter"],
+                    "label-lg": ["Inter"],
+                    "headline-sm": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "body-md": ["Inter"],
+                    "label-md": ["Inter"]
+            },
+            "fontSize": {
+                    "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
+                    "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                    "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["22px", {"lineHeight": "28px", "fontWeight": "700"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        display: inline-block;
+        line-height: 1;
+        text-transform: none;
+        letter-spacing: normal;
+        word-wrap: normal;
+        white-space: nowrap;
+        direction: ltr;
+      }
+      body {
+        background-color: #f7fafc;
+        -webkit-font-smoothing: antialiased;
+      }
+      .offline-banner {
+        background-color: #D97706; /* Warning Amber */
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body-md text-on-surface">
+<!-- Top Navigation Anchor (Manual Implementation based on Shared Component Logic) -->
+<header class="fixed top-0 w-full z-50 bg-surface flex justify-between items-center px-container-padding h-unit-12 border-b border-outline-variant">
+<div class="flex items-center gap-unit-2">
+<span class="material-symbols-outlined text-primary" data-icon="menu">menu</span>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-primary font-extrabold tracking-tight">SSEI Field Tech</h1>
+</div>
+<div class="flex items-center gap-unit-3"><span class="material-symbols-outlined text-primary cursor-pointer" data-icon="dark_mode">dark_mode</span>
+<span class="material-symbols-outlined text-primary" data-icon="sync">sync</span>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-unit-12 pb-24 min-h-screen">
+<!-- Offline Indicator Banner -->
+<div class="offline-banner w-full px-container-padding py-unit-2 flex items-center justify-between text-white shadow-sm">
+<div class="flex items-center gap-unit-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="wifi_off">wifi_off</span>
+<span class="font-label-lg text-label-lg">Modo Offline (Almacenamiento Local)</span>
+</div>
+<span class="font-label-sm text-label-sm opacity-90">Auto-sync cuando haya red</span>
+</div>
+<!-- Welcome Section -->
+<section class="px-container-padding mt-unit-6">
+<h2 class="font-headline-md text-headline-md text-primary">Hola, Claudio</h2>
+<p class="font-body-md text-on-surface-variant">Tienes 5 órdenes de trabajo para hoy.</p>
+</section>
+<!-- KPI Bento Section -->
+<section class="px-container-padding mt-unit-6">
+<div class="grid grid-cols-2 gap-unit-3">
+<!-- Card 1: Pending -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-unit-4 flex flex-col justify-between h-32">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase">Pendientes de Envío</span>
+<div class="flex items-baseline gap-unit-1">
+<span class="font-headline-lg text-headline-lg text-on-tertiary-container">3</span>
+<span class="material-symbols-outlined text-on-tertiary-container text-headline-sm" data-icon="pending_actions">pending_actions</span>
+</div>
+</div>
+<!-- Card 2: Synchronized -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-unit-4 flex flex-col justify-between h-32">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase">Sincronizados Hoy</span>
+<div class="flex items-baseline gap-unit-1">
+<span class="font-headline-lg text-headline-lg text-secondary">12</span>
+<span class="material-symbols-outlined text-secondary text-headline-sm" data-icon="check_circle">check_circle</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Work Orders List -->
+<section class="px-container-padding mt-unit-8">
+<div class="flex justify-between items-end mb-unit-3">
+<h3 class="font-headline-sm text-headline-sm text-primary">Órdenes de Trabajo</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Lunes, 22 May</span>
+</div>
+<div class="space-y-unit-3">
+<!-- OT Card 1 -->
+<div class="bg-white border border-outline-variant rounded-xl p-unit-4 flex items-center justify-between transition-all active:scale-[0.98] hover:border-primary">
+<div class="flex flex-col gap-unit-1">
+<div class="flex items-center gap-unit-2">
+<span class="font-label-lg text-label-lg text-primary">#1024</span>
+<span class="text-outline text-label-sm">•</span>
+<span class="font-label-lg text-label-lg text-on-surface">ATM 6122</span>
+</div>
+<p class="font-body-md text-on-surface font-semibold">Banco de Chile</p>
+<div class="flex items-center gap-unit-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px]" data-icon="location_on">location_on</span>
+<span class="font-label-sm text-label-sm">Santiago Centro</span>
+</div>
+</div>
+<div class="flex flex-col items-end gap-unit-4">
+<span class="bg-tertiary-fixed text-on-tertiary-fixed-variant px-unit-3 py-unit-1 rounded-full font-label-sm text-label-sm">Pendiente</span>
+<span class="material-symbols-outlined text-outline" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+<!-- OT Card 2 -->
+<div class="bg-white border border-outline-variant rounded-xl p-unit-4 flex items-center justify-between transition-all active:scale-[0.98] hover:border-primary">
+<div class="flex flex-col gap-unit-1">
+<div class="flex items-center gap-unit-2">
+<span class="font-label-lg text-label-lg text-primary">#1025</span>
+<span class="text-outline text-label-sm">•</span>
+<span class="font-label-lg text-label-lg text-on-surface">ATM 8841</span>
+</div>
+<p class="font-body-md text-on-surface font-semibold">Banco Estado</p>
+<div class="flex items-center gap-unit-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px]" data-icon="location_on">location_on</span>
+<span class="font-label-sm text-label-sm">Las Condes</span>
+</div>
+</div>
+<div class="flex flex-col items-end gap-unit-4">
+<span class="bg-secondary-container text-on-secondary-container px-unit-3 py-unit-1 rounded-full font-label-sm text-label-sm">Sincronizado</span>
+<span class="material-symbols-outlined text-outline" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+<!-- OT Card 3 -->
+<div class="bg-white border border-outline-variant rounded-xl p-unit-4 flex items-center justify-between transition-all active:scale-[0.98] hover:border-primary">
+<div class="flex flex-col gap-unit-1">
+<div class="flex items-center gap-unit-2">
+<span class="font-label-lg text-label-lg text-primary">#1028</span>
+<span class="text-outline text-label-sm">•</span>
+<span class="font-label-lg text-label-lg text-on-surface">ATM 2210</span>
+</div>
+<p class="font-body-md text-on-surface font-semibold">Santander</p>
+<div class="flex items-center gap-unit-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px]" data-icon="location_on">location_on</span>
+<span class="font-label-sm text-label-sm">Providencia</span>
+</div>
+</div>
+<div class="flex flex-col items-end gap-unit-4">
+<span class="bg-tertiary-fixed text-on-tertiary-fixed-variant px-unit-3 py-unit-1 rounded-full font-label-sm text-label-sm">Pendiente</span>
+<span class="material-symbols-outlined text-outline" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+<!-- OT Card 4 (Complete) -->
+<div class="bg-white border border-outline-variant rounded-xl p-unit-4 flex items-center justify-between transition-all active:scale-[0.98] hover:border-primary opacity-80">
+<div class="flex flex-col gap-unit-1">
+<div class="flex items-center gap-unit-2">
+<span class="font-label-lg text-label-lg text-primary">#1022</span>
+<span class="text-outline text-label-sm">•</span>
+<span class="font-label-lg text-label-lg text-on-surface">ATM 5001</span>
+</div>
+<p class="font-body-md text-on-surface font-semibold">Banco de Chile</p>
+<div class="flex items-center gap-unit-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px]" data-icon="location_on">location_on</span>
+<span class="font-label-sm text-label-sm">Maipú</span>
+</div>
+</div>
+<div class="flex flex-col items-end gap-unit-4">
+<span class="bg-secondary-container text-on-secondary-container px-unit-3 py-unit-1 rounded-full font-label-sm text-label-sm">Sincronizado</span>
+<span class="material-symbols-outlined text-outline" data-icon="chevron_right">chevron_right</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Floating Action Button -->
+<button class="fixed bottom-24 right-container-padding w-unit-12 h-unit-12 rounded-full bg-primary text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform z-50">
+<span class="material-symbols-outlined" data-icon="add" style="font-variation-settings: 'FILL' 0, 'wght' 700;">add</span>
+</button>
+<!-- Bottom Navigation Bar (Execution based on Shared Component JSON) -->
+<nav class="fixed bottom-0 w-full z-50 bg-surface flex justify-around items-center px-unit-2 pb-safe h-unit-12 border-t border-outline-variant">
+<!-- Dashboard (Active) -->
+<a class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-unit-4 py-unit-1 active:scale-95 transition-transform duration-100" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-sm text-label-sm">Dashboard</span>
+</a>
+<!-- Work Orders -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-unit-4 py-unit-1 hover:bg-surface-container-low active:scale-95 transition-transform duration-100" href="#">
+<span class="material-symbols-outlined" data-icon="assignment">assignment</span>
+<span class="font-label-sm text-label-sm">Work Orders</span>
+</a>
+<!-- History -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-unit-4 py-unit-1 hover:bg-surface-container-low active:scale-95 transition-transform duration-100" href="#">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+<span class="font-label-sm text-label-sm">History</span>
+</a>
+<!-- Profile -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-unit-4 py-unit-1 hover:bg-surface-container-low active:scale-95 transition-transform duration-100" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-label-sm text-label-sm">Profile</span>
+</a>
+</nav>
+<script>
+        // Micro-interaction for cards
+        document.querySelectorAll('.bg-white.border').forEach(card => {
+            card.addEventListener('touchstart', () => {
+                card.classList.add('bg-surface-container');
+            });
+            card.addEventListener('touchend', () => {
+                card.classList.remove('bg-surface-container');
+            });
+        });
+
+        // Toggle FAB scale on scroll for focus
+        let lastScrollY = window.scrollY;
+        const fab = document.querySelector('button.fixed.bottom-24');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > lastScrollY && window.scrollY > 100) {
+                fab.style.transform = 'scale(0.8) translateY(20px)';
+                fab.style.opacity = '0.5';
+            } else {
+                fab.style.transform = 'scale(1) translateY(0)';
+                fab.style.opacity = '1';
+            }
+            lastScrollY = window.scrollY;
+        });
+    </script>
+
+
+</body></html>
