@@ -1,0 +1,30 @@
+.login-content {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 24px;
+  --padding-bottom: 24px;
+}
+
+.login-shell {
+  max-width: 520px;
+  margin: 0 auto;
+  display: grid;
+  gap: 20px;
+  min-height: 100%;
+  align-content: center;
+}
+
+.logo-box h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.logo-box p {
+  margin: 4px 0 0;
+  opacity: 0.75;
+}
+
+.logo-box h1 {
+  position: center;
+}

@@ -1,239 +1,29 @@
-<!-- Inicio de Sesión - SSEI -->
-<!DOCTYPE html><html class="light" lang="es"><head>
-<meta charset="utf-8">
-<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
-<title>SSEI Login</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
-<script id="tailwind-config">
-      tailwind.config = {
-        darkMode: "class",
-        theme: {
-          extend: {
-            "colors": {
-                    "inverse-primary": "#adc7f7",
-                    "secondary": "#0a6c44",
-                    "on-background": "#181c1e",
-                    "surface-dim": "#d7dadc",
-                    "on-primary": "#ffffff",
-                    "surface-tint": "#455f88",
-                    "background": "#f7fafc",
-                    "on-surface": "#181c1e",
-                    "surface-container-high": "#e5e9eb",
-                    "primary-fixed": "#d6e3ff",
-                    "inverse-on-surface": "#eef1f3",
-                    "on-primary-container": "#86a0cd",
-                    "on-secondary-fixed-variant": "#005231",
-                    "primary": "#002045",
-                    "tertiary-fixed-dim": "#ffb77d",
-                    "error": "#ba1a1a",
-                    "inverse-surface": "#2d3133",
-                    "on-error-container": "#93000a",
-                    "on-primary-fixed": "#001b3c",
-                    "surface-variant": "#e0e3e5",
-                    "tertiary": "#361900",
-                    "outline-variant": "#c4c6cf",
-                    "tertiary-fixed": "#ffdcc3",
-                    "on-tertiary": "#ffffff",
-                    "tertiary-container": "#552b00",
-                    "on-secondary-fixed": "#002111",
-                    "on-secondary": "#ffffff",
-                    "primary-fixed-dim": "#adc7f7",
-                    "on-tertiary-fixed-variant": "#6e3900",
-                    "primary-container": "#1a365d",
-                    "surface-container": "#ebeef0",
-                    "surface-bright": "#f7fafc",
-                    "surface": "#f7fafc",
-                    "on-tertiary-fixed": "#2f1500",
-                    "surface-container-lowest": "#ffffff",
-                    "secondary-container": "#9ff5c1",
-                    "secondary-fixed": "#9ff5c1",
-                    "error-container": "#ffdad6",
-                    "on-primary-fixed-variant": "#2d476f",
-                    "on-surface-variant": "#43474e",
-                    "surface-container-low": "#f1f4f6",
-                    "on-tertiary-container": "#eb851c",
-                    "outline": "#74777f",
-                    "surface-container-highest": "#e0e3e5",
-                    "secondary-fixed-dim": "#83d8a6",
-                    "on-secondary-container": "#167249",
-                    "on-error": "#ffffff"
-            },
-            "borderRadius": {
-                    "DEFAULT": "0.125rem",
-                    "lg": "0.25rem",
-                    "xl": "0.5rem",
-                    "full": "0.75rem"
-            },
-            "spacing": {
-                    "unit-8": "32px",
-                    "container-padding": "16px",
-                    "unit-12": "48px",
-                    "unit-2": "8px",
-                    "unit-3": "12px",
-                    "stack-gap": "12px",
-                    "unit-1": "4px",
-                    "unit-6": "24px",
-                    "unit-4": "16px",
-                    "base": "4px"
-            },
-            "fontFamily": {
-                    "label-sm": ["Inter"],
-                    "label-lg": ["Inter"],
-                    "headline-sm": ["Inter"],
-                    "body-lg": ["Inter"],
-                    "headline-lg": ["Inter"],
-                    "headline-lg-mobile": ["Inter"],
-                    "headline-md": ["Inter"],
-                    "body-md": ["Inter"],
-                    "label-md": ["Inter"]
-            },
-            "fontSize": {
-                    "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
-                    "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}],
-                    "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
-                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
-                    "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
-                    "headline-lg-mobile": ["22px", {"lineHeight": "28px", "fontWeight": "700"}],
-                    "headline-md": ["20px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
-                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
-                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600"}]
-            }
-          },
-        },
-      }
-    </script>
-<style>
-        body {
-            background-color: #F7FAFC;
-            font-family: 'Inter', sans-serif;
-            -webkit-font-smoothing: antialiased;
-        }
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
-        .login-card {
-            border: 1px solid #E2E8F0;
-        }
-        .animate-fade-in {
-            animation: fadeIn 0.8s ease-out forwards;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
-<style>
-    body {
-      min-height: max(884px, 100dvh);
-    }
-  </style>
-  </head>
-<body class="bg-background text-on-surface flex items-center justify-center min-h-screen p-container-padding overflow-hidden"><div class="fixed top-unit-4 right-unit-4 z-50">
-  <button id="theme-toggle" class="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-high text-on-surface hover:bg-surface-variant transition-colors shadow-sm">
-    <span class="material-symbols-outlined">dark_mode</span>
-  </button>
-</div>
-<!-- Login Shell Suppression: No TopAppBar or BottomNavBar as per Transactional Screen Rule -->
-<main class="w-full max-w-[720px] flex flex-col items-center gap-unit-8 animate-fade-in">
-<!-- Minimalist Logo -->
-<div class="flex flex-col items-center gap-unit-2">
-<div class="w-16 h-16 bg-primary flex items-center justify-center rounded-xl shadow-sm">
-<span class="material-symbols-outlined text-on-primary text-[32px]">engineering</span>
-</div>
-<div class="mt-unit-4 flex flex-col items-center text-center">
-<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-primary tracking-tight">SSEI Field Tech</h2>
-<p class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest mt-unit-1">Terminal Operativo</p>
-</div>
-</div>
-<!-- Welcome Section -->
-<div class="w-full text-center px-unit-4">
-<h1 class="font-headline-md text-headline-md text-on-surface mb-unit-2">Sistema de Reportes Técnicos SSEI</h1>
-<p class="font-body-md text-body-md text-on-surface-variant">Acceda a su terminal de campo mediante su cuenta corporativa</p>
-</div>
-<!-- Form Card -->
-<div class="w-full bg-surface-container-lowest p-unit-6 rounded-xl login-card flex flex-col gap-unit-6 max-w-sm">
-<!-- Email Input -->
-<div class="flex flex-col gap-unit-2">
-<label class="font-label-lg text-label-lg text-on-surface-variant" for="email">Correo Institucional</label>
-<div class="relative group">
-<span class="material-symbols-outlined absolute left-unit-4 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">mail</span>
-<input class="w-full h-unit-12 pl-12 pr-unit-4 bg-surface border border-outline-variant rounded-lg font-body-lg text-body-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all placeholder:text-outline/60" id="email" placeholder="ejemplo@empresa.cl" type="email">
-</div>
-</div>
-<!-- Google Workspace Button -->
-<button class="w-full h-unit-12 bg-primary text-on-primary rounded-lg font-label-lg text-label-lg flex items-center justify-center gap-unit-3 active:scale-95 transition-transform duration-100 hover:opacity-90 shadow-sm">
-<svg fill="none" height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
-<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
-<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
-<path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"></path>
-<path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path>
-</svg>
-                Continuar con Google Workspace
-            </button>
-<!-- Forgot Password Placeholder -->
-<div class="text-center">
-<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary transition-colors underline decoration-outline-variant" href="#">¿Problemas para ingresar? Contactar Soporte IT</a>
-</div>
-</div>
-<!-- Aesthetic Background Decoration (Subtle) -->
-<div class="fixed top-0 right-0 w-64 h-64 opacity-5 pointer-events-none -mr-32 -mt-32 rounded-full bg-primary-container"></div>
-<div class="fixed bottom-0 left-0 w-48 h-48 opacity-5 pointer-events-none -ml-24 -mb-24 rounded-full bg-secondary-container"></div>
-<!-- Footer Note -->
-<footer class="mt-auto pt-unit-8 w-full text-center px-unit-6">
-<div class="flex items-center justify-center gap-unit-1 mb-unit-2">
-<span class="material-symbols-outlined text-[16px] text-error">lock</span>
-<p class="font-label-sm text-label-sm text-on-surface-variant">Servidor Seguro SSEI-v2.0.4</p>
-</div>
-<p class="font-label-sm text-label-sm text-on-surface-variant leading-relaxed opacity-70">
-                Acceso exclusivo para personal autorizado en terreno. <br> Todas las actividades son monitoreadas para fines de seguridad y auditoría.
-            </p>
-</footer>
-</main>
-<!-- Contextual Logic for Login Screens -->
-<script>
-        // Micro-interaction for input focus
-        const emailInput = document.getElementById('email');
-        emailInput.addEventListener('focus', () => {
-            document.querySelector('.login-card').style.boxShadow = '0 10px 25px -5px rgba(0, 32, 69, 0.05)';
-        });
-        emailInput.addEventListener('blur', () => {
-            document.querySelector('.login-card').style.boxShadow = 'none';
-        });
+<ion-content [fullscreen]="true" class="login-content">
+  <div class="login-shell">
+    <div class="logo-box">
+      <h1 class="logo" title="SSEI">SSEI</h1>
+      <p>Sistema de seguimiento de trabajos </p>
+    </div>
 
-        // Simple button active state simulation
-        document.querySelector('button').addEventListener('click', function() {
-            this.innerHTML = `
-                <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Conectando...
-            `;
-            setTimeout(() => {
-                alert('Redirigiendo a autenticación de Google Workspace...');
-                location.reload();
-            }, 1500);
-        });
-    </script>
+    <ion-card>
+      <ion-card-content>
+        <ion-item lines="none">
+          <ion-label position="stacked">Correo Institucional</ion-label>
+          <ion-input
+            type="email"
+            placeholder="ejemplo@ssei.cl"
+            [(ngModel)]="email">
+          </ion-input>
+        </ion-item>
 
+        <ion-button expand="block" (click)="onLogin()" [disabled]="isLoading">
+          {{ isLoading ? 'Conectando...' : 'Continuar con Google Workspace' }}
+        </ion-button>
 
-<script>
-  const themeToggle = document.getElementById('theme-toggle');
-  const htmlElement = document.documentElement;
-  const icon = themeToggle.querySelector('.material-symbols-outlined');
-
-  themeToggle.addEventListener('click', () => {
-    if (htmlElement.classList.contains('dark')) {
-      htmlElement.classList.remove('dark');
-      htmlElement.classList.add('light');
-      icon.textContent = 'dark_mode';
-    } else {
-      htmlElement.classList.remove('light');
-      htmlElement.classList.add('dark');
-      icon.textContent = 'light_mode';
-    }
-  });
-</script></body></html>
+        <ion-button fill="clear" size="small" expand="block">
+          ¿Problemas para ingresar? Contactar Soporte IT
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
+  </div>
+</ion-content>

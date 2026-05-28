@@ -1,0 +1,28 @@
+.page-content {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 16px;
+  --padding-bottom: 24px;
+}
+
+.service-row {
+  border: 1px solid var(--ion-color-step-150, #e6e6e6);
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.qty-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin: 12px 0 6px;
+}

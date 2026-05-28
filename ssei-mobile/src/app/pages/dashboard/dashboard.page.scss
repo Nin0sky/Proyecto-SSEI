@@ -1,0 +1,33 @@
+.dashboard-content {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 16px;
+  --padding-bottom: 90px;
+}
+
+.offline-banner {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: #d97706;
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.section {
+  margin-bottom: 20px;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.bottom-nav {
+  width: 100%;
+  justify-content: space-around;
+}

@@ -1,20 +1,79 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonContent, IonHeader, IonTitle, IonToolbar } from '@ionic/angular/standalone';
+import { RouterLink } from '@angular/router';
+import {
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonContent,
+  IonCard,
+  IonCardHeader,
+  IonCardTitle,
+  IonCardContent,
+  IonItem,
+  IonLabel,
+  IonInput,
+  IonSelect,
+  IonSelectOption,
+  IonTextarea,
+  IonButton,
+  IonButtons,
+  IonFooter,
+} from '@ionic/angular/standalone';
+
+interface ServicioEjecutado {
+  tipo: string;
+  cantidad: number;
+}
 
 @Component({
   selector: 'app-formulario-ot',
   templateUrl: './formulario-ot.page.html',
   styleUrls: ['./formulario-ot.page.scss'],
   standalone: true,
-  imports: [IonContent, IonHeader, IonTitle, IonToolbar, CommonModule, FormsModule]
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    IonContent,
+    IonCard,
+    IonCardHeader,
+    IonCardTitle,
+    IonCardContent,
+    IonItem,
+    IonLabel,
+    IonInput,
+    IonSelect,
+    IonSelectOption,
+    IonTextarea,
+    IonButton,
+    IonButtons,
+    IonFooter
+  ]
 })
-export class FormularioOtPage implements OnInit {
+export class FormularioOtPage {
+  servicios: ServicioEjecutado[] = [{ tipo: 'instalacion', cantidad: 1 }];
 
-  constructor() { }
+  atmIndividualId = '';
+  serieChasis = '';
+  serieMmbb = '';
+  observaciones = '';
 
-  ngOnInit() {
+  agregarServicio(): void {
+    this.servicios.push({ tipo: 'instalacion', cantidad: 1 });
   }
 
+  increment(index: number): void {
+    this.servicios[index].cantidad += 1;
+  }
+
+  decrement(index: number): void {
+    if (this.servicios[index].cantidad > 1) {
+      this.servicios[index].cantidad -= 1;
+    }
+  }
 }

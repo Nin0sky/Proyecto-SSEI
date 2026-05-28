@@ -1,20 +1,58 @@
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonContent, IonHeader, IonTitle, IonToolbar } from '@ionic/angular/standalone';
+import { RouterLink } from '@angular/router';
+import {
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonContent,
+  IonCard,
+  IonCardContent,
+  IonItem,
+  IonLabel,
+  IonInput,
+  IonSelect,
+  IonSelectOption,
+  IonButton
+} from '@ionic/angular/standalone';
 
 @Component({
   selector: 'app-registro-otubi',
   templateUrl: './registro-otubi.page.html',
   styleUrls: ['./registro-otubi.page.scss'],
   standalone: true,
-  imports: [IonContent, IonHeader, IonTitle, IonToolbar, CommonModule, FormsModule]
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    IonContent,
+    IonCard,
+    IonCardContent,
+    IonItem,
+    IonLabel,
+    IonInput,
+    IonSelect,
+    IonSelectOption,
+    IonButton
+  ]
 })
-export class RegistroOTUBIPage implements OnInit {
+export class RegistroOTUBIPage {
+  cliente = '';
+  atmId = '';
+  comuna = '—';
+  direccion = '—';
 
-  constructor() { }
-
-  ngOnInit() {
+  onAtmInput(): void {
+    if (this.atmId.trim().length >= 4) {
+      this.comuna = 'Santiago';
+      this.direccion = "Av. Libertador Bernardo O'Higgins 1234";
+    } else {
+      this.comuna = '—';
+      this.direccion = '—';
+    }
   }
-
 }

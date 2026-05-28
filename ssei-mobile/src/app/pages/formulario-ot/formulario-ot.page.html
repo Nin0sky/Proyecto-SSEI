@@ -1,307 +1,85 @@
-<!-- Registro OT: Servicios (Fotos y Daños) v2 -->
-<!DOCTYPE html><html class="light" lang="es"><head>
-<meta charset="utf-8">
-<meta content="width=device-width, initial-scale=1.0" name="viewport">
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
-<script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    "colors": {
-                        "inverse-primary": "#adc7f7",
-                        "secondary": "#0a6c44",
-                        "on-background": "#181c1e",
-                        "surface-dim": "#d7dadc",
-                        "on-primary": "#ffffff",
-                        "surface-tint": "#455f88",
-                        "background": "#f7fafc",
-                        "on-surface": "#181c1e",
-                        "surface-container-high": "#e5e9eb",
-                        "primary-fixed": "#d6e3ff",
-                        "inverse-on-surface": "#eef1f3",
-                        "on-primary-container": "#86a0cd",
-                        "on-secondary-fixed-variant": "#005231",
-                        "primary": "#002045",
-                        "tertiary-fixed-dim": "#ffb77d",
-                        "error": "#ba1a1a",
-                        "inverse-surface": "#2d3133",
-                        "on-error-container": "#93000a",
-                        "on-primary-fixed": "#001b3c",
-                        "surface-variant": "#e0e3e5",
-                        "tertiary": "#361900",
-                        "outline-variant": "#c4c6cf",
-                        "tertiary-fixed": "#ffdcc3",
-                        "on-tertiary": "#ffffff",
-                        "tertiary-container": "#552b00",
-                        "on-secondary-fixed": "#002111",
-                        "on-secondary": "#ffffff",
-                        "primary-fixed-dim": "#adc7f7",
-                        "on-tertiary-fixed-variant": "#6e3900",
-                        "primary-container": "#1a365d",
-                        "surface-container": "#ebeef0",
-                        "surface-bright": "#f7fafc",
-                        "surface": "#f7fafc",
-                        "on-tertiary-fixed": "#2f1500",
-                        "surface-container-lowest": "#ffffff",
-                        "secondary-container": "#9ff5c1",
-                        "secondary-fixed": "#9ff5c1",
-                        "error-container": "#ffdad6",
-                        "on-primary-fixed-variant": "#2d476f",
-                        "on-surface-variant": "#43474e",
-                        "surface-container-low": "#f1f4f6",
-                        "on-tertiary-container": "#eb851c",
-                        "outline": "#74777f",
-                        "surface-container-highest": "#e0e3e5",
-                        "secondary-fixed-dim": "#83d8a6",
-                        "on-secondary-container": "#167249",
-                        "on-error": "#ffffff"
-                    },
-                    "borderRadius": {
-                        "DEFAULT": "0.125rem",
-                        "lg": "0.25rem",
-                        "xl": "0.5rem",
-                        "full": "0.75rem"
-                    },
-                    "spacing": {
-                        "unit-8": "32px",
-                        "container-padding": "16px",
-                        "unit-12": "48px",
-                        "unit-2": "8px",
-                        "unit-3": "12px",
-                        "stack-gap": "12px",
-                        "unit-1": "4px",
-                        "unit-6": "24px",
-                        "unit-4": "16px",
-                        "base": "4px"
-                    },
-                    "fontFamily": {
-                        "label-sm": ["Inter"],
-                        "label-lg": ["Inter"],
-                        "headline-sm": ["Inter"],
-                        "body-lg": ["Inter"],
-                        "headline-lg": ["Inter"],
-                        "headline-lg-mobile": ["Inter"],
-                        "headline-md": ["Inter"],
-                        "body-md": ["Inter"],
-                        "label-md": ["Inter"]
-                    },
-                    "fontSize": {
-                        "label-sm": ["11px", {"lineHeight": "14px", "fontWeight": "500"}],
-                        "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600"}],
-                        "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
-                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
-                        "headline-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
-                        "headline-lg-mobile": ["22px", {"lineHeight": "28px", "fontWeight": "700"}],
-                        "headline-md": ["20px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
-                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
-                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "600"}]
-                    }
-                },
-            },
-        }
-    </script>
-<style>
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: #1a365d !important;
-            box-shadow: 0 0 0 1px #1a365d;
-        }
-    </style>
-<style>
-    body {
-      min-height: max(884px, 100dvh);
-    }
-  </style>
-</head>
-<body class="bg-background text-on-surface font-body-md min-h-screen pb-unit-12">
-<!-- Top AppBar -->
-<header class="fixed top-0 w-full z-50 flex justify-between items-center px-container-padding h-unit-12 bg-surface border-b border-outline-variant transition-colors duration-200">
-<div class="flex items-center gap-unit-2">
-<button class="material-symbols-outlined text-primary hover:bg-surface-container rounded-full p-unit-1 transition-colors">menu</button>
-<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-primary">SSEI Field Tech</h1>
-</div>
-<button class="material-symbols-outlined text-primary hover:bg-surface-container rounded-full p-unit-1 transition-colors">sync</button><button class="material-symbols-outlined text-primary hover:bg-surface-container rounded-full p-unit-1 transition-colors">nights_stay</button>
-</header>
-<main class="mt-unit-12 px-container-padding pt-unit-6 max-w-[720px] mx-auto">
-<!-- Progress Bar -->
-<nav class="flex items-center justify-between mb-unit-8 w-full relative">
-<div class="absolute top-1/2 left-0 w-full h-[2px] bg-outline-variant -z-10 -translate-y-1/2"></div>
-<div class="flex flex-col items-center gap-unit-1">
-<div class="w-8 h-8 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-label-lg text-label-lg">
-<span class="material-symbols-outlined text-[18px]">check</span>
-</div>
-<span class="font-label-sm text-label-sm text-on-surface-variant">1. Ubicación</span>
-</div>
-<div class="flex flex-col items-center gap-unit-1">
-<div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center font-label-lg text-label-lg">2</div>
-<span class="font-label-lg text-label-lg text-primary font-bold">2. Servicios</span>
-</div>
-<div class="flex flex-col items-center gap-unit-1">
-<div class="w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant text-on-surface-variant flex items-center justify-center font-label-lg text-label-lg">3</div>
-<span class="font-label-sm text-label-sm text-on-surface-variant">3. Cierre</span>
-</div>
-</nav>
-<!-- Form Content -->
-<section class="space-y-unit-6">
-<!-- Section: Servicios Ejecutados -->
-<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-unit-4">
-<div class="flex items-center gap-unit-2 mb-unit-4">
-<span class="material-symbols-outlined text-primary">engineering</span>
-<h2 class="font-headline-sm text-headline-sm text-on-surface">Servicios Ejecutados</h2>
-</div>
-<div class="space-y-unit-4" id="services-container">
-<!-- Service Item Row -->
-<div class="grid grid-cols-12 gap-unit-3 items-end">
-<div class="col-span-8 flex flex-col gap-unit-1">
-<label class="font-label-md text-label-md text-on-surface-variant">Tipo de Servicio</label>
-<select class="h-unit-12 w-full px-unit-3 bg-surface border border-outline-variant rounded-lg text-body-md appearance-none">
-<option value="instalacion">Instalación</option>
-<option value="desanclaje">Desanclaje</option>
-<option value="mantenimiento">Mantenimiento</option>
-<option value="grafica">Gráfica</option>
-</select>
-</div>
-<div class="col-span-4 flex flex-col gap-unit-1">
-<label class="font-label-md text-label-md text-on-surface-variant text-center">Cantidad</label>
-<div class="flex h-unit-12 items-center border border-outline-variant rounded-lg bg-surface overflow-hidden">
-<button class="flex-1 h-full hover:bg-surface-container active:bg-surface-container-high transition-colors" onclick="decrement(this)">
-<span class="material-symbols-outlined text-[20px]">remove</span>
-</button>
-<input class="w-10 text-center border-none bg-transparent font-label-lg focus:ring-0 p-0" min="1" readonly="" type="number" value="1">
-<button class="flex-1 h-full hover:bg-surface-container active:bg-surface-container-high transition-colors" onclick="increment(this)">
-<span class="material-symbols-outlined text-[20px]">add</span>
-</button>
-</div>
-</div>
-</div>
-</div>
-<button class="mt-unit-4 w-full flex items-center justify-center gap-unit-2 h-unit-12 border-2 border-primary text-primary font-label-lg rounded-xl hover:bg-surface-container transition-all active:scale-95">
-<span class="material-symbols-outlined">add_circle</span>
-                    + Agregar otro servicio a esta visita
-                </button>
-</div>
-<!-- Dynamic Hardware Section -->
-<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-unit-4">
-<div class="flex items-center gap-unit-2 mb-unit-4">
-<span class="material-symbols-outlined text-primary">barcode_scanner</span>
-<h2 class="font-headline-sm text-headline-sm text-on-surface">Trazabilidad de Componentes</h2>
-</div>
-<div class="space-y-unit-4">
-<div class="flex flex-col gap-unit-1">
-<label class="font-label-md text-label-md text-on-surface font-bold">ID Individual del ATM*</label>
-<input class="h-unit-12 px-unit-3 border border-outline-variant rounded-lg bg-surface" placeholder="Ej: 6122" required="" type="text">
-</div>
-<div class="flex flex-col gap-unit-1">
-<label class="font-label-md text-label-md text-on-surface font-bold">Número de Serie Chasis/Cajero*</label>
-<div class="relative">
-<input class="w-full h-unit-12 pl-unit-3 pr-unit-12 border border-outline-variant rounded-lg bg-surface uppercase" placeholder="Ej: 1522FH054232" required="" type="text">
-<button class="absolute right-2 top-1/2 -translate-y-1/2 material-symbols-outlined text-primary p-2">photo_camera</button>
-</div>
-</div>
-<div class="flex flex-col gap-unit-1">
-<label class="font-label-md text-label-md text-on-surface font-bold">Número de Serie Mecanismo Dispensador (MMBB)*</label>
-<div class="relative">
-<input class="w-full h-unit-12 pl-unit-3 pr-unit-12 border border-outline-variant rounded-lg bg-surface uppercase" placeholder="EJ: LL/001-34" required="" type="text">
-<button class="absolute right-2 top-1/2 -translate-y-1/2 material-symbols-outlined text-primary p-2">photo_camera</button>
-</div>
-</div>
-</div>
-</div>
-<!-- Section: Reportar Daños -->
-<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-unit-4">
-<div class="flex items-center gap-unit-2 mb-unit-4">
-<span class="material-symbols-outlined text-primary">report_problem</span>
-<h2 class="font-headline-sm text-headline-sm text-on-surface">Reportar Daños</h2>
-</div>
-<div class="space-y-unit-4">
-<button class="w-full h-32 border-2 border-dashed border-outline-variant rounded-xl flex flex-col items-center justify-center gap-unit-2 text-on-surface-variant hover:bg-surface-container-low transition-colors">
-<span class="material-symbols-outlined text-[40px]">photo_camera</span>
-<span class="font-label-lg">Tomar foto de daño</span>
-</button>
-<div class="flex flex-col gap-unit-1">
-<textarea class="w-full min-h-[100px] p-unit-3 border border-outline-variant rounded-lg bg-surface text-body-md" placeholder="Observaciones de daños encontrados..."></textarea>
-</div>
-</div>
-</div>
-<!-- Section: Fotos Adicionales -->
-<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-unit-4">
-<div class="flex items-center gap-unit-2 mb-unit-4">
-<span class="material-symbols-outlined text-primary">add_a_photo</span>
-<h2 class="font-headline-sm text-headline-sm text-on-surface">Fotos Adicionales</h2>
-</div>
-<button class="w-full h-24 border-2 border-dashed border-outline-variant rounded-xl flex flex-col items-center justify-center gap-unit-1 text-on-surface-variant hover:bg-surface-container-low transition-colors">
-<span class="material-symbols-outlined text-[32px]">camera_enhance</span>
-<span class="font-label-lg">Presiona para añadir foto</span>
-</button>
-</div>
-<!-- Security Field -->
-<div class="bg-surface-container-low border border-outline-variant rounded-xl p-unit-4">
-<div class="flex flex-col gap-unit-1">
-<div class="flex items-center gap-unit-2 mb-unit-1">
-<span class="material-symbols-outlined text-secondary">verified_user</span>
-<label class="font-label-md text-label-md text-on-surface font-bold">Código de Autorización UCENCO (Zonas)</label>
-</div>
-<input class="h-unit-12 px-unit-4 border border-outline-variant rounded-lg bg-surface text-headline-sm tracking-widest text-center" maxlength="6" placeholder="Ingrese código de 6 dígitos" type="text">
-</div>
-</div>
-<!-- Navigation Buttons -->
-<div class="flex gap-unit-3 pt-unit-4">
-<button class="flex-1 h-unit-12 border-2 border-primary text-primary font-label-lg rounded-xl hover:bg-surface-container-high transition-all active:scale-95">
-                    Atrás
-                </button>
-<button class="flex-[1.5] h-unit-12 bg-primary text-on-primary font-label-lg rounded-xl shadow-md hover:opacity-90 transition-all active:scale-95 flex items-center justify-center gap-unit-2">
-                    Siguiente: Firmas y Cierre
-                    <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
-</button>
-</div>
-</section>
-</main>
-<!-- Bottom Navigation Bar -->
-<nav class="fixed bottom-0 w-full z-50 flex justify-around items-center px-unit-2 pb-safe h-unit-12 bg-surface border-t border-outline-variant">
-<div class="flex flex-col items-center justify-center text-on-surface-variant px-unit-4 py-unit-1 transition-transform duration-100 active:scale-95">
-<span class="material-symbols-outlined">dashboard</span>
-<span class="font-label-sm text-label-sm">Dashboard</span>
-</div>
-<div class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-unit-4 py-unit-1 transition-transform duration-100 active:scale-95">
-<span class="material-symbols-outlined" style="font-variation-settings: &quot;FILL&quot; 1;">assignment</span>
-<span class="font-label-sm text-label-sm">Work Orders</span>
-</div>
-<div class="flex flex-col items-center justify-center text-on-surface-variant px-unit-4 py-unit-1 transition-transform duration-100 active:scale-95">
-<span class="material-symbols-outlined">history</span>
-<span class="font-label-sm text-label-sm">History</span>
-</div>
-<div class="flex flex-col items-center justify-center text-on-surface-variant px-unit-4 py-unit-1 transition-transform duration-100 active:scale-95">
-<span class="material-symbols-outlined">person</span>
-<span class="font-label-sm text-label-sm">Profile</span>
-</div>
-</nav>
-<script>
-        function increment(btn) {
-            const input = btn.parentNode.querySelector('input');
-            input.value = parseInt(input.value) + 1;
-        }
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-title>Registro OT - Servicios</ion-title>
+  </ion-toolbar>
+</ion-header>
 
-        function decrement(btn) {
-            const input = btn.parentNode.querySelector('input');
-            if (parseInt(input.value) > 1) {
-                input.value = parseInt(input.value) - 1;
-            }
-        }
+<ion-content [fullscreen]="true" class="page-content">
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Servicios Ejecutados</ion-card-title>
+    </ion-card-header>
 
-        document.querySelectorAll('button').forEach(btn => {
-            btn.addEventListener('touchstart', () => {
-                if ('vibrate' in navigator) {
-                    navigator.vibrate(5);
-                }
-            });
-        });
-    </script>
+    <ion-card-content>
+      <div class="service-row" *ngFor="let s of servicios; let i = index">
+        <ion-item>
+          <ion-label position="stacked">Tipo de Servicio</ion-label>
+          <ion-select [(ngModel)]="s.tipo" interface="popover">
+            <ion-select-option value="instalacion">Instalación</ion-select-option>
+            <ion-select-option value="desanclaje">Desanclaje</ion-select-option>
+            <ion-select-option value="mantenimiento">Mantenimiento</ion-select-option>
+            <ion-select-option value="grafica">Gráfica</ion-select-option>
+          </ion-select>
+        </ion-item>
 
+        <div class="qty-controls">
+          <ion-button fill="outline" (click)="decrement(i)">-</ion-button>
+          <span>{{ s.cantidad }}</span>
+          <ion-button fill="outline" (click)="increment(i)">+</ion-button>
+        </div>
+      </div>
 
-</body></html>
+      <ion-button expand="block" fill="outline" (click)="agregarServicio()">
+        Agregar otro servicio
+      </ion-button>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Trazabilidad de Componentes</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-item>
+        <ion-label position="stacked">ID Individual del ATM</ion-label>
+        <ion-input [(ngModel)]="atmIndividualId"></ion-input>
+      </ion-item>
+      <ion-item>
+        <ion-label position="stacked">Serie Chasis/Cajero</ion-label>
+        <ion-input [(ngModel)]="serieChasis"></ion-input>
+      </ion-item>
+      <ion-item>
+        <ion-label position="stacked">Serie Mecanismo (MMBB)</ion-label>
+        <ion-input [(ngModel)]="serieMmbb"></ion-input>
+      </ion-item>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Reportar Daños</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-item>
+        <ion-label position="stacked">Observaciones</ion-label>
+        <ion-textarea [(ngModel)]="observaciones"></ion-textarea>
+      </ion-item>
+    </ion-card-content>
+  </ion-card>
+
+  <div class="actions">
+    <ion-button fill="outline" [routerLink]="['/registro-otubi']">Atrás</ion-button>
+    <ion-button [routerLink]="['/dashboard']">Siguiente: Cierre</ion-button>
+  </div>
+</ion-content>
+
+<ion-footer>
+  <ion-toolbar>
+    <ion-buttons class="bottom-nav" slot="start">
+      <ion-button [routerLink]="['/dashboard']">Mis Ordenes</ion-button>
+      <ion-button [routerLink]="['/formulario-ot']">Formulario OT</ion-button>
+      <ion-button [routerLink]="['/registro-otubi']">Historial</ion-button>
+      <ion-button [routerLink]="['/login']">Perfil</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-footer>
