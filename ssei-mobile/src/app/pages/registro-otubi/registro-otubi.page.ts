@@ -14,10 +14,12 @@ import {
   IonInput,
   IonSelect,
   IonSelectOption,
-  IonButton
+  IonButton,
+  IonIcon,
 } from '@ionic/angular/standalone';
 import { OtContextService, OtFotoReporte } from '../../ot-context.service';
-
+import { addIcons } from 'ionicons';
+import { cloudUploadOutline } from 'ionicons/icons'
 @Component({
   selector: 'app-registro-otubi',
   templateUrl: './registro-otubi.page.html',
@@ -38,7 +40,8 @@ import { OtContextService, OtFotoReporte } from '../../ot-context.service';
     IonInput,
     IonSelect,
     IonSelectOption,
-    IonButton
+    IonButton,
+    IonIcon
   ]
 })
 export class RegistroOTUBIPage {
@@ -48,7 +51,9 @@ export class RegistroOTUBIPage {
   direccion = '—';
   fotosAtmActual: OtFotoReporte[] = [];
 
-  constructor(private readonly otContextService: OtContextService) {}
+  constructor(private readonly otContextService: OtContextService) {
+    addIcons({ cloudUploadOutline });
+  }
 
   get cliente(): string {
     return this.otContextService.cliente;
@@ -159,4 +164,5 @@ export class RegistroOTUBIPage {
       reader.readAsDataURL(file);
     });
   }
+  
 }

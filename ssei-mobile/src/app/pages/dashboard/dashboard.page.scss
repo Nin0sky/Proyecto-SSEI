@@ -32,3 +32,59 @@
   justify-content: space-around;
 }
 
+:host {
+  --ssei-turquoise: #14b8a6;
+  --ssei-turquoise-strong: #0f766e;
+  --ssei-hover-lift: -1px;
+  --ssei-hover-scale: 1.02;
+}
+
+/* Botones del dashboard */
+#header-toolbar ion-button,
+.bottom-nav ion-button,
+ion-fab-button {
+  --color-hover: var(--ssei-turquoise);
+  --background-hover: rgba(20, 184, 166, 0.12);
+  --ripple-color: rgba(20, 184, 166, 0.25);
+}
+
+/* Transicion suave en el elemento nativo del boton */
+#header-toolbar ion-button::part(native),
+.bottom-nav ion-button::part(native),
+ion-fab-button::part(native) {
+  transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease, background-color 180ms ease, color 180ms ease;
+}
+
+/* Hover solo en dispositivos con mouse */
+@media (hover: hover) and (pointer: fine) {
+  #header-toolbar ion-button:hover::part(native),
+  .bottom-nav ion-button:hover::part(native),
+  ion-fab-button:hover::part(native) {
+    transform: translateY(var(--ssei-hover-lift)) scale(var(--ssei-hover-scale));
+    filter: saturate(1.08);
+    box-shadow: 0 6px 14px rgba(15, 118, 110, 0.25);
+  }
+
+  /* FAB con realce un poco mayor */
+  ion-fab-button:hover {
+    --background: var(--ssei-turquoise);
+    --background-hover: var(--ssei-turquoise-strong);
+    --color: #ffffff;
+  }
+}
+
+/* Feedback en touch (movil) */
+#header-toolbar ion-button:active::part(native),
+.bottom-nav ion-button:active::part(native),
+ion-fab-button:active::part(native) {
+  transform: scale(0.98);
+}
+
+/* Respeta usuarios con animaciones reducidas */
+@media (prefers-reduced-motion: reduce) {
+  #header-toolbar ion-button::part(native),
+  .bottom-nav ion-button::part(native),
+  ion-fab-button::part(native) {
+    transition: none;
+  }
+}
