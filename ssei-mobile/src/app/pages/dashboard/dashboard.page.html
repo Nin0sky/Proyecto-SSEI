@@ -1,7 +1,7 @@
 <ion-header class="ion-no-border">
   <ion-toolbar>
     <ion-title>SSEI</ion-title>
-    <ion-icon name="shield-checkmark-outline" slot="center"  src="/assets/ssei.svg">SSEI</ion-icon>
+    <ion-icon name="shield-checkmark-outline" slot="center">SSEI</ion-icon>
     <ion-buttons slot="end">
       <ion-button fill="clear">
         <ion-icon name="sync-outline"></ion-icon>
@@ -59,11 +59,14 @@
     </ion-list>
   </section>
 
-  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-    <ion-fab-button color="primary" [routerLink]="['/formulario-ot']">
-      <ion-icon name="add-outline"></ion-icon>
-    </ion-fab-button>
-  </ion-fab>
+<ion-fab vertical="bottom" horizontal="end" slot="fixed">
+  <ion-fab-button color="primary" [routerLink]="['/formulario-ot']">
+  <ion-icon name="add-outline"></ion-icon>
+  </ion-fab-button>
+</ion-fab>
+
+<ion-button fill="clear"> <ion-icon slot="icon-only" name="add-outline"></ion-icon> </ion-button>
+
 </ion-content>
 
 <ion-footer>

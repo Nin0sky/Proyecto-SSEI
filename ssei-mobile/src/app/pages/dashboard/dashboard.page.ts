@@ -71,4 +71,12 @@ export class DashboardPage {
   get syncedCount(): number {
     return this.workOrders.filter(x => x.synced).length;
   }
+  constructor() {
+    addIcons({
+      addOutline,
+      syncOutline,
+      wifiOutline,
+      shieldCheckmarkOutline,
+    });
+  }
 }
