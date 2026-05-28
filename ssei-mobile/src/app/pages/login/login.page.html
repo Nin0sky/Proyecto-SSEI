@@ -2,22 +2,25 @@
   <div class="login-shell">
     <div class="logo-box">
       <h1 class="logo" title="SSEI">SSEI</h1>
+      <img src="assets/icon/ssei.ico" class="logo-image" />
       <p>Sistema de seguimiento de trabajos </p>
     </div>
 
     <ion-card>
       <ion-card-content>
-        <ion-item lines="none">
+        <ion-item lines="outline">
           <ion-label position="stacked">Correo Institucional</ion-label>
-          <ion-input
-            type="email"
-            placeholder="ejemplo@ssei.cl"
-            [(ngModel)]="email">
+          <ion-input type="email" placeholder="ejemplo@ssei.cl" [(ngModel)]="email">
+          </ion-input>
+        </ion-item>
+        <ion-item lines="outline">
+          <ion-label position="stacked">Contraseña</ion-label>
+          <ion-input type="password" placeholder="********">
           </ion-input>
         </ion-item>
 
         <ion-button expand="block" (click)="onLogin()" [disabled]="isLoading">
-          {{ isLoading ? 'Conectando...' : 'Continuar con Google Workspace' }}
+          {{ isLoading ? 'Conectando...' : 'Ingresar' }}
         </ion-button>
 
         <ion-button fill="clear" size="small" expand="block">
