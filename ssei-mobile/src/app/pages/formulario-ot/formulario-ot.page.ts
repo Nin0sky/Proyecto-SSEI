@@ -1,3 +1,5 @@
+import { HttpClient } from '@angular/common/http';
+import { PDFDocument, rgb } from 'pdf-lib';
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -67,7 +69,10 @@ export class FormularioOtPage {
   firmaETV = '';
   firmaAlarma = '';
 
-  constructor(private readonly otContextService: OtContextService) {
+  constructor(
+    private readonly otContextService: OtContextService,
+    private readonly http: HttpClient // Inyecta HttpClient para leer el asset de plantilla
+  ) {
     const atmsGuardados = this.otContextService.getAtms();
     this.atms = atmsGuardados.length > 0 ? atmsGuardados : [this.crearAtm(1)];
   }
@@ -126,5 +131,138 @@ export class FormularioOtPage {
       ...atm,
       etiqueta: `ATM ${index + 1}`,
     }));
+  }
+
+  // 1. Agrega el prefijo 'async' para admitir los 'await' en el interior
+  private async generarPdf(): Promise<Blob | null> {
+    try {
+      // Obtener el archivo base PDF verdadero desde los assets de Ionic
+      const urlPlantilla = 'assets/icon/templates/OT_base (5).pdf';
+      const arrayBufferBase = await this.http.get(urlPlantilla, { responseType: 'arraybuffer' }).toPromise();
+
+      if (!arrayBufferBase) {
+        throw new Error('No se pudo cargar la plantilla PDF.');
+      }
+
+      // Cargar el PDF en pdf-lib
+      const pdfDoc = await PDFDocument.load(arrayBufferBase);
+
+      // Obtener el formulario interactivo si el PDF tiene campos programables (AcroForm)
+      const form = pdfDoc.getForm();
+      const camposDisponibles = form.getFields().map(f => f.getName());
+      console.log('Campos interactivos encontrados en la plantilla:', camposDisponibles);
+
+      if (camposDisponibles.length > 0) {
+        // --- CASO A: Rellenar si el PDF es interactivo (tiene inputs nativos) ---
+        // Helper para escribir en un campo eliminando su maxLength primero
+        const escribir = (nombre: string, valor: string): void => {
+          const campo = form.getTextField(nombre);
+          if (campo) {
+            campo.setMaxLength(10000);
+            campo.setText(valor);
+          }
+        };
+
+        // 1. Datos estáticos / generales
+        escribir('Text1', this.otContextService.cliente || '');
+        escribir('Text8', this.nombreTecnico || '');
+        escribir('Text13', this.nombreETV || '');
+        escribir('Text12', this.nombreAlarma || '');
+        escribir('Text10', this.validacionZonas || '');
+        
+        // Formatear fecha del trabajo actual
+        const hoy = new Date().toLocaleDateString('es-CL');
+        escribir('Text5', hoy);
+        
+        // Cantidad de cajeros
+        escribir('Text7', this.atms.length.toString());
+
+        // 2. Resolver dirección, comuna y ubicación
+        if (this.atms.length > 0) {
+          const primerAtmNum = this.atms[0].numeroAtm.trim();
+          const comunaDetectada = primerAtmNum.length >= 4 ? 'Santiago' : '';
+          const direccionCompleta = primerAtmNum.length >= 4 ? "Av. Libertador Bernardo O'Higgins 1234" : '';
+          
+          escribir('Text6', comunaDetectada);
+          escribir('Text3', direccionCompleta);
+          escribir('Text2', primerAtmNum ? `ATM ${primerAtmNum}` : '');
+        }
+
+        // 3. Consolidar el detalle de todos los cajeros (ATMs) en el gran campo de detalleServicio (Text4)
+        let detalleCompilado = '';
+        this.atms.forEach((atm, i) => {
+          detalleCompilado += `[${atm.etiqueta}]\n`;
+          detalleCompilado += `Número ATM: ${atm.numeroAtm || 'Sin Número'}\n`;
+          detalleCompilado += `Servicio: ${atm.tipoServicio.toUpperCase()}\n`;
+          detalleCompilado += `Serie Cajero: ${atm.serieCajero || 'S/N'}\n`;
+          detalleCompilado += `Serie MMBB: ${atm.serieMmbb || 'S/N'}\n`;
+          if (atm.detallesServicio) {
+            detalleCompilado += `Detalle: ${atm.detallesServicio}\n`;
+          }
+          if (atm.observaciones) {
+            detalleCompilado += `Obs: ${atm.observaciones}\n`;
+          }
+          detalleCompilado += '---------------------------------\n';
+        });
+        
+        escribir('Text4', detalleCompilado);
+
+        // Asegura que los campos queden visualmente planos y no reactivos
+        form.flatten();
+      } else {
+        // --- CASO B: Dibujar texto por Coordenadas (si el PDF es estático) ---
+        const paginas = pdfDoc.getPages();
+        const primeraPagina = paginas[0];
+
+        // Coordenadas fijas donde situar la información estática
+        primeraPagina.drawText(this.nombreTecnico, { x: 100, y: 700, size: 10, color: rgb(0, 0, 0) });
+        primeraPagina.drawText(this.nombreETV, { x: 100, y: 680, size: 10 });
+        primeraPagina.drawText(this.nombreAlarma, { x: 100, y: 660, size: 10 });
+        primeraPagina.drawText(this.validacionZonas, { x: 100, y: 600, size: 9 });
+
+        // Iterar y dibujar los cajeros usando una proyección lineal decreciente
+        const yInicial = 500;
+        const pasoY = 40;
+        this.atms.forEach((atm, i) => {
+          const yActual = yInicial - (i * pasoY);
+          primeraPagina.drawText(atm.numeroAtm, { x: 80, y: yActual, size: 10 });
+          primeraPagina.drawText(atm.tipoServicio, { x: 180, y: yActual, size: 10 });
+          primeraPagina.drawText(atm.serieCajero, { x: 280, y: yActual, size: 10 });
+          primeraPagina.drawText(atm.serieMmbb, { x: 380, y: yActual, size: 10 });
+        });
+      }
+
+      // Salvar y compilar el documento rellenado
+      const pdfBytesBytes = await pdfDoc.save();
+
+      // Utilizar la propiedad .buffer forzada explícitamente a un ArrayBuffer estándar
+      const blob = new Blob([pdfBytesBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
+      return blob;
+
+    } catch (error) {
+      console.error('Error generando el archivo PDF:', error);
+      return null;
+    }
+  }
+
+  async descargarPdf(): Promise<void> {
+    const blob = await this.generarPdf();
+    if (blob) {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `OT_Tecnico_${this.nombreTecnico || 'Sin_Nombre'}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    }
+  }
+
+  async enviarPdf(): Promise<void> {
+    const blob = await this.generarPdf();
+    if (!blob) {
+      return;
+    }
+    // Lógica para enviar el archivo Blob mediante API POST a FastAPI o compartir mediante Capacitor Share
+    console.log('PDF listo para envío:', blob);
   }
 }

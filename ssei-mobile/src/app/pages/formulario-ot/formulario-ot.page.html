@@ -163,6 +163,8 @@
   <div class="actions">
     <ion-button fill="outline" [routerLink]="['/dashboard']">Atrás</ion-button>
     <ion-button [routerLink]="['/registro-otubi']">Siguiente: Cierre</ion-button>
+    <ion-button (click)="descargarPdf()">Descargar PDF</ion-button>
+    <ion-button (click)="enviarPdf()">Enviar PDF</ion-button>
   </div>
 
 </ion-content>
