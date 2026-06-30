@@ -1,0 +1,104 @@
+.loading-center { display: flex; justify-content: center; padding: 60px 0; }
+
+.detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .detail-title {
+    margin: 0 0 6px;
+    font-size: 22px;
+    font-weight: 600;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+  }
+}
+
+.estado-badge {
+  color: white;
+  padding: 3px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 16px;
+  margin-bottom: 16px;
+
+  @media (max-width: 800px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 24px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  .info-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: #888;
+    letter-spacing: 0.5px;
+  }
+}
+
+.estado-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.atms-card {
+  mat-card-title { display: flex; align-items: center; gap: 6px; }
+}
+
+.atms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.atm-card {
+  border-top: 3px solid #1976d2;
+}
+
+.atm-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.pre-wrap { white-space: pre-wrap; font-size: 13px; color: #444; margin: 4px 0 0; }
+
+.empty-state { color: #888; padding: 20px 0; }
+
+.error-card {
+  text-align: center;
+  padding: 32px;
+  mat-icon { font-size: 48px; width: 48px; height: 48px; display: block; margin: 0 auto 12px; }
+}

@@ -50,4 +50,37 @@ def init_db() -> None:
             )
             """
         )
+        # --- Órdenes de trabajo ---
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS ots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cliente TEXT NOT NULL DEFAULT '',
+                estado TEXT NOT NULL DEFAULT 'asignado',
+                fecha_creacion TEXT NOT NULL,
+                comuna TEXT NOT NULL DEFAULT '',
+                direccion TEXT NOT NULL DEFAULT '',
+                nombre_tecnico TEXT NOT NULL DEFAULT '',
+                nombre_etv TEXT NOT NULL DEFAULT '',
+                nombre_alarma TEXT NOT NULL DEFAULT '',
+                origen_servidor INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS ot_atms (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ot_id INTEGER NOT NULL,
+                etiqueta TEXT NOT NULL DEFAULT '',
+                tipo_servicio TEXT NOT NULL DEFAULT 'instalacion',
+                numero_atm TEXT NOT NULL DEFAULT '',
+                serie_cajero TEXT NOT NULL DEFAULT '',
+                serie_mmbb TEXT NOT NULL DEFAULT '',
+                detalles_servicio TEXT NOT NULL DEFAULT '',
+                observaciones TEXT NOT NULL DEFAULT '',
+                FOREIGN KEY (ot_id) REFERENCES ots(id) ON DELETE CASCADE
+            )
+            """
+        )
         connection.commit()

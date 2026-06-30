@@ -38,6 +38,37 @@
         <ion-label position="stacked">Dirección</ion-label>
         <ion-input [(ngModel)]="direccion" placeholder="Ingrese la dirección completa"></ion-input>
       </ion-item>
+
+      <!-- Búsqueda inteligente de dirección -->
+      <div class="ubicacion-search">
+        <ion-item>
+          <ion-label position="stacked">Buscar dirección</ion-label>
+          <ion-input
+            [(ngModel)]="busquedaDireccion"
+            (ionInput)="onBusquedaChange()"
+            (ionFocus)="mostrarSugerencias = sugerencias.length > 0"
+            (ionBlur)="cerrarSugerencias()"
+            placeholder="Ej: Av. Apoquindo 4501, Las Condes"
+            clearInput="true">
+          </ion-input>
+          <ion-button slot="end" fill="clear" [disabled]="buscandoGps" (click)="obtenerUbicacionGps()">
+            <ion-spinner *ngIf="buscandoGps" name="crescent" slot="icon-only"></ion-spinner>
+            <ion-icon *ngIf="!buscandoGps" name="location-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+        </ion-item>
+
+        <!-- Dropdown de sugerencias -->
+        <div class="sugerencias-lista" *ngIf="mostrarSugerencias && sugerencias.length > 0">
+          <div
+            class="sugerencia-item"
+            *ngFor="let s of sugerencias"
+            (mousedown)="seleccionarSugerencia(s)">
+            <ion-icon name="location-outline"></ion-icon>
+            <span>{{ s.display_name }}</span>
+          </div>
+        </div>
+      </div>
+
     </ion-card-content>
   </ion-card>
 
@@ -111,6 +142,11 @@
       </div>
     </ion-card-content>
   </ion-card>
+
+  <ion-button expand="block" color="success" (click)="guardar()">
+    Guardar trabajo
+    <ion-icon slot="end" name="cloud-upload-outline"></ion-icon>
+  </ion-button>
 
   <ion-button expand="block" shape="round" [routerLink]="['/formulario-ot']">
     Continuar al Formulario OT

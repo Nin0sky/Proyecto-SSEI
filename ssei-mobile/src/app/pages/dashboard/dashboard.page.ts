@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { addIcons } from 'ionicons';
 import { syncOutline, wifiOutline, addOutline, shieldCheckmarkOutline } from 'ionicons/icons';
 import {
@@ -21,14 +21,7 @@ import {
   IonFabButton,
   IonFooter
 } from '@ionic/angular/standalone';
-
-interface WorkOrder {
-  id: number;
-  atm: string;
-  bank: string;
-  location: string;
-  synced: boolean;
-}
+import { OtContextService, OtTrabajo, OtEstado } from '../../ot-context.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -57,26 +50,63 @@ interface WorkOrder {
   ]
 })
 export class DashboardPage {
-  workOrders: WorkOrder[] = [
-    { id: 1024, atm: 'ATM 6122', bank: 'Banco de Chile', location: 'Santiago Centro', synced: false },
-    { id: 1025, atm: 'ATM 8841', bank: 'Banco Estado', location: 'Las Condes', synced: true },
-    { id: 1028, atm: 'ATM 2210', bank: 'Santander', location: 'Providencia', synced: false },
-    { id: 1022, atm: 'ATM 5001', bank: 'Banco de Chile', location: 'Maipú', synced: true }
-  ];
+  workOrders: OtTrabajo[] = [];
+
+  constructor(
+    private readonly otContextService: OtContextService,
+    private readonly router: Router,
+  ) {
+    addIcons({ addOutline, syncOutline, wifiOutline, shieldCheckmarkOutline });
+  }
+
+  ionViewWillEnter(): void {
+    this.workOrders = this.otContextService.getTrabatos();
+  }
 
   get pendingCount(): number {
-    return this.workOrders.filter(x => !x.synced).length;
+    return this.workOrders.filter(x => x.estado !== 'sincronizado').length;
   }
 
   get syncedCount(): number {
-    return this.workOrders.filter(x => x.synced).length;
+    return this.workOrders.filter(x => x.estado === 'sincronizado').length;
   }
-  constructor() {
-    addIcons({
-      addOutline,
-      syncOutline,
-      wifiOutline,
-      shieldCheckmarkOutline,
-    });
+
+  badgeColor(estado: OtEstado): string {
+    const colores: Record<OtEstado, string> = {
+      asignado: 'warning',
+      en_progreso: 'primary',
+      pendiente_envio: 'danger',
+      sincronizado: 'success',
+    };
+    return colores[estado];
+  }
+
+  badgeLabel(estado: OtEstado): string {
+    const etiquetas: Record<OtEstado, string> = {
+      asignado: 'Asignado',
+      en_progreso: 'En Progreso',
+      pendiente_envio: 'Pendiente Envío',
+      sincronizado: 'Sincronizado',
+    };
+    return etiquetas[estado];
+  }
+
+  abrirTrabajo(id: string): void {
+    this.otContextService.cargarTrabajo(id);
+    this.router.navigate(['/registro-otubi']);
+  }
+
+  nuevoTrabajo(): void {
+    this.otContextService.crearTrabajo();
+    this.router.navigate(['/registro-otubi']);
+  }
+
+  tituloTrabajo(ot: OtTrabajo): string {
+    const numeros = ot.atms.map(a => a.numeroAtm.trim()).filter(n => n.length > 0);
+    if (numeros.length > 0) {
+      return numeros.length === 1 ? `ATM ${numeros[0]}` : `[${numeros.join('-')}]`;
+    }
+    return ot.id.startsWith('local-') ? 'Nuevo trabajo' : `#${ot.id}`;
   }
 }
+

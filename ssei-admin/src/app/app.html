@@ -1,0 +1,33 @@
+<mat-sidenav-container class="app-container">
+  <mat-sidenav mode="side" opened class="sidenav">
+    <div class="sidenav-header">
+      <mat-icon class="logo-icon">admin_panel_settings</mat-icon>
+      <span class="logo-text">SSEI Admin</span>
+    </div>
+
+    <mat-nav-list>
+      <a mat-list-item routerLink="/dashboard" routerLinkActive="active-link">
+        <mat-icon matListItemIcon>dashboard</mat-icon>
+        <span matListItemTitle>Dashboard</span>
+      </a>
+      <a mat-list-item routerLink="/ots" routerLinkActive="active-link" [routerLinkActiveOptions]="{exact: false}">
+        <mat-icon matListItemIcon>assignment</mat-icon>
+        <span matListItemTitle>Órdenes de trabajo</span>
+      </a>
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="main-content">
+    <mat-toolbar color="primary" class="main-toolbar">
+      <span>{{ title() }}</span>
+      <span class="toolbar-spacer"></span>
+      <a mat-stroked-button routerLink="/ots/nueva" color="accent" class="nueva-ot-btn">
+        <mat-icon>add</mat-icon> Nueva OT
+      </a>
+    </mat-toolbar>
+
+    <div class="content-area">
+      <router-outlet />
+    </div>
+  </mat-sidenav-content>
+</mat-sidenav-container>

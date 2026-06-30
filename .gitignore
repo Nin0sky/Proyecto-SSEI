@@ -1,6 +1,31 @@
+# Python
 __pycache__/
 *.pyc
 .venv/
 .env
 *.db
 .pytest_cache/
+data/*.db
+
+# Node / npm
+node_modules/
+package-lock.json
+
+# Ionic / Angular builds
+ssei-mobile/dist/
+ssei-mobile/www/
+ssei-admin/dist/
+
+# Capacitor Android — se regenera con: ionic build + npx cap sync android
+ssei-mobile/android/
+
+# Capacitor iOS — se regenera con: ionic build + npx cap sync ios
+ssei-mobile/ios/
+
+# Angular cache
+.angular/
+ssei-admin/.angular/
+ssei-mobile/.angular/
+
+# VS Code (quitar comentario si NO quieres subir config del workspace)
+# .vscode/

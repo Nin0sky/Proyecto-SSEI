@@ -99,15 +99,12 @@
             <ion-label position="stacked">Nombre del Tecnico</ion-label>
             <ion-input fill="outline" [(ngModel)]="nombreTecnico"></ion-input>
           </ion-item>
-          <ion-item lines="none" class="signature-box">
-            <ion-label position="stacked">Firma</ion-label>
-            <ion-textarea
-              rows="3"
-              autoGrow="false"
-              placeholder="Espacio para firma del tecnico"
-              [(ngModel)]="firmaTecnico"
-            ></ion-textarea>
-          </ion-item>
+          <div class="signature-box">
+            <app-signature-pad
+              label="Firma Técnico"
+              (firmaChange)="firmaTecnico = $event">
+            </app-signature-pad>
+          </div>
         </div>
 
         <div class="personal-row">
@@ -115,15 +112,12 @@
             <ion-label position="stacked">Nombre ETV</ion-label>
             <ion-input fill="outline" [(ngModel)]="nombreETV"></ion-input>
           </ion-item>
-          <ion-item lines="none" class="signature-box">
-            <ion-label position="stacked">Firma</ion-label>
-            <ion-textarea
-              rows="3"
-              autoGrow="false"
-              placeholder="Espacio para firma del personal ETV"
-              [(ngModel)]="firmaETV"
-            ></ion-textarea>
-          </ion-item>
+          <div class="signature-box">
+            <app-signature-pad
+              label="Firma ETV"
+              (firmaChange)="firmaETV = $event">
+            </app-signature-pad>
+          </div>
         </div>
 
         <div class="personal-row">
@@ -131,15 +125,12 @@
             <ion-label position="stacked">Nombre Alarma</ion-label>
             <ion-input fill="outline" [(ngModel)]="nombreAlarma"></ion-input>
           </ion-item>
-          <ion-item lines="none" class="signature-box">
-            <ion-label position="stacked">Firma</ion-label>
-            <ion-textarea
-              rows="3"
-              autoGrow="false"
-              placeholder="Espacio para firma del responsable de alarma"
-              [(ngModel)]="firmaAlarma"
-            ></ion-textarea>
-          </ion-item>
+          <div class="signature-box">
+            <app-signature-pad
+              label="Firma Alarma"
+              (firmaChange)="firmaAlarma = $event">
+            </app-signature-pad>
+          </div>
         </div>
       </div>
     </ion-card-content>
@@ -150,9 +141,9 @@
 
   <div class="actions">
     <ion-button fill="outline" [routerLink]="['/dashboard']">Atrás</ion-button>
-    <ion-button [routerLink]="['/registro-otubi']">Siguiente: Cierre</ion-button>
+    <ion-button [routerLink]="['/registro-otubi']">Siguiente</ion-button>
     <ion-button (click)="descargarPdf()">Descargar PDF</ion-button>
-    <ion-button (click)="enviarPdf()">Enviar PDF</ion-button>
+    <ion-button (click)="descargarPaquete()">Enviar PDF</ion-button>
   </div>
 
 </ion-content>

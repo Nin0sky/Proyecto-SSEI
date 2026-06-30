@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import Iterable
 
-from src.domain.models import Requirement, RequirementUseCaseTrace, UseCase
+from src.domain.models import Ot, OtAtm, Requirement, RequirementUseCaseTrace, UseCase
 from src.infrastructure.db import get_connection
 
 
@@ -203,4 +203,174 @@ class TraceabilityRepository:
             requirement_id=row["requirement_id"],
             use_case_id=row["use_case_id"],
             created_at=datetime.fromisoformat(row["created_at"]),
+        )
+
+
+# ---------------------------------------------------------------------------
+# OT Repositories
+# ---------------------------------------------------------------------------
+
+class OtAtmRepository:
+    def list_by_ot(self, ot_id: int) -> list[OtAtm]:
+        with get_connection() as connection:
+            rows = connection.execute(
+                "SELECT * FROM ot_atms WHERE ot_id = ? ORDER BY id",
+                (ot_id,),
+            ).fetchall()
+        return [self._row_to_entity(row) for row in rows]
+
+    def create(
+        self,
+        ot_id: int,
+        etiqueta: str,
+        tipo_servicio: str,
+        numero_atm: str,
+        serie_cajero: str,
+        serie_mmbb: str,
+        detalles_servicio: str,
+        observaciones: str,
+    ) -> OtAtm:
+        with get_connection() as connection:
+            cursor = connection.execute(
+                """
+                INSERT INTO ot_atms
+                    (ot_id, etiqueta, tipo_servicio, numero_atm, serie_cajero,
+                     serie_mmbb, detalles_servicio, observaciones)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (ot_id, etiqueta, tipo_servicio, numero_atm,
+                 serie_cajero, serie_mmbb, detalles_servicio, observaciones),
+            )
+            atm_id = cursor.lastrowid
+            connection.commit()
+        return self.get_by_id(atm_id)
+
+    def get_by_id(self, atm_id: int) -> OtAtm:
+        with get_connection() as connection:
+            row = connection.execute(
+                "SELECT * FROM ot_atms WHERE id = ?", (atm_id,)
+            ).fetchone()
+        return self._row_to_entity(row)
+
+    def delete_by_ot(self, ot_id: int) -> None:
+        with get_connection() as connection:
+            connection.execute("DELETE FROM ot_atms WHERE ot_id = ?", (ot_id,))
+            connection.commit()
+
+    @staticmethod
+    def _row_to_entity(row) -> OtAtm:
+        return OtAtm(
+            id=row["id"],
+            ot_id=row["ot_id"],
+            etiqueta=row["etiqueta"],
+            tipo_servicio=row["tipo_servicio"],
+            numero_atm=row["numero_atm"],
+            serie_cajero=row["serie_cajero"],
+            serie_mmbb=row["serie_mmbb"],
+            detalles_servicio=row["detalles_servicio"],
+            observaciones=row["observaciones"],
+        )
+
+
+class OtRepository:
+    def list_all(self, estado: str | None = None) -> list[Ot]:
+        with get_connection() as connection:
+            if estado:
+                rows = connection.execute(
+                    "SELECT * FROM ots WHERE estado = ? ORDER BY id DESC", (estado,)
+                ).fetchall()
+            else:
+                rows = connection.execute(
+                    "SELECT * FROM ots ORDER BY id DESC"
+                ).fetchall()
+        return [self._row_to_entity(row) for row in rows]
+
+    def create(
+        self,
+        cliente: str,
+        comuna: str,
+        direccion: str,
+        nombre_tecnico: str,
+        nombre_etv: str,
+        nombre_alarma: str,
+        origen_servidor: bool = True,
+    ) -> Ot:
+        fecha_creacion = datetime.now(UTC).isoformat()
+        with get_connection() as connection:
+            cursor = connection.execute(
+                """
+                INSERT INTO ots
+                    (cliente, estado, fecha_creacion, comuna, direccion,
+                     nombre_tecnico, nombre_etv, nombre_alarma, origen_servidor)
+                VALUES (?, 'asignado', ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (cliente, fecha_creacion, comuna, direccion,
+                 nombre_tecnico, nombre_etv, nombre_alarma, int(origen_servidor)),
+            )
+            ot_id = cursor.lastrowid
+            connection.commit()
+        return self.get_by_id(ot_id)
+
+    def get_by_id(self, ot_id: int) -> Ot | None:
+        with get_connection() as connection:
+            row = connection.execute(
+                "SELECT * FROM ots WHERE id = ?", (ot_id,)
+            ).fetchone()
+        if row is None:
+            return None
+        return self._row_to_entity(row)
+
+    def update(
+        self,
+        ot_id: int,
+        cliente: str,
+        comuna: str,
+        direccion: str,
+        nombre_tecnico: str,
+        nombre_etv: str,
+        nombre_alarma: str,
+    ) -> Ot | None:
+        with get_connection() as connection:
+            connection.execute(
+                """
+                UPDATE ots SET
+                    cliente = ?, comuna = ?, direccion = ?,
+                    nombre_tecnico = ?, nombre_etv = ?, nombre_alarma = ?
+                WHERE id = ?
+                """,
+                (cliente, comuna, direccion,
+                 nombre_tecnico, nombre_etv, nombre_alarma, ot_id),
+            )
+            connection.commit()
+        return self.get_by_id(ot_id)
+
+    def update_estado(self, ot_id: int, estado: str) -> Ot | None:
+        with get_connection() as connection:
+            connection.execute(
+                "UPDATE ots SET estado = ? WHERE id = ?", (estado, ot_id)
+            )
+            connection.commit()
+        return self.get_by_id(ot_id)
+
+    def delete(self, ot_id: int) -> bool:
+        with get_connection() as connection:
+            cursor = connection.execute(
+                "DELETE FROM ots WHERE id = ?", (ot_id,)
+            )
+            connection.commit()
+        return cursor.rowcount > 0
+
+    @staticmethod
+    def _row_to_entity(row) -> Ot:
+        return Ot(
+            id=row["id"],
+            cliente=row["cliente"],
+            estado=row["estado"],
+            fecha_creacion=datetime.fromisoformat(row["fecha_creacion"]),
+            comuna=row["comuna"],
+            direccion=row["direccion"],
+            nombre_tecnico=row["nombre_tecnico"],
+            nombre_etv=row["nombre_etv"],
+            nombre_alarma=row["nombre_alarma"],
+            origen_servidor=bool(row["origen_servidor"]),
         )

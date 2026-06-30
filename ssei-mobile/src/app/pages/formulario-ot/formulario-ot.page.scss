@@ -55,12 +55,13 @@ ion-segment {
 }
 
 .signature-box {
-  --background: #ffffff;
-  --padding-start: 0;
-  --inner-padding-end: 0;
-  border: 1px dashed var(--ion-color-medium);
-  border-radius: 8px;
-  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: stretch;
+
+  app-signature-pad {
+    flex: 1;
+  }
 }
 
 @media (max-width: 700px) {

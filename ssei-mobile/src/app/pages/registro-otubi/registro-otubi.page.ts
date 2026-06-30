@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import {
   IonHeader,
   IonToolbar,
@@ -20,11 +20,12 @@ import {
   IonIcon,
   IonSegment,
   IonSegmentButton,
-
+  IonSpinner,
 } from '@ionic/angular/standalone';
 import { OtAtmDetalle, OtContextService, OtFotoReporte } from '../../ot-context.service';
 import { addIcons } from 'ionicons';
-import { cloudUploadOutline, addOutline, trashOutline, arrowForwardOutline } from 'ionicons/icons';
+import { cloudUploadOutline, addOutline, trashOutline, arrowForwardOutline, locationOutline } from 'ionicons/icons';
+import { Geolocation } from '@capacitor/geolocation';
 
 @Component({
   selector: 'app-registro-otubi',
@@ -52,6 +53,7 @@ import { cloudUploadOutline, addOutline, trashOutline, arrowForwardOutline } fro
     IonIcon,
     IonSegment,
     IonSegmentButton,
+    IonSpinner,
   ]
 })
 export class RegistroOTUBIPage {
@@ -60,10 +62,20 @@ export class RegistroOTUBIPage {
   comuna = '';
   direccion = '';
 
+  // Búsqueda de ubicación
+  busquedaDireccion = '';
+  sugerencias: NominatimResultado[] = [];
+  mostrarSugerencias = false;
+  buscandoGps = false;
+  private debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
   private fotosMap = new Map<number, OtFotoReporte[]>();
 
-  constructor(private readonly otContextService: OtContextService) {
-    addIcons({ cloudUploadOutline, addOutline, trashOutline, arrowForwardOutline });
+  constructor(
+    private readonly otContextService: OtContextService,
+    private readonly router: Router,
+  ) {
+    addIcons({ cloudUploadOutline, addOutline, trashOutline, arrowForwardOutline, locationOutline });
   }
 
   get cliente(): string {
@@ -85,11 +97,24 @@ export class RegistroOTUBIPage {
   ionViewWillEnter(): void {
     const atmsGuardados = this.otContextService.getAtms();
     this.atms = atmsGuardados.length > 0 ? atmsGuardados : [this.crearAtm(1)];
+    this.comuna = this.otContextService.comuna;
+    this.direccion = this.otContextService.direccion;
+    this.busquedaDireccion = this.direccion;
     this.refrescarTodasLasFotos();
   }
 
   ionViewWillLeave(): void {
+    this.otContextService.comuna = this.comuna;
+    this.otContextService.direccion = this.direccion;
     this.sincronizarAtms();
+  }
+
+  guardar(): void {
+    this.otContextService.comuna = this.comuna;
+    this.otContextService.direccion = this.direccion;
+    this.sincronizarAtms();
+    this.otContextService.guardarTrabajoActivo();
+    this.router.navigate(['/dashboard']);
   }
 
   onClienteChange(): void {
@@ -204,4 +229,101 @@ export class RegistroOTUBIPage {
       reader.readAsDataURL(file);
     });
   }
+
+  // -------------------------------------------------------------------------
+  // GPS + búsqueda de dirección (Nominatim / OpenStreetMap)
+  // -------------------------------------------------------------------------
+
+  async obtenerUbicacionGps(): Promise<void> {
+    this.buscandoGps = true;
+    this.sugerencias = [];
+    this.mostrarSugerencias = false;
+    try {
+      const permiso = await Geolocation.checkPermissions();
+      if (permiso.location === 'denied') {
+        await Geolocation.requestPermissions();
+      }
+      const pos = await Geolocation.getCurrentPosition({ timeout: 10000, enableHighAccuracy: true });
+      await this.reverseGeocode(pos.coords.latitude, pos.coords.longitude);
+      this.busquedaDireccion = this.direccion;
+    } catch (err) {
+      console.error('GPS no disponible:', err);
+    } finally {
+      this.buscandoGps = false;
+    }
+  }
+
+  onBusquedaChange(): void {
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+    }
+    const query = this.busquedaDireccion.trim();
+    if (query.length < 3) {
+      this.sugerencias = [];
+      this.mostrarSugerencias = false;
+      return;
+    }
+    this.debounceTimer = setTimeout(() => this.buscarNominatim(query), 400);
+  }
+
+  seleccionarSugerencia(s: NominatimResultado): void {
+    const addr = s.address;
+    const calle = addr.road ?? addr.pedestrian ?? '';
+    const numero = addr.house_number ? ` ${addr.house_number}` : '';
+    this.direccion = `${calle}${numero}`.trim() || s.display_name.split(',')[0].trim();
+    this.busquedaDireccion = this.direccion;
+    this.comuna = addr.suburb ?? addr.city_district ?? addr.quarter
+      ?? addr.city ?? addr.town ?? addr.municipality ?? '';
+    this.sugerencias = [];
+    this.mostrarSugerencias = false;
+  }
+
+  cerrarSugerencias(): void {
+    // Pequeño delay para que el click en una sugerencia se procese antes
+    setTimeout(() => { this.mostrarSugerencias = false; }, 200);
+  }
+
+  private async buscarNominatim(query: string): Promise<void> {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&countrycodes=cl&limit=5&accept-language=es`;
+    try {
+      const res = await fetch(url, { headers: { 'Accept-Language': 'es' } });
+      this.sugerencias = await res.json() as NominatimResultado[];
+      this.mostrarSugerencias = this.sugerencias.length > 0;
+    } catch {
+      this.sugerencias = [];
+      this.mostrarSugerencias = false;
+    }
+  }
+
+  private async reverseGeocode(lat: number, lon: number): Promise<void> {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1&accept-language=es`;
+    const res = await fetch(url);
+    const data = await res.json() as NominatimResultado;
+    const addr = data.address;
+    const calle = addr.road ?? addr.pedestrian ?? '';
+    const numero = addr.house_number ? ` ${addr.house_number}` : '';
+    this.direccion = `${calle}${numero}`.trim() || data.display_name.split(',')[0].trim();
+    this.comuna = addr.suburb ?? addr.city_district ?? addr.quarter
+      ?? addr.city ?? addr.town ?? addr.municipality ?? '';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Tipos Nominatim
+// ---------------------------------------------------------------------------
+interface NominatimResultado {
+  place_id: number;
+  display_name: string;
+  address: {
+    road?: string;
+    pedestrian?: string;
+    house_number?: string;
+    suburb?: string;
+    city_district?: string;
+    quarter?: string;
+    city?: string;
+    town?: string;
+    municipality?: string;
+    state?: string;
+  };
 }

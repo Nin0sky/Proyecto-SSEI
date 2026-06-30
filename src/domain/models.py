@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 
@@ -26,3 +26,31 @@ class RequirementUseCaseTrace:
     requirement_id: int
     use_case_id: int
     created_at: datetime
+
+
+@dataclass(slots=True)
+class OtAtm:
+    id: int
+    ot_id: int
+    etiqueta: str
+    tipo_servicio: str
+    numero_atm: str
+    serie_cajero: str
+    serie_mmbb: str
+    detalles_servicio: str
+    observaciones: str
+
+
+@dataclass(slots=True)
+class Ot:
+    id: int
+    cliente: str
+    estado: str          # asignado | en_progreso | pendiente_envio | sincronizado
+    fecha_creacion: datetime
+    comuna: str
+    direccion: str
+    nombre_tecnico: str
+    nombre_etv: str
+    nombre_alarma: str
+    origen_servidor: bool
+    atms: list[OtAtm] = field(default_factory=list)

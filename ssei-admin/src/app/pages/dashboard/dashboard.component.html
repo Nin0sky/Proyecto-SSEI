@@ -1,0 +1,63 @@
+<div *ngIf="loading" class="loading-center">
+  <mat-spinner></mat-spinner>
+</div>
+
+<ng-container *ngIf="!loading">
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <mat-card *ngFor="let kpi of kpis" class="kpi-card" [style.border-left-color]="kpi.color">
+      <mat-card-content>
+        <div class="kpi-body">
+          <div>
+            <div class="kpi-count" [style.color]="kpi.color">{{ kpi.count }}</div>
+            <div class="kpi-label">{{ kpi.label }}</div>
+          </div>
+          <mat-icon [style.color]="kpi.color" class="kpi-icon">{{ kpi.icon }}</mat-icon>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Actividad reciente -->
+  <mat-card class="recent-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>history</mat-icon> Actividad reciente
+      </mat-card-title>
+      <span class="header-spacer"></span>
+      <a mat-button routerLink="/ots" color="primary">Ver todas →</a>
+    </mat-card-header>
+    <mat-card-content>
+      <div *ngIf="recientes.length === 0" class="empty-state">
+        No hay órdenes de trabajo registradas.
+        <a routerLink="/ots/nueva">Crear la primera OT</a>
+      </div>
+      <table class="recent-table" *ngIf="recientes.length > 0">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Cliente</th>
+            <th>ATMs</th>
+            <th>Técnico</th>
+            <th>Estado</th>
+            <th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let ot of recientes" class="clickable-row" [routerLink]="['/ots', ot.id]">
+            <td>#{{ ot.id }}</td>
+            <td>{{ ot.cliente }}</td>
+            <td>{{ atmLabels(ot) }}</td>
+            <td>{{ ot.nombre_tecnico || '—' }}</td>
+            <td>
+              <span class="estado-badge" [style.background-color]="estadoColor(ot.estado)">
+                {{ estadoLabel(ot.estado) }}
+              </span>
+            </td>
+            <td>{{ ot.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </mat-card-content>
+  </mat-card>
+</ng-container>

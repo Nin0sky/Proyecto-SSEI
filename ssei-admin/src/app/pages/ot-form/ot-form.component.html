@@ -1,0 +1,144 @@
+<div *ngIf="loadingOt" class="loading-center"><mat-spinner></mat-spinner></div>
+
+<ng-container *ngIf="!loadingOt">
+  <div class="form-header">
+    <a mat-icon-button routerLink="/ots"><mat-icon>arrow_back</mat-icon></a>
+    <h1>{{ editando ? 'Editar OT #' + otId : 'Nueva Orden de Trabajo' }}</h1>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="guardar()">
+    <!-- Datos generales -->
+    <mat-card class="form-card">
+      <mat-card-header><mat-card-title>Datos generales</mat-card-title></mat-card-header>
+      <mat-card-content>
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Cliente *</mat-label>
+            <mat-select formControlName="cliente">
+              <mat-option *ngFor="let c of clientes" [value]="c">{{ c }}</mat-option>
+            </mat-select>
+            <mat-error *ngIf="form.get('cliente')?.invalid">Requerido</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Estado *</mat-label>
+            <mat-select formControlName="estado">
+              <mat-option *ngFor="let e of estados" [value]="e.value">{{ e.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Comuna</mat-label>
+            <input matInput formControlName="comuna" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Dirección</mat-label>
+            <input matInput formControlName="direccion" />
+          </mat-form-field>
+        </div>
+
+        <mat-checkbox formControlName="origen_servidor">
+          Trabajo originado desde servidor
+        </mat-checkbox>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Personal -->
+    <mat-card class="form-card">
+      <mat-card-header><mat-card-title>Personal asignado</mat-card-title></mat-card-header>
+      <mat-card-content>
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Nombre técnico</mat-label>
+            <input matInput formControlName="nombre_tecnico" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Nombre ETV</mat-label>
+            <input matInput formControlName="nombre_etv" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Nombre alarma</mat-label>
+            <input matInput formControlName="nombre_alarma" />
+          </mat-form-field>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- ATMs -->
+    <mat-card class="form-card">
+      <mat-card-header>
+        <mat-card-title>ATMs</mat-card-title>
+        <span class="header-spacer"></span>
+        <button mat-stroked-button type="button" (click)="agregarAtm()">
+          <mat-icon>add</mat-icon> Agregar ATM
+        </button>
+      </mat-card-header>
+      <mat-card-content>
+        <div formArrayName="atms">
+          <div *ngFor="let atm of atms.controls; let i = index" [formGroupName]="i" class="atm-section">
+            <div class="atm-section-header">
+              <span class="atm-section-title">ATM {{ i + 1 }}</span>
+              <button mat-icon-button type="button" (click)="eliminarAtm(i)"
+                [disabled]="atms.length === 1" color="warn" matTooltip="Eliminar ATM">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+            <div class="form-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>Etiqueta</mat-label>
+                <input matInput formControlName="etiqueta" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Número ATM</mat-label>
+                <input matInput formControlName="numero_atm" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Tipo de servicio</mat-label>
+                <mat-select formControlName="tipo_servicio">
+                  <mat-option value="">— Seleccionar —</mat-option>
+                  <mat-option *ngFor="let t of tiposServicio" [value]="t">{{ t }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Serie cajero</mat-label>
+                <input matInput formControlName="serie_cajero" />
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Serie MMBB</mat-label>
+                <input matInput formControlName="serie_mmbb" />
+              </mat-form-field>
+            </div>
+
+            <mat-form-field appearance="outline" style="width: 100%">
+              <mat-label>Detalles del servicio</mat-label>
+              <textarea matInput formControlName="detalles_servicio" rows="3"></textarea>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" style="width: 100%">
+              <mat-label>Observaciones</mat-label>
+              <textarea matInput formControlName="observaciones" rows="2"></textarea>
+            </mat-form-field>
+
+            <mat-divider *ngIf="i < atms.length - 1"></mat-divider>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Acciones -->
+    <div class="form-actions">
+      <a mat-stroked-button routerLink="/ots">Cancelar</a>
+      <button mat-raised-button color="primary" type="submit" [disabled]="loading">
+        <mat-spinner *ngIf="loading" diameter="18" style="display:inline-block; margin-right:6px"></mat-spinner>
+        {{ editando ? 'Actualizar OT' : 'Crear OT' }}
+      </button>
+    </div>
+  </form>
+</ng-container>

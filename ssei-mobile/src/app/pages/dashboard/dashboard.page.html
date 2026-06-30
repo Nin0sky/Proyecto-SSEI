@@ -45,27 +45,25 @@
         button
         detail="true"
         *ngFor="let ot of workOrders"
-        [routerLink]="['/registro-otubi']"
+        (click)="abrirTrabajo(ot.id)"
       >
         <ion-label>
-          <h2>#{{ ot.id }} - {{ ot.atm }}</h2>
-          <p>{{ ot.bank }} · {{ ot.location }}</p>
+          <h2>{{ tituloTrabajo(ot) }} — {{ ot.cliente || 'Sin cliente' }}</h2>
+          <p>{{ ot.comuna || 'Sin ubicación' }}</p>
         </ion-label>
 
-        <ion-badge slot="end" [color]="ot.synced ? 'success' : 'warning'">
-          {{ ot.synced ? 'Sincronizado' : 'Pendiente' }}
+        <ion-badge slot="end" [color]="badgeColor(ot.estado)">
+          {{ badgeLabel(ot.estado) }}
         </ion-badge>
       </ion-item>
     </ion-list>
   </section>
 
 <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-  <ion-fab-button color="primary" [routerLink]="['/registro-otubi']">
-  <ion-icon name="add-outline"></ion-icon>
+  <ion-fab-button color="primary" (click)="nuevoTrabajo()">
+    <ion-icon name="add-outline"></ion-icon>
   </ion-fab-button>
 </ion-fab>
-
-<ion-button fill="clear"> <ion-icon slot="icon-only" name="add-outline"></ion-icon> </ion-button>
 
 </ion-content>
 
@@ -74,7 +72,7 @@
     <ion-buttons class="bottom-nav" slot="start">
       <ion-button class="btn-hoover" [routerLink]="['/dashboard']">Mis Ordenes</ion-button>
       <ion-button class="btn-hoover" [routerLink]="['/formulario-ot']">Formulario OT</ion-button>
-      <ion-button class="btn-hoover" [routerLink]="['/registro-otubi']">Historial</ion-button>
+      <ion-button class="btn-hoover" [routerLink]="['/registro-otubi']">Datos de OT</ion-button>
       <ion-button class="btn-hoover" [routerLink]="['/login']">Perfil</ion-button>
     </ion-buttons>
   </ion-toolbar>

@@ -1,0 +1,117 @@
+<mat-card class="filter-card">
+  <mat-card-content>
+    <div class="filter-row">
+      <mat-form-field appearance="outline" class="filter-search">
+        <mat-label>Buscar por cliente, técnico, ATM…</mat-label>
+        <input matInput [(ngModel)]="filtroTexto" (ngModelChange)="aplicarFiltro()" />
+        <mat-icon matPrefix>search</mat-icon>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="filter-estado">
+        <mat-label>Estado</mat-label>
+        <mat-select [(ngModel)]="filtroEstado" (ngModelChange)="aplicarFiltro()">
+          <mat-option *ngFor="let e of estados" [value]="e.value">{{ e.label }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <button mat-stroked-button (click)="limpiarFiltros()" *ngIf="filtroTexto || filtroEstado">
+        <mat-icon>clear</mat-icon> Limpiar
+      </button>
+
+      <span class="filter-spacer"></span>
+
+      <a mat-raised-button color="primary" routerLink="/ots/nueva">
+        <mat-icon>add</mat-icon> Nueva OT
+      </a>
+    </div>
+  </mat-card-content>
+</mat-card>
+
+<div *ngIf="loading" class="loading-center">
+  <mat-spinner></mat-spinner>
+</div>
+
+<mat-card *ngIf="!loading">
+  <mat-card-content class="table-container">
+    <div class="results-count" *ngIf="dataSource.filteredData.length !== dataSource.data.length">
+      Mostrando {{ dataSource.filteredData.length }} de {{ dataSource.data.length }} OTs
+    </div>
+    <div class="results-count" *ngIf="dataSource.filteredData.length === dataSource.data.length">
+      {{ dataSource.data.length }} órdenes de trabajo en total
+    </div>
+
+    <table mat-table [dataSource]="dataSource" matSort class="ot-table">
+      <!-- ID -->
+      <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>#</th>
+        <td mat-cell *matCellDef="let ot">{{ ot.id }}</td>
+      </ng-container>
+
+      <!-- Cliente -->
+      <ng-container matColumnDef="cliente">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Cliente</th>
+        <td mat-cell *matCellDef="let ot">{{ ot.cliente }}</td>
+      </ng-container>
+
+      <!-- ATMs -->
+      <ng-container matColumnDef="atms">
+        <th mat-header-cell *matHeaderCellDef>ATMs</th>
+        <td mat-cell *matCellDef="let ot">
+          <span class="atm-tag" *ngFor="let atm of ot.atms">
+            {{ atm.numero_atm || atm.etiqueta }}
+          </span>
+          <span *ngIf="ot.atms.length === 0">—</span>
+        </td>
+      </ng-container>
+
+      <!-- Técnico -->
+      <ng-container matColumnDef="nombre_tecnico">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Técnico</th>
+        <td mat-cell *matCellDef="let ot">{{ ot.nombre_tecnico || '—' }}</td>
+      </ng-container>
+
+      <!-- Estado -->
+      <ng-container matColumnDef="estado">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Estado</th>
+        <td mat-cell *matCellDef="let ot">
+          <span class="estado-badge" [style.background-color]="estadoColor(ot.estado)">
+            {{ estadoLabel(ot.estado) }}
+          </span>
+        </td>
+      </ng-container>
+
+      <!-- Fecha -->
+      <ng-container matColumnDef="fecha_creacion">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Fecha</th>
+        <td mat-cell *matCellDef="let ot">{{ ot.fecha_creacion | date:'dd/MM/yyyy' }}</td>
+      </ng-container>
+
+      <!-- Acciones -->
+      <ng-container matColumnDef="acciones">
+        <th mat-header-cell *matHeaderCellDef>Acciones</th>
+        <td mat-cell *matCellDef="let ot">
+          <a mat-icon-button [routerLink]="['/ots', ot.id]" matTooltip="Ver detalle" color="primary">
+            <mat-icon>visibility</mat-icon>
+          </a>
+          <a mat-icon-button [routerLink]="['/ots', ot.id, 'editar']" matTooltip="Editar">
+            <mat-icon>edit</mat-icon>
+          </a>
+          <button mat-icon-button (click)="eliminar(ot)" matTooltip="Eliminar" color="warn">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="table-row"></tr>
+
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell no-data-cell" colspan="7">
+          No se encontraron OTs con los filtros aplicados.
+        </td>
+      </tr>
+    </table>
+
+    <mat-paginator [pageSizeOptions]="[10, 25, 50]" showFirstLastButtons></mat-paginator>
+  </mat-card-content>
+</mat-card>

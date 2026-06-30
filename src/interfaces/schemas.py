@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -40,3 +41,63 @@ class TraceabilityRead(BaseModel):
     requirement_id: int
     use_case_id: int
     created_at: datetime
+
+
+# ---------------------------------------------------------------------------
+# OT Schemas
+# ---------------------------------------------------------------------------
+
+OtEstado = Literal["asignado", "en_progreso", "pendiente_envio", "sincronizado"]
+
+
+class OtAtmCreate(BaseModel):
+    etiqueta: str = Field(default="ATM 1", max_length=50)
+    tipo_servicio: str = Field(default="instalacion", max_length=60)
+    numero_atm: str = Field(default="", max_length=20)
+    serie_cajero: str = Field(default="", max_length=60)
+    serie_mmbb: str = Field(default="", max_length=60)
+    detalles_servicio: str = Field(default="", max_length=2000)
+    observaciones: str = Field(default="", max_length=1000)
+
+
+class OtAtmRead(OtAtmCreate):
+    id: int
+    ot_id: int
+
+
+class OtCreate(BaseModel):
+    cliente: str = Field(max_length=100)
+    comuna: str = Field(default="", max_length=100)
+    direccion: str = Field(default="", max_length=200)
+    nombre_tecnico: str = Field(default="", max_length=100)
+    nombre_etv: str = Field(default="", max_length=100)
+    nombre_alarma: str = Field(default="", max_length=100)
+    atms: list[OtAtmCreate] = Field(default_factory=list)
+
+
+class OtUpdate(BaseModel):
+    cliente: str = Field(max_length=100)
+    comuna: str = Field(default="", max_length=100)
+    direccion: str = Field(default="", max_length=200)
+    nombre_tecnico: str = Field(default="", max_length=100)
+    nombre_etv: str = Field(default="", max_length=100)
+    nombre_alarma: str = Field(default="", max_length=100)
+    atms: list[OtAtmCreate] = Field(default_factory=list)
+
+
+class OtEstadoUpdate(BaseModel):
+    estado: OtEstado
+
+
+class OtRead(BaseModel):
+    id: int
+    cliente: str
+    estado: str
+    fecha_creacion: datetime
+    comuna: str
+    direccion: str
+    nombre_tecnico: str
+    nombre_etv: str
+    nombre_alarma: str
+    origen_servidor: bool
+    atms: list[OtAtmRead] = []

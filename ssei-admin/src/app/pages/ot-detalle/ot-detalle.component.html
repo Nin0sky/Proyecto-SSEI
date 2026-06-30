@@ -1,0 +1,142 @@
+<div *ngIf="loading" class="loading-center"><mat-spinner></mat-spinner></div>
+
+<ng-container *ngIf="!loading && ot">
+  <!-- Header -->
+  <div class="detail-header">
+    <div class="header-left">
+      <a mat-icon-button routerLink="/ots" matTooltip="Volver a lista">
+        <mat-icon>arrow_back</mat-icon>
+      </a>
+      <div>
+        <h1 class="detail-title">OT #{{ ot.id }} — {{ ot.cliente }}</h1>
+        <span class="estado-badge" [style.background-color]="estadoColor(ot.estado)">
+          {{ estadoLabel(ot.estado) }}
+        </span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <a mat-stroked-button [routerLink]="['/ots', ot.id, 'editar']">
+        <mat-icon>edit</mat-icon> Editar
+      </a>
+      <button mat-stroked-button color="warn" (click)="eliminar()">
+        <mat-icon>delete</mat-icon> Eliminar
+      </button>
+    </div>
+  </div>
+
+  <div class="detail-grid">
+    <!-- Info general -->
+    <mat-card>
+      <mat-card-header><mat-card-title>Información general</mat-card-title></mat-card-header>
+      <mat-card-content>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">Cliente</span>
+            <span>{{ ot.cliente }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Fecha creación</span>
+            <span>{{ ot.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Comuna</span>
+            <span>{{ ot.comuna || '—' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Dirección</span>
+            <span>{{ ot.direccion || '—' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Técnico</span>
+            <span>{{ ot.nombre_tecnico || '—' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">ETV</span>
+            <span>{{ ot.nombre_etv || '—' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Alarma</span>
+            <span>{{ ot.nombre_alarma || '—' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Origen servidor</span>
+            <span>{{ ot.origen_servidor ? 'Sí' : 'No' }}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Cambiar estado -->
+    <mat-card>
+      <mat-card-header><mat-card-title>Cambiar estado</mat-card-title></mat-card-header>
+      <mat-card-content>
+        <div class="estado-form">
+          <mat-form-field appearance="outline" style="width: 100%">
+            <mat-label>Estado</mat-label>
+            <mat-select [(ngModel)]="nuevoEstado">
+              <mat-option *ngFor="let e of estados" [value]="e.value">{{ e.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <button mat-raised-button color="primary" (click)="aplicarEstado()"
+            [disabled]="nuevoEstado === ot.estado || cambiandoEstado">
+            <mat-spinner *ngIf="cambiandoEstado" diameter="18" style="display:inline-block; margin-right:6px"></mat-spinner>
+            Guardar estado
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- ATMs -->
+  <mat-card class="atms-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>atm</mat-icon>
+        ATMs ({{ ot.atms.length }})
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div *ngIf="ot.atms.length === 0" class="empty-state">No hay ATMs registrados en esta OT.</div>
+      <div class="atms-grid">
+        <mat-card *ngFor="let atm of ot.atms" class="atm-card">
+          <mat-card-header>
+            <mat-card-title>{{ atm.etiqueta }}</mat-card-title>
+            <mat-card-subtitle>N° {{ atm.numero_atm || '—' }}</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="atm-info-grid">
+              <div class="info-item">
+                <span class="info-label">Tipo servicio</span>
+                <span>{{ atm.tipo_servicio || '—' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Serie cajero</span>
+                <span>{{ atm.serie_cajero || '—' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Serie MMBB</span>
+                <span>{{ atm.serie_mmbb || '—' }}</span>
+              </div>
+            </div>
+            <div class="info-item" *ngIf="atm.detalles_servicio">
+              <span class="info-label">Detalles</span>
+              <p class="pre-wrap">{{ atm.detalles_servicio }}</p>
+            </div>
+            <div class="info-item" *ngIf="atm.observaciones">
+              <span class="info-label">Observaciones</span>
+              <p class="pre-wrap">{{ atm.observaciones }}</p>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</ng-container>
+
+<mat-card *ngIf="!loading && !ot" class="error-card">
+  <mat-card-content>
+    <mat-icon color="warn">error</mat-icon>
+    <p>No se encontró la orden de trabajo.</p>
+    <a mat-raised-button routerLink="/ots">Volver a la lista</a>
+  </mat-card-content>
+</mat-card>

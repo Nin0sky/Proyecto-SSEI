@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { PDFDocument, rgb } from 'pdf-lib';
-import { Component } from '@angular/core';
+import JSZip from 'jszip';
+import { Component, ViewChildren, QueryList } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -26,6 +27,7 @@ import {
   IonFooter,
 } from '@ionic/angular/standalone';
 import { OtAtmDetalle, OtContextService } from '../../ot-context.service';
+import { SignaturePadComponent } from '../../components/signature-pad/signature-pad.component';
 
 @Component({
   selector: 'app-formulario-ot',
@@ -54,7 +56,8 @@ import { OtAtmDetalle, OtContextService } from '../../ot-context.service';
     IonTextarea,
     IonButton,
     IonButtons,
-    IonFooter
+    IonFooter,
+    SignaturePadComponent,
   ]
 })
 export class FormularioOtPage {
@@ -65,6 +68,8 @@ export class FormularioOtPage {
   nombreTecnico = '';
   nombreETV = '';
   nombreAlarma = '';
+
+  // DataURL PNG de cada firma (‘’ = sin firma)
   firmaTecnico = '';
   firmaETV = '';
   firmaAlarma = '';
@@ -75,6 +80,14 @@ export class FormularioOtPage {
   ) {
     const atmsGuardados = this.otContextService.getAtms();
     this.atms = atmsGuardados.length > 0 ? atmsGuardados : [this.crearAtm(1)];
+  }
+
+  ionViewWillEnter(): void {
+    const atmsGuardados = this.otContextService.getAtms();
+    this.atms = atmsGuardados.length > 0 ? atmsGuardados : [this.crearAtm(1)];
+    this.nombreTecnico = this.otContextService.nombreTecnico;
+    this.nombreETV = this.otContextService.nombreETV;
+    this.nombreAlarma = this.otContextService.nombreAlarma;
   }
 
   get atmActivo(): OtAtmDetalle {
@@ -108,6 +121,9 @@ export class FormularioOtPage {
 
   ionViewWillLeave(): void {
     this.sincronizarAtms();
+    this.otContextService.nombreTecnico = this.nombreTecnico;
+    this.otContextService.nombreETV = this.nombreETV;
+    this.otContextService.nombreAlarma = this.nombreAlarma;
   }
 
   sincronizarAtms(): void {
@@ -221,6 +237,17 @@ export class FormularioOtPage {
 
         // Asegura que los campos queden visualmente planos y no reactivos
         form.flatten();
+
+        // --- Incrustar firmas como imágenes PNG ---
+        // TODO: ajustar x, y, width, height a las coordenadas exactas del PDF
+        // una vez que se identifiquen los campos de firma en la plantilla.
+        // Las coordenadas son en puntos (pt) desde la esquina inferior-izquierda.
+        await this.incrustarFirma(pdfDoc, pdfDoc.getPages()[0], this.firmaTecnico,
+          { x: 60,  y: 68, width: 130, height: 38 });  // TODO: campo firma técnico
+        await this.incrustarFirma(pdfDoc, pdfDoc.getPages()[0], this.firmaETV,
+          { x: 220, y: 68, width: 130, height: 38 });  // TODO: campo firma ETV
+        await this.incrustarFirma(pdfDoc, pdfDoc.getPages()[0], this.firmaAlarma,
+          { x: 385, y: 68, width: 130, height: 38 });  // TODO: campo firma Alarma
       } else {
         // --- CASO B: Dibujar texto por Coordenadas (si el PDF es estático) ---
         const paginas = pdfDoc.getPages();
@@ -268,6 +295,54 @@ export class FormularioOtPage {
       window.URL.revokeObjectURL(url);
     }
   }
+  async descargarPaquete(): Promise<void> {
+    // Nombre de la carpeta raíz basado en los números de ATM
+    const numeros = this.atms
+      .map(a => a.numeroAtm.trim())
+      .filter(n => n.length > 0)
+      .join('-');
+    const nombreRaiz = numeros || 'OT_Trabajo';
+
+    const zip = new JSZip();
+    const carpetaRaiz = zip.folder(nombreRaiz);
+
+    if (!carpetaRaiz) {
+      return;
+    }
+
+    // Generar PDF y añadir a la raíz
+    const pdfBlob = await this.generarPdf();
+    if (pdfBlob) {
+      const pdfBuffer = await pdfBlob.arrayBuffer();
+      carpetaRaiz.file(`OT_${nombreRaiz}.pdf`, pdfBuffer);
+    }
+
+    // Añadir fotos por ATM en subcarpetas
+    for (const atm of this.atms) {
+      const numeroAtm = atm.numeroAtm.trim();
+      if (!numeroAtm) {
+        continue;
+      }
+      const fotos = this.otContextService.getFotosPorAtm(numeroAtm);
+      if (fotos.length === 0) {
+        continue;
+      }
+      const carpetaAtm = carpetaRaiz.folder(`ATM_${numeroAtm}`);
+      for (const foto of fotos) {
+        const base64Data = foto.previewDataUrl.split(',')[1] ?? '';
+        carpetaAtm?.file(foto.nombreArchivo, base64Data, { base64: true });
+      }
+    }
+
+    // Generar ZIP y descargar
+    const contenidoZip = await zip.generateAsync({ type: 'blob' });
+    const url = window.URL.createObjectURL(contenidoZip);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${nombreRaiz}.zip`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+  }
 
   async enviarPdf(): Promise<void> {
     const blob = await this.generarPdf();
@@ -276,5 +351,28 @@ export class FormularioOtPage {
     }
     // Lógica para enviar el archivo Blob mediante API POST a FastAPI o compartir mediante Capacitor Share
     console.log('PDF listo para envío:', blob);
+  }
+
+  // -------------------------------------------------------------------------
+  // Helpers de firma
+  // -------------------------------------------------------------------------
+
+  private async incrustarFirma(
+    pdfDoc: PDFDocument,
+    page: ReturnType<PDFDocument['getPages']>[number],
+    dataUrl: string,
+    pos: { x: number; y: number; width: number; height: number },
+  ): Promise<void> {
+    if (!dataUrl) {
+      return;
+    }
+    try {
+      const base64 = dataUrl.split(',')[1];
+      const pngBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+      const img = await pdfDoc.embedPng(pngBytes);
+      page.drawImage(img, pos);
+    } catch {
+      // Si la imagen falla no interrumpir la generación del PDF
+    }
   }
 }
