@@ -95,7 +95,7 @@ export class FormularioOtPage {
   get atmActivo(): OtAtmDetalle {
     return this.atms[this.indiceAtmActivo];
   }
-  
+
   private readonly tiposSinSeries = new Set([
     'serviciotecnico',
     'grafica',
@@ -213,6 +213,8 @@ export class FormularioOtPage {
         // Formatear fecha del trabajo actual
         const hoy = new Date().toLocaleDateString('es-CL');
         escribir('Text5', hoy);
+        escribir('Text11', '');
+        escribir('Text9', '');
 
         // Cantidad de cajeros
         const todosLosNumeros = this.atms
@@ -254,6 +256,25 @@ export class FormularioOtPage {
           campoDetalle.setFontSize(longitud > 900 ? 5 : longitud > 600 ? 6 : longitud > 300 ? 8 : 10);
           campoDetalle.setText(detalleCompilado);
         }
+
+
+        const limpiarBordesCampos = (): void => {
+          for (const field of form.getFields()) {
+            const acroField = (field as any).acroField;
+            const widgets = acroField?.getWidgets?.() ?? [];
+            for (const widget of widgets) {
+              const bs = widget.getOrCreateBorderStyle?.();
+              bs?.setWidth?.(0);
+
+              const mk = widget.getOrCreateAppearanceCharacteristics?.();
+              mk?.setBorderColor?.([1, 1, 1]); // blanco
+              // Opcional: fondo transparente/neutral según viewer
+              // mk?.setBackgroundColor?.([1, 1, 1]);
+            }
+          }
+        };
+
+        limpiarBordesCampos();
 
         // Asegura que los campos queden visualmente planos y no reactivos
         form.flatten();
