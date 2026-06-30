@@ -95,6 +95,23 @@ export class FormularioOtPage {
   get atmActivo(): OtAtmDetalle {
     return this.atms[this.indiceAtmActivo];
   }
+  
+  private readonly tiposSinSeries = new Set([
+    'serviciotecnico',
+    'grafica',
+    'pintura',
+    'asistencia',
+  ]);
+
+  get mostrarCamposSeries(): boolean {
+    const tipo = (this.atmActivo?.tipoServicio ?? '')
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '');
+
+    return !this.tiposSinSeries.has(tipo);
+  }
 
   agregarAtm(): void {
     this.atms.push(this.crearAtm(this.atms.length + 1));

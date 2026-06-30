@@ -27,6 +27,7 @@
           <ion-select-option value="transporte">Transporte</ion-select-option>
           <ion-select-option value="grafica">Gráfica</ion-select-option>
           <ion-select-option value="pintura">Pintura</ion-select-option>
+          <ion-select-option value="Asistencia">Asistencia</ion-select-option>
         </ion-select>
       </ion-item>
 
@@ -38,7 +39,7 @@
           [(ngModel)]="atmActivo.numeroAtm"
         ></ion-input>
       </ion-item>
-      <ion-item>
+      <ion-item *ngIf="mostrarCamposSeries">
         <ion-label position="stacked">Serie Cajero</ion-label>
         <ion-input
           placeholder="Ingresa serie del cajero"
@@ -46,7 +47,7 @@
           [(ngModel)]="atmActivo.serieCajero"
         ></ion-input>
       </ion-item>
-      <ion-item>
+      <ion-item *ngIf="mostrarCamposSeries">
         <ion-label position="stacked">Serie MMBB</ion-label>
         <ion-input
           placeholder="Ingresa serie MMBB"
