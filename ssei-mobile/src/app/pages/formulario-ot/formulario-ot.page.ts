@@ -4,6 +4,10 @@ import JSZip from 'jszip';
 import { Component, ViewChildren, QueryList } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { recognize } from 'tesseract.js'
+import { addIcons } from 'ionicons';
+import { cameraOutline } from 'ionicons/icons';
 import { RouterLink } from '@angular/router';
 import {
   IonHeader,
@@ -25,6 +29,7 @@ import {
   IonButton,
   IonButtons,
   IonFooter,
+  IonIcon,
 } from '@ionic/angular/standalone';
 import { OtAtmDetalle, OtContextService } from '../../ot-context.service';
 import { SignaturePadComponent } from '../../components/signature-pad/signature-pad.component';
@@ -58,6 +63,7 @@ import { SignaturePadComponent } from '../../components/signature-pad/signature-
     IonButtons,
     IonFooter,
     SignaturePadComponent,
+    IonIcon,
   ]
 })
 export class FormularioOtPage {
@@ -79,6 +85,7 @@ export class FormularioOtPage {
     private readonly otContextService: OtContextService,
     private readonly http: HttpClient // Inyecta HttpClient para leer el asset de plantilla
   ) {
+    addIcons({ cameraOutline });
     const atmsGuardados = this.otContextService.getAtms();
     this.atms = atmsGuardados.length > 0 ? atmsGuardados : [this.crearAtm(1)];
   }
@@ -416,4 +423,70 @@ export class FormularioOtPage {
       // Si la imagen falla no interrumpir la generación del PDF
     }
   }
+  // Metodos para escaneo de series
+  escaneandoSerieCajero = false;
+  escaneandoSerieMmbb = false;
+
+  private normalizarSerie(texto: string): string {
+    return texto
+      .toUpperCase()
+      .replace(/[^A-Z0-9-]/g, '')
+      .trim();
+  }
+
+  private extraerSerie(texto: string): string {
+    const candidatos = (texto.toUpperCase().match(/[A-Z0-9-]{4,}/g) ?? [])
+      .map((c) => this.normalizarSerie(c))
+      .filter((c) => c.length >= 4);
+    return candidatos[0] ?? '';
+  }
+
+  async escanearSerie(campo: 'serieCajero' | 'serieMmbb'): Promise<void> {
+    if (!this.atmActivo) {
+      return;
+    }
+
+    if (campo === 'serieCajero') {
+      this.escaneandoSerieCajero = true;
+    } else {
+      this.escaneandoSerieMmbb = true;
+    }
+
+    try {
+      const foto = await Camera.getPhoto({
+        resultType: CameraResultType.Base64,
+        source: CameraSource.Camera,
+        quality: 75,
+      });
+
+      if (!foto.base64String) {
+        return;
+      }
+
+      const dataUrl = 'data:image/jpeg;base64,' + foto.base64String;
+      const resultado = await recognize(dataUrl, 'eng');
+      const serie = this.extraerSerie(resultado.data.text);
+
+      if (!serie) {
+        return;
+      }
+
+      if (campo === 'serieCajero') {
+        this.atmActivo.serieCajero = serie;
+      } else {
+        this.atmActivo.serieMmbb = serie;
+      }
+
+      this.sincronizarAtms();
+    } catch (error) {
+      console.error('Error OCR de serie:', error);
+    } finally {
+      if (campo === 'serieCajero') {
+        this.escaneandoSerieCajero = false;
+      } else {
+        this.escaneandoSerieMmbb = false;
+      }
+    }
+  }
+
 }

@@ -33,27 +33,25 @@
 
       <ion-item>
         <ion-label position="stacked">Numero de ATM</ion-label>
-        <ion-input
-          placeholder="Ejemplo: ATM-001"
-          (ionInput)="sincronizarAtms()"
-          [(ngModel)]="atmActivo.numeroAtm"
-        ></ion-input>
+        <ion-input placeholder="Ejemplo: ATM-001" (ionInput)="sincronizarAtms()"
+          [(ngModel)]="atmActivo.numeroAtm"></ion-input>
       </ion-item>
       <ion-item *ngIf="mostrarCamposSeries">
         <ion-label position="stacked">Serie Cajero</ion-label>
-        <ion-input
-          placeholder="Ingresa serie del cajero"
-          (ionInput)="sincronizarAtms()"
-          [(ngModel)]="atmActivo.serieCajero"
-        ></ion-input>
+        <ion-input placeholder="Ingresa serie del cajero" (ionInput)="sincronizarAtms()"
+          [(ngModel)]="atmActivo.serieCajero">
+        </ion-input>
+        <ion-button slot="end" fill="clear" [disabled]="escaneandoSerieCajero" (click)="escanearSerie('serieCajero')">
+          <ion-icon name="camera-outline"></ion-icon>
+        </ion-button>
       </ion-item>
       <ion-item *ngIf="mostrarCamposSeries">
         <ion-label position="stacked">Serie MMBB</ion-label>
-        <ion-input
-          placeholder="Ingresa serie MMBB"
-          (ionInput)="sincronizarAtms()"
-          [(ngModel)]="atmActivo.serieMmbb"
-        ></ion-input>
+        <ion-input placeholder="Ingresa serie MMBB" (ionInput)="sincronizarAtms()" [(ngModel)]="atmActivo.serieMmbb">
+        </ion-input>
+        <ion-button slot="end" fill="clear" [disabled]="escaneandoSerieMmbb" (click)="escanearSerie('serieMmbb')">
+          <ion-icon name="camera-outline"></ion-icon>
+        </ion-button>
       </ion-item>
     </ion-card-content>
   </ion-card>
@@ -65,30 +63,22 @@
     <ion-card-content>
       <ion-item>
         <ion-label position="stacked">Detalles de servicio</ion-label>
-        <ion-textarea
-          placeholder="Describe brevemente las actividades realizadas en el servicio"
-          (ionInput)="sincronizarAtms()"
-          [(ngModel)]="atmActivo.detallesServicio"
-        ></ion-textarea>
+        <ion-textarea placeholder="Describe brevemente las actividades realizadas en el servicio"
+          (ionInput)="sincronizarAtms()" [(ngModel)]="atmActivo.detallesServicio"></ion-textarea>
       </ion-item>
     </ion-card-content>
     <ion-card-content>
       <ion-item>
         <ion-label position="stacked">Reportar Daños</ion-label>
-        <ion-textarea
-          placeholder="Indica los danos detectados, ubicacion y nivel de criticidad"
-          (ionInput)="sincronizarAtms()"
-          [(ngModel)]="atmActivo.observaciones"
-        ></ion-textarea>
+        <ion-textarea placeholder="Indica los danos detectados, ubicacion y nivel de criticidad"
+          (ionInput)="sincronizarAtms()" [(ngModel)]="atmActivo.observaciones"></ion-textarea>
       </ion-item>
     </ion-card-content>
     <ion-card-content>
       <ion-item>
         <ion-label position="stacked">Validacion de zonas por UCENCO</ion-label>
-        <ion-textarea
-          placeholder="Registra el resultado de la validacion de zonas realizada por UCENCO"
-          [(ngModel)]="validacionZonas"
-        ></ion-textarea>
+        <ion-textarea placeholder="Registra el resultado de la validacion de zonas realizada por UCENCO"
+          [(ngModel)]="validacionZonas"></ion-textarea>
       </ion-item>
     </ion-card-content>
   </ion-card>
@@ -99,14 +89,12 @@
     <ion-card-content class="personal-content">
       <div class="personal-rows">
         <div class="personal-row">
-          <ion-item lines="none" class="boxed-item">  
+          <ion-item lines="none" class="boxed-item">
             <ion-label position="stacked">Nombre del Tecnico</ion-label>
             <ion-input fill="outline" [(ngModel)]="nombreTecnico"></ion-input>
           </ion-item>
           <div class="signature-box">
-            <app-signature-pad
-              label="Firma Técnico"
-              (firmaChange)="firmaTecnico = $event">
+            <app-signature-pad label="Firma Técnico" (firmaChange)="firmaTecnico = $event">
             </app-signature-pad>
           </div>
         </div>
@@ -117,9 +105,7 @@
             <ion-input fill="outline" [(ngModel)]="nombreETV"></ion-input>
           </ion-item>
           <div class="signature-box">
-            <app-signature-pad
-              label="Firma ETV"
-              (firmaChange)="firmaETV = $event">
+            <app-signature-pad label="Firma ETV" (firmaChange)="firmaETV = $event">
             </app-signature-pad>
           </div>
         </div>
@@ -130,9 +116,7 @@
             <ion-input fill="outline" [(ngModel)]="nombreAlarma"></ion-input>
           </ion-item>
           <div class="signature-box">
-            <app-signature-pad
-              label="Firma Alarma"
-              (firmaChange)="firmaAlarma = $event">
+            <app-signature-pad label="Firma Alarma" (firmaChange)="firmaAlarma = $event">
             </app-signature-pad>
           </div>
         </div>
@@ -153,13 +137,13 @@
 </ion-content>
 
 
-  <ion-footer>
-    <ion-toolbar>
-      <ion-buttons class="bottom-nav" slot="start">
-        <ion-button [routerLink]="['/dashboard']">Mis Ordenes</ion-button>
-        <ion-button [routerLink]="['/formulario-ot']">Formulario OT</ion-button>
-        <ion-button [routerLink]="['/registro-otubi']">Historial</ion-button>
-        <ion-button [routerLink]="['/login']">Perfil</ion-button>
-      </ion-buttons>
-    </ion-toolbar>
-  </ion-footer>
+<ion-footer>
+  <ion-toolbar>
+    <ion-buttons class="bottom-nav" slot="start">
+      <ion-button [routerLink]="['/dashboard']">Mis Ordenes</ion-button>
+      <ion-button [routerLink]="['/formulario-ot']">Formulario OT</ion-button>
+      <ion-button [routerLink]="['/registro-otubi']">Historial</ion-button>
+      <ion-button [routerLink]="['/login']">Perfil</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-footer>
