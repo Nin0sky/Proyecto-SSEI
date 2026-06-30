@@ -263,11 +263,11 @@ export class FormularioOtPage {
         // una vez que se identifiquen los campos de firma en la plantilla.
         // Las coordenadas son en puntos (pt) desde la esquina inferior-izquierda.
         await this.incrustarFirma(pdfDoc, pdfDoc.getPages()[0], this.firmaTecnico,
-          { x: 60, y: 68, width: 130, height: 38 });  // TODO: campo firma técnico
+          { x: 3, y: 3, width: 130, height: 33 });  // TODO: campo firma técnico
         await this.incrustarFirma(pdfDoc, pdfDoc.getPages()[0], this.firmaETV,
-          { x: 220, y: 68, width: 130, height: 38 });  // TODO: campo firma ETV
+          { x: 70, y: 3, width: 130, height: 33 });  // TODO: campo firma ETV
         await this.incrustarFirma(pdfDoc, pdfDoc.getPages()[0], this.firmaAlarma,
-          { x: 385, y: 68, width: 130, height: 38 });  // TODO: campo firma Alarma
+          { x: 168, y: 3, width: 130, height: 33 });  // TODO: campo firma Alarma
       } else {
         // --- CASO B: Dibujar texto por Coordenadas (si el PDF es estático) ---
         const paginas = pdfDoc.getPages();
