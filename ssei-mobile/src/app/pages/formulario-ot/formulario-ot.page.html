@@ -10,18 +10,6 @@
       <ion-card-title>Detalles de ATM</ion-card-title>
     </ion-card-header>
     <ion-card-content>
-      <div class="atm-controls">
-        <ion-button size="small" fill="outline" (click)="agregarAtm()">Agregar ATM</ion-button>
-        <ion-button
-          size="small"
-          color="danger"
-          fill="outline"
-          [disabled]="atms.length === 1"
-          (click)="eliminarAtm()"
-        >
-          Eliminar ATM
-        </ion-button>
-      </div>
 
       <ion-segment [value]="indiceAtmActivo.toString()" (ionChange)="cambiarAtm($event)">
         <ion-segment-button *ngFor="let atm of atms; let i = index" [value]="i.toString()">

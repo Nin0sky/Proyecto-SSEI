@@ -7,86 +7,104 @@
 <ion-content [fullscreen]="true" class="page-content">
   <section class="section">
     <h2>Información del Punto de Atención</h2>
-    <p>Complete los datos de ubicación para iniciar la OT.</p>
+    <p>Complete los datos de ubicación e ingrese los ATMs del trabajo.</p>
   </section>
 
+  <!-- Cliente y ubicación -->
   <ion-card>
     <ion-card-content>
       <ion-item>
         <ion-label position="stacked">Seleccionar Cliente</ion-label>
-        <ion-select
-          [(ngModel)]="cliente"
-          (ionChange)="onClienteChange()"
-          interface="popover"
-          placeholder="Elija un cliente"
-        >
+        <ion-select [(ngModel)]="cliente" (ionChange)="onClienteChange()" interface="popover"
+          placeholder="Elija un cliente">
+          <ion-select-option value="Banco Estado">Banco Estado</ion-select-option>
           <ion-select-option value="Banco de Chile">Banco de Chile</ion-select-option>
+          <ion-select-option value="Banco Itau">Banco Itau</ion-select-option>
           <ion-select-option value="Loomis">Loomis</ion-select-option>
+          <ion-select-option value="Banco BCI">Banco BCI</ion-select-option>
           <ion-select-option value="Santander">Santander</ion-select-option>
-        </ion-select>
-      </ion-item>
-
-      <ion-item>
-        <ion-label position="stacked">Numero de ATM (desde Formulario OT)</ion-label>
-        <ion-select
-          [(ngModel)]="atmId"
-          (ionChange)="onAtmChange()"
-          interface="popover"
-          [disabled]="atmOptions.length === 0"
-          placeholder="Primero registre ATM en Formulario OT"
-        >
-          <ion-select-option *ngFor="let atmNumero of atmOptions" [value]="atmNumero">
-            {{ atmNumero }}
-          </ion-select-option>
+          <ion-select-option value="Scotiabank">Scotiabank</ion-select-option>
+          <ion-select-option value="Banco Edwards">Banco Edwards</ion-select-option>
+          <ion-select-option value="Otro">Otro</ion-select-option>
         </ion-select>
       </ion-item>
 
       <ion-item>
         <ion-label position="stacked">Comuna</ion-label>
-        <ion-input [value]="comuna" readonly="true"></ion-input>
+        <ion-input [(ngModel)]="comuna" placeholder="Ingrese la comuna"></ion-input>
       </ion-item>
 
       <ion-item>
         <ion-label position="stacked">Dirección</ion-label>
-        <ion-input [value]="direccion" readonly="true"></ion-input>
+        <ion-input [(ngModel)]="direccion" placeholder="Ingrese la dirección completa"></ion-input>
       </ion-item>
     </ion-card-content>
   </ion-card>
 
-  <ion-card>
-    <ion-card-content>
-      <section class="photo-head">
-        <h3>Fotos del Reporte</h3>
-        <p>Adjunte evidencia fotográfica para el ATM seleccionado.</p>
-      </section>
+  <!-- Tabs de ATMs + botones agregar/eliminar -->
+  <div class="atm-tabs">
+    <ion-segment [value]="indiceAtmActivo" (ionChange)="cambiarAtm($event)">
+      <ion-segment-button *ngFor="let atm of atms; let i = index" [value]="i">
+        {{ atm.etiqueta }}
+      </ion-segment-button>
+    </ion-segment>
+    <div class="atm-tab-actions">
+      <ion-button size="small" fill="outline" (click)="agregarAtm()">
+        <ion-icon name="add-outline"></ion-icon>
+      </ion-button>
+      <ion-button size="small" fill="outline" color="danger" [disabled]="atms.length === 1" (click)="eliminarAtm()">
+        <ion-icon name="trash-outline"></ion-icon>
+      </ion-button>
+    </div>
+  </div>
 
-      <label class="upload-control" [class.disabled]="!atmId">
+  <!-- Datos del ATM activo -->
+  <ion-card *ngIf="atmActivo">
+    <ion-card-header>
+      <ion-card-title>{{ atmActivo.etiqueta }}</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-item>
+        <ion-label position="stacked">Número de ATM</ion-label>
+        <ion-input
+          [(ngModel)]="atmActivo.numeroAtm"
+          (ionBlur)="sincronizarAtms()"
+          placeholder="Ej: 2134">
+        </ion-input>
+      </ion-item>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Fotos del ATM activo -->
+  <ion-card *ngIf="atmActivo">
+    <ion-card-header>
+      <ion-card-title>Fotos — {{ atmActivo.etiqueta }}</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <label class="upload-control" [class.disabled]="!atmActivo.numeroAtm.trim()">
         <input
           type="file"
           accept="image/*"
           multiple
-          [disabled]="!atmId"
-          (change)="onSeleccionFotos($event)"
-        />
-        <span>{{ atmId ? 'Seleccionar fotos' : 'Seleccione un ATM para cargar fotos' }}</span>
+          [disabled]="!atmActivo.numeroAtm.trim()"
+          (change)="onSeleccionFotos($event, indiceAtmActivo)" />
+        <span>
+          {{ atmActivo.numeroAtm.trim() ? 'Seleccionar fotos' : 'Ingrese número de ATM para cargar fotos' }}
+        </span>
       </label>
 
-      <p class="photo-empty" *ngIf="atmId && fotosAtmActual.length === 0">
+      <p class="photo-empty" *ngIf="atmActivo.numeroAtm.trim() && fotosAtmActivo.length === 0">
         Aún no hay fotos para este ATM.
       </p>
 
-      <p class="photo-empty" *ngIf="!atmId">
-        Debe seleccionar un ATM para adjuntar fotos.
-      </p>
-
-      <div class="photo-grid" *ngIf="fotosAtmActual.length > 0">
-        <article class="photo-card" *ngFor="let foto of fotosAtmActual">
+      <div class="photo-grid" *ngIf="fotosAtmActivo.length > 0">
+        <article class="photo-card" *ngFor="let foto of fotosAtmActivo">
           <img [src]="foto.previewDataUrl" [alt]="foto.nombreArchivo" />
           <div class="photo-meta">
             <strong>{{ foto.nombreArchivo }}</strong>
             <small>{{ foto.fechaRegistro | date : 'short' }}</small>
           </div>
-          <ion-button size="small" color="danger" fill="clear" (click)="eliminarFoto(foto.id)">
+          <ion-button size="small" color="danger" fill="clear" (click)="eliminarFoto(foto.id, indiceAtmActivo)">
             Eliminar
           </ion-button>
         </article>
@@ -94,8 +112,8 @@
     </ion-card-content>
   </ion-card>
 
-  <ion-button shape="round" [routerLink]="['/dashboard']">
-    <ion-icon name="cloud-upload-outline"></ion-icon>
-    Enviar
+  <ion-button expand="block" shape="round" [routerLink]="['/formulario-ot']">
+    Continuar al Formulario OT
+    <ion-icon slot="end" name="arrow-forward-outline"></ion-icon>
   </ion-button>
 </ion-content>

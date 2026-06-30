@@ -152,6 +152,11 @@ export class FormularioOtPage {
       const camposDisponibles = form.getFields().map(f => f.getName());
       console.log('Campos interactivos encontrados en la plantilla:', camposDisponibles);
 
+      const titleCase = (t: string): string =>
+        t.toLowerCase().split(' ').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+      const capitalizarPrimera = (t: string): string =>
+        t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+
       if (camposDisponibles.length > 0) {
         // --- CASO A: Rellenar si el PDF es interactivo (tiene inputs nativos) ---
         // Helper para escribir en un campo eliminando su maxLength primero
@@ -165,47 +170,54 @@ export class FormularioOtPage {
 
         // 1. Datos estáticos / generales
         escribir('Text1', this.otContextService.cliente || '');
-        escribir('Text8', this.nombreTecnico || '');
-        escribir('Text13', this.nombreETV || '');
-        escribir('Text12', this.nombreAlarma || '');
+        escribir('Text8', this.nombreTecnico ? titleCase(this.nombreTecnico) : '');
+        escribir('Text13', this.nombreETV ? titleCase(this.nombreETV) : '');
+        escribir('Text12', this.nombreAlarma ? titleCase(this.nombreAlarma) : '');
         escribir('Text10', this.validacionZonas || '');
-        
+
         // Formatear fecha del trabajo actual
         const hoy = new Date().toLocaleDateString('es-CL');
         escribir('Text5', hoy);
-        
+
         // Cantidad de cajeros
-        escribir('Text7', this.atms.length.toString());
+        const todosLosNumeros = this.atms
+          .map(a => a.numeroAtm.trim())
+          .filter(n => n.length > 0)
+          .join('-');
+        escribir('Text7', todosLosNumeros ? `${todosLosNumeros}` : '');
 
         // 2. Resolver dirección, comuna y ubicación
         if (this.atms.length > 0) {
           const primerAtmNum = this.atms[0].numeroAtm.trim();
           const comunaDetectada = primerAtmNum.length >= 4 ? 'Santiago' : '';
           const direccionCompleta = primerAtmNum.length >= 4 ? "Av. Libertador Bernardo O'Higgins 1234" : '';
-          
+
           escribir('Text6', comunaDetectada);
           escribir('Text3', direccionCompleta);
-          escribir('Text2', primerAtmNum ? `ATM ${primerAtmNum}` : '');
+
         }
 
         // 3. Consolidar el detalle de todos los cajeros (ATMs) en el gran campo de detalleServicio (Text4)
         let detalleCompilado = '';
         this.atms.forEach((atm, i) => {
-          detalleCompilado += `[${atm.etiqueta}]\n`;
-          detalleCompilado += `Número ATM: ${atm.numeroAtm || 'Sin Número'}\n`;
-          detalleCompilado += `Servicio: ${atm.tipoServicio.toUpperCase()}\n`;
-          detalleCompilado += `Serie Cajero: ${atm.serieCajero || 'S/N'}\n`;
-          detalleCompilado += `Serie MMBB: ${atm.serieMmbb || 'S/N'}\n`;
+          detalleCompilado += `Servicio: ${capitalizarPrimera(atm.tipoServicio)}\n`;
+          detalleCompilado += `Serie Cajero: ${atm.serieCajero.toUpperCase() || 'S/N'}\n`;
+          detalleCompilado += `Serie MMBB: ${atm.serieMmbb.toUpperCase() || 'S/N'}\n`;
           if (atm.detallesServicio) {
-            detalleCompilado += `Detalle: ${atm.detallesServicio}\n`;
+            detalleCompilado += `${atm.detallesServicio}\n`;
           }
           if (atm.observaciones) {
-            detalleCompilado += `Obs: ${atm.observaciones}\n`;
+            detalleCompilado += `Observaciones: ${atm.observaciones}\n`;
           }
-          detalleCompilado += '---------------------------------\n';
         });
-        
-        escribir('Text4', detalleCompilado);
+
+        const campoDetalle = form.getTextField('Text4');
+        if (campoDetalle) {
+          campoDetalle.setMaxLength(10000);
+          const longitud = detalleCompilado.length;
+          campoDetalle.setFontSize(longitud > 900 ? 5 : longitud > 600 ? 6 : longitud > 300 ? 8 : 10);
+          campoDetalle.setText(detalleCompilado);
+        }
 
         // Asegura que los campos queden visualmente planos y no reactivos
         form.flatten();

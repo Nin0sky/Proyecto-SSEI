@@ -9,6 +9,8 @@ import {
   IonContent,
   IonCard,
   IonCardContent,
+  IonCardHeader,
+  IonCardTitle,
   IonItem,
   IonLabel,
   IonInput,
@@ -16,10 +18,14 @@ import {
   IonSelectOption,
   IonButton,
   IonIcon,
+  IonSegment,
+  IonSegmentButton,
+
 } from '@ionic/angular/standalone';
-import { OtContextService, OtFotoReporte } from '../../ot-context.service';
+import { OtAtmDetalle, OtContextService, OtFotoReporte } from '../../ot-context.service';
 import { addIcons } from 'ionicons';
-import { cloudUploadOutline } from 'ionicons/icons'
+import { cloudUploadOutline, addOutline, trashOutline, arrowForwardOutline } from 'ionicons/icons';
+
 @Component({
   selector: 'app-registro-otubi',
   templateUrl: './registro-otubi.page.html',
@@ -35,24 +41,29 @@ import { cloudUploadOutline } from 'ionicons/icons'
     IonContent,
     IonCard,
     IonCardContent,
+    IonCardHeader,
+    IonCardTitle,
     IonItem,
     IonLabel,
     IonInput,
     IonSelect,
     IonSelectOption,
     IonButton,
-    IonIcon
+    IonIcon,
+    IonSegment,
+    IonSegmentButton,
   ]
 })
 export class RegistroOTUBIPage {
-  atmOptions: string[] = [];
-  atmId = '';
-  comuna = '—';
-  direccion = '—';
-  fotosAtmActual: OtFotoReporte[] = [];
+  atms: OtAtmDetalle[] = [];
+  indiceAtmActivo = 0;
+  comuna = '';
+  direccion = '';
+
+  private fotosMap = new Map<number, OtFotoReporte[]>();
 
   constructor(private readonly otContextService: OtContextService) {
-    addIcons({ cloudUploadOutline });
+    addIcons({ cloudUploadOutline, addOutline, trashOutline, arrowForwardOutline });
   }
 
   get cliente(): string {
@@ -63,25 +74,62 @@ export class RegistroOTUBIPage {
     this.otContextService.setCliente(value);
   }
 
+  get atmActivo(): OtAtmDetalle {
+    return this.atms[this.indiceAtmActivo];
+  }
+
+  get fotosAtmActivo(): OtFotoReporte[] {
+    return this.fotosMap.get(this.indiceAtmActivo) ?? [];
+  }
+
   ionViewWillEnter(): void {
-    this.actualizarAtmsDesdeFormulario();
-    this.refrescarFotosAtmActual();
+    const atmsGuardados = this.otContextService.getAtms();
+    this.atms = atmsGuardados.length > 0 ? atmsGuardados : [this.crearAtm(1)];
+    this.refrescarTodasLasFotos();
+  }
+
+  ionViewWillLeave(): void {
+    this.sincronizarAtms();
   }
 
   onClienteChange(): void {
     this.otContextService.setCliente(this.cliente);
   }
 
-  onAtmChange(): void {
-    this.actualizarUbicacion();
-    this.refrescarFotosAtmActual();
+  agregarAtm(): void {
+    this.atms.push(this.crearAtm(this.atms.length + 1));
+    this.indiceAtmActivo = this.atms.length - 1;
+    this.sincronizarAtms();
   }
 
-  async onSeleccionFotos(event: Event): Promise<void> {
+  eliminarAtm(): void {
+    if (this.atms.length === 1) {
+      return;
+    }
+    this.atms.splice(this.indiceAtmActivo, 1);
+    this.reenumerarAtms();
+    this.indiceAtmActivo = Math.max(0, this.indiceAtmActivo - 1);
+    this.sincronizarAtms();
+    this.refrescarTodasLasFotos();
+  }
+
+  cambiarAtm(event: CustomEvent): void {
+    const nuevoIndice = Number(event.detail.value);
+    if (!Number.isNaN(nuevoIndice) && this.atms[nuevoIndice]) {
+      this.indiceAtmActivo = nuevoIndice;
+    }
+  }
+
+  sincronizarAtms(): void {
+    this.otContextService.setAtms(this.atms);
+  }
+
+  async onSeleccionFotos(event: Event, indiceAtm: number): Promise<void> {
     const input = event.target as HTMLInputElement;
     const files = input.files;
+    const atm = this.atms[indiceAtm];
 
-    if (!files || files.length === 0 || !this.atmId) {
+    if (!files || files.length === 0 || !atm?.numeroAtm.trim()) {
       return;
     }
 
@@ -91,11 +139,10 @@ export class RegistroOTUBIPage {
       if (!file.type.startsWith('image/')) {
         continue;
       }
-
       const dataUrl = await this.convertirArchivoADataUrl(file);
       fotosNuevas.push({
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        atmNumero: this.atmId.trim(),
+        atmNumero: atm.numeroAtm.trim(),
         nombreArchivo: file.name,
         mimeType: file.type,
         fechaRegistro: new Date().toISOString(),
@@ -105,64 +152,56 @@ export class RegistroOTUBIPage {
 
     if (fotosNuevas.length > 0) {
       this.otContextService.agregarFotos(fotosNuevas);
-      this.refrescarFotosAtmActual();
+      this.refrescarFotosAtm(indiceAtm);
     }
 
     input.value = '';
   }
 
-  eliminarFoto(idFoto: string): void {
+  eliminarFoto(idFoto: string, indiceAtm: number): void {
     this.otContextService.eliminarFoto(idFoto);
-    this.refrescarFotosAtmActual();
+    this.refrescarFotosAtm(indiceAtm);
   }
 
-  private actualizarAtmsDesdeFormulario(): void {
-    this.atmOptions = this.otContextService
-      .getAtms()
-      .map((atm) => atm.numeroAtm.trim())
-      .filter((numeroAtm) => numeroAtm.length > 0);
+  private crearAtm(numero: number): OtAtmDetalle {
+    return {
+      etiqueta: `ATM ${numero}`,
+      tipoServicio: 'instalacion',
+      numeroAtm: '',
+      serieCajero: '',
+      serieMmbb: '',
+      detallesServicio: '',
+      observaciones: '',
+    };
+  }
 
-    if (this.atmOptions.length === 0) {
-      this.atmId = '';
-      this.actualizarUbicacion();
+  private reenumerarAtms(): void {
+    this.atms = this.atms.map((atm, index) => ({
+      ...atm,
+      etiqueta: `ATM ${index + 1}`,
+    }));
+  }
+
+  private refrescarTodasLasFotos(): void {
+    this.fotosMap = new Map();
+    this.atms.forEach((_, i) => this.refrescarFotosAtm(i));
+  }
+
+  private refrescarFotosAtm(indiceAtm: number): void {
+    const atm = this.atms[indiceAtm];
+    if (!atm?.numeroAtm.trim()) {
+      this.fotosMap.set(indiceAtm, []);
       return;
     }
-
-    if (!this.atmOptions.includes(this.atmId)) {
-      this.atmId = this.atmOptions[0];
-    }
-
-    this.actualizarUbicacion();
-    this.refrescarFotosAtmActual();
-  }
-
-  private actualizarUbicacion(): void {
-    if (this.atmId.trim().length >= 4) {
-      this.comuna = 'Santiago';
-      this.direccion = "Av. Libertador Bernardo O'Higgins 1234";
-    } else {
-      this.comuna = '—';
-      this.direccion = '—';
-    }
-  }
-
-  private refrescarFotosAtmActual(): void {
-    if (!this.atmId) {
-      this.fotosAtmActual = [];
-      return;
-    }
-
-    this.fotosAtmActual = this.otContextService.getFotosPorAtm(this.atmId);
+    this.fotosMap.set(indiceAtm, this.otContextService.getFotosPorAtm(atm.numeroAtm));
   }
 
   private convertirArchivoADataUrl(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-
       reader.onload = () => resolve(String(reader.result ?? ''));
       reader.onerror = () => reject(new Error('No se pudo leer la imagen'));
       reader.readAsDataURL(file);
     });
   }
-  
 }

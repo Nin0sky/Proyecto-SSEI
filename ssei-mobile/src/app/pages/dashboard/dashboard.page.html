@@ -45,7 +45,7 @@
         button
         detail="true"
         *ngFor="let ot of workOrders"
-        [routerLink]="['/formulario-ot']"
+        [routerLink]="['/registro-otubi']"
       >
         <ion-label>
           <h2>#{{ ot.id }} - {{ ot.atm }}</h2>
@@ -60,7 +60,7 @@
   </section>
 
 <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-  <ion-fab-button color="primary" [routerLink]="['/formulario-ot']">
+  <ion-fab-button color="primary" [routerLink]="['/registro-otubi']">
   <ion-icon name="add-outline"></ion-icon>
   </ion-fab-button>
 </ion-fab>

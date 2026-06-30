@@ -95,3 +95,20 @@
 ion-icon .cloud-upload-outline{
   color:black;
 }
+
+.atm-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 8px;
+
+  ion-segment {
+    flex: 1;
+  }
+
+  .atm-tab-actions {
+    display: flex;
+    flex-shrink: 0;
+    gap: 4px;
+  }
+}
