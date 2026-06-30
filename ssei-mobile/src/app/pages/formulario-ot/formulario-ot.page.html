@@ -20,10 +20,13 @@
       <ion-item>
         <ion-label position="stacked">Tipo de Servicio</ion-label>
         <ion-select [(ngModel)]="atmActivo.tipoServicio" (ionChange)="sincronizarAtms()" interface="popover">
+          <ion-select-option value="servicioTecnico">Servicio Técnico</ion-select-option>
           <ion-select-option value="instalacion">Instalación</ion-select-option>
           <ion-select-option value="desanclaje">Desanclaje</ion-select-option>
-          <ion-select-option value="mantenimiento">Mantenimiento</ion-select-option>
+          <ion-select-option value="movimientoInterno">Movimiento Interno</ion-select-option>
+          <ion-select-option value="transporte">Transporte</ion-select-option>
           <ion-select-option value="grafica">Gráfica</ion-select-option>
+          <ion-select-option value="pintura">Pintura</ion-select-option>
         </ion-select>
       </ion-item>
 

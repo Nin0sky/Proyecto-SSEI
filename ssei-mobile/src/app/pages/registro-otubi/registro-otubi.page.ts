@@ -61,6 +61,7 @@ export class RegistroOTUBIPage {
   indiceAtmActivo = 0;
   comuna = '';
   direccion = '';
+  ubicacion = '';
 
   // Búsqueda de ubicación
   busquedaDireccion = '';
@@ -104,14 +105,24 @@ export class RegistroOTUBIPage {
   }
 
   ionViewWillLeave(): void {
+    const direccionFinal = this.direccion.trim() || this.busquedaDireccion.trim();
+    this.direccion = direccionFinal;
+    this.otContextService.direccion = direccionFinal;
     this.otContextService.comuna = this.comuna;
     this.otContextService.direccion = this.direccion;
+    this.ubicacion = this.normalizarPrimeraPalabra(this.ubicacion);
+    this.otContextService.ubicacion = this.ubicacion;
     this.sincronizarAtms();
   }
 
   guardar(): void {
+    const direccionFinal = this.direccion.trim() || this.busquedaDireccion.trim();
+    this.direccion = direccionFinal;
+    this.otContextService.direccion = direccionFinal;
     this.otContextService.comuna = this.comuna;
     this.otContextService.direccion = this.direccion;
+    this.ubicacion = this.normalizarPrimeraPalabra(this.ubicacion);
+    this.otContextService.ubicacion = this.ubicacion;
     this.sincronizarAtms();
     this.otContextService.guardarTrabajoActivo();
     this.router.navigate(['/dashboard']);
@@ -147,6 +158,10 @@ export class RegistroOTUBIPage {
 
   sincronizarAtms(): void {
     this.otContextService.setAtms(this.atms);
+  }
+
+  onUbicacionBlur(): void {
+    this.ubicacion = this.normalizarPrimeraPalabra(this.ubicacion);
   }
 
   async onSeleccionFotos(event: Event, indiceAtm: number): Promise<void> {
@@ -230,6 +245,19 @@ export class RegistroOTUBIPage {
     });
   }
 
+  private normalizarPrimeraPalabra(texto: string): string {
+    const limpio = texto.trim();
+    if (!limpio) {
+      return '';
+    }
+
+    const partes = limpio.split(/\s+/);
+    const primera = partes[0];
+    const primeraNormalizada =
+      primera.charAt(0).toUpperCase() + primera.slice(1).toLowerCase();
+    return [primeraNormalizada, ...partes.slice(1)].join(' ');
+  }
+
   // -------------------------------------------------------------------------
   // GPS + búsqueda de dirección (Nominatim / OpenStreetMap)
   // -------------------------------------------------------------------------
@@ -257,12 +285,18 @@ export class RegistroOTUBIPage {
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
     }
-    const query = this.busquedaDireccion.trim();
+
+    const raw = this.busquedaDireccion;
+    const query = raw.trim();
+
+    this.direccion = query;
+
     if (query.length < 3) {
       this.sugerencias = [];
       this.mostrarSugerencias = false;
       return;
     }
+
     this.debounceTimer = setTimeout(() => this.buscarNominatim(query), 400);
   }
 

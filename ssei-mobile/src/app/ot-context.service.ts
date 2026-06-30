@@ -34,6 +34,7 @@ export interface OtTrabajo {
   nombreTecnico?: string;
   nombreETV?: string;
   nombreAlarma?: string;
+  ubicacion: string;
 }
 
 @Injectable({
@@ -51,6 +52,7 @@ export class OtContextService {
   nombreTecnico = '';
   nombreETV = '';
   nombreAlarma = '';
+  ubicacion = '';
 
   // Lista de todos los trabajos y referencia al activo
   trabajos: OtTrabajo[] = [];
@@ -120,6 +122,7 @@ export class OtContextService {
       nombreTecnico: '',
       nombreETV: '',
       nombreAlarma: '',
+      ubicacion: '',
     });
     this.cliente = '';
     this.atms = [];
@@ -131,6 +134,7 @@ export class OtContextService {
     this.nombreAlarma = '';
     this.trabajoActivoId = nuevoId;
     this.guardar();
+    this.ubicacion = '';
   }
 
   cargarTrabajo(id: string): void {
@@ -148,9 +152,11 @@ export class OtContextService {
     this.nombreETV = trabajo.nombreETV ?? '';
     this.nombreAlarma = trabajo.nombreAlarma ?? '';
     this.guardar();
+    this.ubicacion = trabajo.ubicacion ?? '';
   }
 
   guardarTrabajoActivo(): void {
+
     if (!this.trabajoActivoId) {
       return;
     }
@@ -169,6 +175,7 @@ export class OtContextService {
       nombreETV: this.nombreETV,
       nombreAlarma: this.nombreAlarma,
       estado: 'pendiente_envio',
+      ubicacion: this.ubicacion,
     };
     this.guardar();
   }
@@ -184,10 +191,10 @@ export class OtContextService {
       observaciones: '',
     });
     this.trabajos = [
-      { id: '1024', cliente: 'Banco de Chile', atms: [atm('6122')], fotos: [], estado: 'asignado', fechaCreacion: new Date().toISOString(), comuna: 'Santiago Centro', direccion: '', origenServidor: true },
-      { id: '1025', cliente: 'Banco Estado', atms: [atm('8841')], fotos: [], estado: 'sincronizado', fechaCreacion: new Date().toISOString(), comuna: 'Las Condes', direccion: '', origenServidor: true },
-      { id: '1028', cliente: 'Santander', atms: [atm('2210')], fotos: [], estado: 'pendiente_envio', fechaCreacion: new Date().toISOString(), comuna: 'Providencia', direccion: '', origenServidor: true },
-      { id: '1022', cliente: 'Banco de Chile', atms: [atm('5001')], fotos: [], estado: 'sincronizado', fechaCreacion: new Date().toISOString(), comuna: 'Maipú', direccion: '', origenServidor: true },
+      { id: '1024', cliente: 'Banco de Chile', atms: [atm('6122')], fotos: [], estado: 'asignado', fechaCreacion: new Date().toISOString(), comuna: 'Santiago Centro', direccion: '', ubicacion: '', origenServidor: true },
+      { id: '1025', cliente: 'Banco Estado', atms: [atm('8841')], fotos: [], estado: 'sincronizado', fechaCreacion: new Date().toISOString(), comuna: 'Las Condes', direccion: '', ubicacion: '', origenServidor: true },
+      { id: '1028', cliente: 'Santander', atms: [atm('2210')], fotos: [], estado: 'pendiente_envio', fechaCreacion: new Date().toISOString(), comuna: 'Providencia', direccion: '', ubicacion: '', origenServidor: true },
+      { id: '1022', cliente: 'Banco de Chile', atms: [atm('5001')], fotos: [], estado: 'sincronizado', fechaCreacion: new Date().toISOString(), comuna: 'Maipú', direccion: '', ubicacion: '', origenServidor: true },
     ];
     this.guardar();
   }
@@ -250,6 +257,7 @@ export class OtContextService {
         nombreTecnico: this.nombreTecnico,
         nombreETV: this.nombreETV,
         nombreAlarma: this.nombreAlarma,
+        ubicacion: this.ubicacion,
       })
     );
   }

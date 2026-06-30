@@ -35,8 +35,8 @@
       </ion-item>
 
       <ion-item>
-        <ion-label position="stacked">Dirección</ion-label>
-        <ion-input [(ngModel)]="direccion" placeholder="Ingrese la dirección completa"></ion-input>
+        <ion-label position="stacked">Ubicación</ion-label>
+        <ion-input [(ngModel)]="ubicacion" (ionBlur)="onUbicacionBlur()" placeholder="Ingrese la ubicación"></ion-input>
       </ion-item>
 
       <!-- Búsqueda inteligente de dirección -->

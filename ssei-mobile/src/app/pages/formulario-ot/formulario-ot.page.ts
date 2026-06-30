@@ -73,6 +73,7 @@ export class FormularioOtPage {
   firmaTecnico = '';
   firmaETV = '';
   firmaAlarma = '';
+  ubicacion = '';
 
   constructor(
     private readonly otContextService: OtContextService,
@@ -88,6 +89,7 @@ export class FormularioOtPage {
     this.nombreTecnico = this.otContextService.nombreTecnico;
     this.nombreETV = this.otContextService.nombreETV;
     this.nombreAlarma = this.otContextService.nombreAlarma;
+    this.ubicacion = this.otContextService.ubicacion;
   }
 
   get atmActivo(): OtAtmDetalle {
@@ -124,6 +126,7 @@ export class FormularioOtPage {
     this.otContextService.nombreTecnico = this.nombreTecnico;
     this.otContextService.nombreETV = this.nombreETV;
     this.otContextService.nombreAlarma = this.nombreAlarma;
+    this.otContextService.ubicacion = this.ubicacion;
   }
 
   sincronizarAtms(): void {
@@ -190,7 +193,6 @@ export class FormularioOtPage {
         escribir('Text13', this.nombreETV ? titleCase(this.nombreETV) : '');
         escribir('Text12', this.nombreAlarma ? titleCase(this.nombreAlarma) : '');
         escribir('Text10', this.validacionZonas || '');
-
         // Formatear fecha del trabajo actual
         const hoy = new Date().toLocaleDateString('es-CL');
         escribir('Text5', hoy);
@@ -208,8 +210,9 @@ export class FormularioOtPage {
           const comunaDetectada = primerAtmNum.length >= 4 ? 'Santiago' : '';
           const direccionCompleta = primerAtmNum.length >= 4 ? "Av. Libertador Bernardo O'Higgins 1234" : '';
 
-          escribir('Text6', comunaDetectada);
-          escribir('Text3', direccionCompleta);
+          escribir('Text6', this.otContextService.comuna || '');
+          escribir('Text3', this.otContextService.direccion || '');
+          escribir('Text2', this.otContextService.ubicacion || '');
 
         }
 
@@ -243,7 +246,7 @@ export class FormularioOtPage {
         // una vez que se identifiquen los campos de firma en la plantilla.
         // Las coordenadas son en puntos (pt) desde la esquina inferior-izquierda.
         await this.incrustarFirma(pdfDoc, pdfDoc.getPages()[0], this.firmaTecnico,
-          { x: 60,  y: 68, width: 130, height: 38 });  // TODO: campo firma técnico
+          { x: 60, y: 68, width: 130, height: 38 });  // TODO: campo firma técnico
         await this.incrustarFirma(pdfDoc, pdfDoc.getPages()[0], this.firmaETV,
           { x: 220, y: 68, width: 130, height: 38 });  // TODO: campo firma ETV
         await this.incrustarFirma(pdfDoc, pdfDoc.getPages()[0], this.firmaAlarma,
