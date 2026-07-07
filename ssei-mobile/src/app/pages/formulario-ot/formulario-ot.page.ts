@@ -7,8 +7,10 @@ import { FormsModule } from '@angular/forms';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { recognize } from 'tesseract.js'
 import { addIcons } from 'ionicons';
-import { cameraOutline } from 'ionicons/icons';
+import { cameraOutline, shareSocial, download, documentAttach, arrowBackOutline, arrowForwardOutline } from 'ionicons/icons';
 import { RouterLink } from '@angular/router';
+import { Share } from '@capacitor/share';
+import { Filesystem, Directory } from '@capacitor/filesystem';
 import {
   IonHeader,
   IonToolbar,
@@ -33,6 +35,7 @@ import {
 } from '@ionic/angular/standalone';
 import { OtAtmDetalle, OtContextService } from '../../ot-context.service';
 import { SignaturePadComponent } from '../../components/signature-pad/signature-pad.component';
+
 
 @Component({
   selector: 'app-formulario-ot',
@@ -85,7 +88,8 @@ export class FormularioOtPage {
     private readonly otContextService: OtContextService,
     private readonly http: HttpClient // Inyecta HttpClient para leer el asset de plantilla
   ) {
-    addIcons({ cameraOutline });
+    addIcons({ cameraOutline, shareSocial, download, documentAttach, arrowBackOutline, arrowForwardOutline });
+
     const atmsGuardados = this.otContextService.getAtms();
     this.atms = atmsGuardados.length > 0 ? atmsGuardados : [this.crearAtm(1)];
   }
@@ -343,48 +347,15 @@ export class FormularioOtPage {
       window.URL.revokeObjectURL(url);
     }
   }
+
   async descargarPaquete(): Promise<void> {
-    // Nombre de la carpeta raíz basado en los números de ATM
-    const numeros = this.atms
-      .map(a => a.numeroAtm.trim())
-      .filter(n => n.length > 0)
-      .join('-');
-    const nombreRaiz = numeros || 'OT_Trabajo';
-
-    const zip = new JSZip();
-    const carpetaRaiz = zip.folder(nombreRaiz);
-
-    if (!carpetaRaiz) {
+    const paquete = await this.generarZipPaquete();
+    if (!paquete) {
       return;
     }
 
-    // Generar PDF y añadir a la raíz
-    const pdfBlob = await this.generarPdf();
-    if (pdfBlob) {
-      const pdfBuffer = await pdfBlob.arrayBuffer();
-      carpetaRaiz.file(`OT_${nombreRaiz}.pdf`, pdfBuffer);
-    }
-
-    // Añadir fotos por ATM en subcarpetas
-    for (const atm of this.atms) {
-      const numeroAtm = atm.numeroAtm.trim();
-      if (!numeroAtm) {
-        continue;
-      }
-      const fotos = this.otContextService.getFotosPorAtm(numeroAtm);
-      if (fotos.length === 0) {
-        continue;
-      }
-      const carpetaAtm = carpetaRaiz.folder(`ATM_${numeroAtm}`);
-      for (const foto of fotos) {
-        const base64Data = foto.previewDataUrl.split(',')[1] ?? '';
-        carpetaAtm?.file(foto.nombreArchivo, base64Data, { base64: true });
-      }
-    }
-
-    // Generar ZIP y descargar
-    const contenidoZip = await zip.generateAsync({ type: 'blob' });
-    const url = window.URL.createObjectURL(contenidoZip);
+    const { nombreRaiz, zipBlob } = paquete;
+    const url = window.URL.createObjectURL(zipBlob);
     const link = document.createElement('a');
     link.href = url;
     link.download = `${nombreRaiz}.zip`;
@@ -392,101 +363,219 @@ export class FormularioOtPage {
     window.URL.revokeObjectURL(url);
   }
 
+  async compartirPaquete(): Promise<void> {
+    try {
+      const paquete = await this.generarZipPaquete();
+      if (!paquete) {
+        return;
+      }
+
+      const { nombreRaiz, zipBlob } = paquete;
+      const zipBase64 = await this.blobToBase64(zipBlob);
+
+      const resultado = await Filesystem.writeFile({
+        path: `${nombreRaiz}.zip`,
+        data: zipBase64,
+        directory: Directory.Cache,
+        recursive: true,
+      });
+
+      await Share.share({
+        title: 'Compartir paquete OT',
+        text: `Paquete OT ${nombreRaiz}`,
+        url: resultado.uri,
+        dialogTitle: 'Compartir paquete OT',
+      });
+    } catch (error) {
+      console.error('Error al compartir paquete:', error);
+    }
+  }
+
+  private async blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const resultado = reader.result as string;
+        resolve(resultado.split(',')[1] ?? '');
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  private formatearFechaArchivo(fecha = new Date()): string {
+    const yyyy = fecha.getFullYear();
+    const mm = String(fecha.getMonth() + 1).padStart(2, '0');
+    const dd = String(fecha.getDate()).padStart(2, '0');
+    return `${yyyy}${mm}${dd}`;
+  }
+
+  private normalizarNombreArchivo(texto: string): string {
+    return texto
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9_-]+/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '');
+  }
+
+  private construirNombrePaquete(): string {
+    const numerosAtm = this.atms
+      .map((a) => a.numeroAtm.trim())
+      .filter(Boolean)
+      .join('-') || 'SIN_ATM';
+
+    const tiposServicio = Array.from(
+      new Set(
+        this.atms
+          .map((a) => a.tipoServicio?.trim())
+          .filter(Boolean)
+      )
+    ).join('-') || 'sin-servicio';
+
+    const fecha = this.formatearFechaArchivo();
+
+    return this.normalizarNombreArchivo(`${numerosAtm}_${fecha}_${tiposServicio}`);
+  }
+
+  private async generarZipPaquete(): Promise<{ nombreRaiz: string; zipBlob: Blob } | null> {
+    const nombreRaiz = this.construirNombrePaquete();
+    const zip = new JSZip();
+    const carpetaRaiz = zip.folder(nombreRaiz);
+
+    if (!carpetaRaiz) {
+      return null;
+    }
+
+    const pdfBlob = await this.generarPdf();
+    if (pdfBlob) {
+      const pdfBuffer = await pdfBlob.arrayBuffer();
+      carpetaRaiz.file(`OT_${nombreRaiz}.pdf`, pdfBuffer);
+    }
+
+    for (const atm of this.atms) {
+      const numeroAtm = atm.numeroAtm.trim();
+      if (!numeroAtm) {
+        continue;
+      }
+
+      const fotos = this.otContextService.getFotosPorAtm(numeroAtm);
+      if (fotos.length === 0) {
+        continue;
+      }
+
+      const tipoServicio = this.normalizarNombreArchivo(atm.tipoServicio || 'sin-servicio');
+      const carpetaAtm = carpetaRaiz.folder(`ATM_${numeroAtm}_${tipoServicio}`);
+
+      for (const foto of fotos) {
+        const base64Data = foto.previewDataUrl.split(',')[1] ?? '';
+        if (!base64Data) {
+          continue;
+        }
+        carpetaAtm?.file(foto.nombreArchivo, base64Data, { base64: true });
+      }
+    }
+
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    return { nombreRaiz, zipBlob };
+  }
+
   async enviarPdf(): Promise<void> {
     const blob = await this.generarPdf();
     if (!blob) {
       return;
     }
-    // Lógica para enviar el archivo Blob mediante API POST a FastAPI o compartir mediante Capacitor Share
+
     console.log('PDF listo para envío:', blob);
   }
+
 
   // -------------------------------------------------------------------------
   // Helpers de firma
   // -------------------------------------------------------------------------
 
   private async incrustarFirma(
-    pdfDoc: PDFDocument,
-    page: ReturnType<PDFDocument['getPages']>[number],
-    dataUrl: string,
-    pos: { x: number; y: number; width: number; height: number },
-  ): Promise<void> {
-    if (!dataUrl) {
-      return;
-    }
-    try {
-      const base64 = dataUrl.split(',')[1];
-      const pngBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-      const img = await pdfDoc.embedPng(pngBytes);
-      page.drawImage(img, pos);
-    } catch {
-      // Si la imagen falla no interrumpir la generación del PDF
-    }
+  pdfDoc: PDFDocument,
+  page: ReturnType < PDFDocument['getPages'] > [number],
+  dataUrl: string,
+  pos: { x: number; y: number; width: number; height: number },
+): Promise < void> {
+  if(!dataUrl) {
+    return;
   }
-  // Metodos para escaneo de series
-  escaneandoSerieCajero = false;
-  escaneandoSerieMmbb = false;
+    try {
+    const base64 = dataUrl.split(',')[1];
+    const pngBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    const img = await pdfDoc.embedPng(pngBytes);
+    page.drawImage(img, pos);
+  } catch {
+    // Si la imagen falla no interrumpir la generación del PDF
+  }
+}
+// Metodos para escaneo de series
+escaneandoSerieCajero = false;
+escaneandoSerieMmbb = false;
 
   private normalizarSerie(texto: string): string {
-    return texto
-      .toUpperCase()
-      .replace(/[^A-Z0-9-]/g, '')
-      .trim();
-  }
+  return texto
+    .toUpperCase()
+    .replace(/[^A-Z0-9-]/g, '')
+    .trim();
+}
 
   private extraerSerie(texto: string): string {
-    const candidatos = (texto.toUpperCase().match(/[A-Z0-9-]{4,}/g) ?? [])
-      .map((c) => this.normalizarSerie(c))
-      .filter((c) => c.length >= 4);
-    return candidatos[0] ?? '';
+  const candidatos = (texto.toUpperCase().match(/[A-Z0-9-]{4,}/g) ?? [])
+    .map((c) => this.normalizarSerie(c))
+    .filter((c) => c.length >= 4);
+  return candidatos[0] ?? '';
+}
+
+  async escanearSerie(campo: 'serieCajero' | 'serieMmbb'): Promise < void> {
+  if(!this.atmActivo) {
+  return;
+}
+
+if (campo === 'serieCajero') {
+  this.escaneandoSerieCajero = true;
+} else {
+  this.escaneandoSerieMmbb = true;
+}
+
+try {
+  const foto = await Camera.getPhoto({
+    resultType: CameraResultType.Base64,
+    source: CameraSource.Camera,
+    quality: 75,
+  });
+
+  if (!foto.base64String) {
+    return;
   }
 
-  async escanearSerie(campo: 'serieCajero' | 'serieMmbb'): Promise<void> {
-    if (!this.atmActivo) {
-      return;
-    }
+  const dataUrl = 'data:image/jpeg;base64,' + foto.base64String;
+  const resultado = await recognize(dataUrl, 'eng');
+  const serie = this.extraerSerie(resultado.data.text);
 
-    if (campo === 'serieCajero') {
-      this.escaneandoSerieCajero = true;
-    } else {
-      this.escaneandoSerieMmbb = true;
-    }
+  if (!serie) {
+    return;
+  }
 
-    try {
-      const foto = await Camera.getPhoto({
-        resultType: CameraResultType.Base64,
-        source: CameraSource.Camera,
-        quality: 75,
-      });
+  if (campo === 'serieCajero') {
+    this.atmActivo.serieCajero = serie;
+  } else {
+    this.atmActivo.serieMmbb = serie;
+  }
 
-      if (!foto.base64String) {
-        return;
-      }
-
-      const dataUrl = 'data:image/jpeg;base64,' + foto.base64String;
-      const resultado = await recognize(dataUrl, 'eng');
-      const serie = this.extraerSerie(resultado.data.text);
-
-      if (!serie) {
-        return;
-      }
-
-      if (campo === 'serieCajero') {
-        this.atmActivo.serieCajero = serie;
-      } else {
-        this.atmActivo.serieMmbb = serie;
-      }
-
-      this.sincronizarAtms();
-    } catch (error) {
-      console.error('Error OCR de serie:', error);
-    } finally {
-      if (campo === 'serieCajero') {
-        this.escaneandoSerieCajero = false;
-      } else {
-        this.escaneandoSerieMmbb = false;
-      }
-    }
+  this.sincronizarAtms();
+} catch (error) {
+  console.error('Error OCR de serie:', error);
+} finally {
+  if (campo === 'serieCajero') {
+    this.escaneandoSerieCajero = false;
+  } else {
+    this.escaneandoSerieMmbb = false;
+  }
+}
   }
 
 }

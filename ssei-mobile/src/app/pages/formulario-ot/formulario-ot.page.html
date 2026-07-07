@@ -128,10 +128,22 @@
 
 
   <div class="actions">
-    <ion-button fill="outline" [routerLink]="['/dashboard']">Atrás</ion-button>
-    <ion-button [routerLink]="['/registro-otubi']">Siguiente</ion-button>
-    <ion-button (click)="descargarPdf()">Descargar PDF</ion-button>
-    <ion-button (click)="descargarPaquete()">Enviar PDF</ion-button>
+    <ion-button color="primary"  [routerLink]="['/dashboard']">
+      <ion-icon name="arrow-back-outline"></ion-icon>Atrás</ion-button>
+    <ion-button color="primary"  [routerLink]="['/registro-otubi']">
+      <ion-icon name="arrow-forward-outline"></ion-icon>Siguiente</ion-button>
+    <ion-button size="small" color="success" (click)="descargarPdf()">
+      <ion-icon name="document-attach"></ion-icon>
+      Descargar PDF
+    </ion-button>
+    <ion-button size="small" color="success" (click)="descargarPaquete()">
+      <ion-icon name="download"></ion-icon>
+      Descargar Paquete
+    </ion-button>
+    <ion-button size="small" color="success" (click)="compartirPaquete()">
+      <ion-icon name="share-social"></ion-icon>
+      Compartir
+    </ion-button>
   </div>
 
 </ion-content>
