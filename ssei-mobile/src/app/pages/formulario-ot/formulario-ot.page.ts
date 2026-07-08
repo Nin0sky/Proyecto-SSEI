@@ -115,14 +115,23 @@ export class FormularioOtPage {
   ]);
 
   get mostrarCamposSeries(): boolean {
-    const tipo = (this.atmActivo?.tipoServicio ?? '')
+    const tipo = this.normalizarTipoServicio(this.atmActivo?.tipoServicio);
+    return !this.tiposSinSeries.has(tipo);
+  }
+
+  private normalizarTipoServicio(tipo: string | null | undefined): string {
+    return (tipo ?? '')
       .toString()
       .trim()
       .toLowerCase()
       .replace(/\s+/g, '');
-
-    return !this.tiposSinSeries.has(tipo);
   }
+
+  private readonly tiposSeriesOpcionalesPdf = new Set([
+    'serviciotecnico',
+    'grafica',
+    'transporte',
+  ]);
 
   agregarAtm(): void {
     this.atms.push(this.crearAtm(this.atms.length + 1));
@@ -248,18 +257,36 @@ export class FormularioOtPage {
 
         // 3. Consolidar el detalle de todos los cajeros (ATMs) en el gran campo de detalleServicio (Text4)
         let detalleCompilado = '';
-        this.atms.forEach((atm, i) => {
-          detalleCompilado += `Servicio: ${capitalizarPrimera(atm.tipoServicio)}\n`;
-          detalleCompilado += `Serie Cajero: ${atm.serieCajero.toUpperCase() || 'S/N'}\n`;
-          detalleCompilado += `Serie MMBB: ${atm.serieMmbb.toUpperCase() || 'S/N'}\n`;
+        this.atms.forEach((atm) => {
+          const tipoNormalizado = this.normalizarTipoServicio(atm.tipoServicio);
+          const seriesOpcionales = this.tiposSeriesOpcionalesPdf.has(tipoNormalizado);
+          const serieCajero = atm.serieCajero.trim().toUpperCase();
+          const serieMmbb = atm.serieMmbb.trim().toUpperCase();
+
+          detalleCompilado += `Tipo de servicio:  ${capitalizarPrimera(atm.tipoServicio)}\n`;
+
+          if (seriesOpcionales) {
+            if (serieCajero) {
+              detalleCompilado += `Serie Cajero: ${serieCajero}\n`;
+            }
+            if (serieMmbb) {
+              detalleCompilado += `Serie MMBB: ${serieMmbb}\n`;
+            }
+          } else {
+            detalleCompilado += `Serie Cajero: ${serieCajero || 'S/N'}\n`;
+            detalleCompilado += `Serie MMBB: ${serieMmbb || 'S/N'}\n`;
+          }
+
           if (atm.detallesServicio) {
             detalleCompilado += `${atm.detallesServicio}\n`;
           }
+
           if (atm.observaciones) {
             detalleCompilado += `Observaciones: ${atm.observaciones}\n`;
           }
         });
 
+        // Escribir el detalle compilado en Text4, DESPUÉS de terminar el loop
         const campoDetalle = form.getTextField('Text4');
         if (campoDetalle) {
           campoDetalle.setMaxLength(10000);
@@ -495,87 +522,87 @@ export class FormularioOtPage {
   // -------------------------------------------------------------------------
 
   private async incrustarFirma(
-  pdfDoc: PDFDocument,
-  page: ReturnType < PDFDocument['getPages'] > [number],
-  dataUrl: string,
-  pos: { x: number; y: number; width: number; height: number },
-): Promise < void> {
-  if(!dataUrl) {
-    return;
-  }
+    pdfDoc: PDFDocument,
+    page: ReturnType<PDFDocument['getPages']>[number],
+    dataUrl: string,
+    pos: { x: number; y: number; width: number; height: number },
+  ): Promise<void> {
+    if (!dataUrl) {
+      return;
+    }
     try {
-    const base64 = dataUrl.split(',')[1];
-    const pngBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-    const img = await pdfDoc.embedPng(pngBytes);
-    page.drawImage(img, pos);
-  } catch {
-    // Si la imagen falla no interrumpir la generación del PDF
+      const base64 = dataUrl.split(',')[1];
+      const pngBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+      const img = await pdfDoc.embedPng(pngBytes);
+      page.drawImage(img, pos);
+    } catch {
+      // Si la imagen falla no interrumpir la generación del PDF
+    }
   }
-}
-// Metodos para escaneo de series
-escaneandoSerieCajero = false;
-escaneandoSerieMmbb = false;
+  // Metodos para escaneo de series
+  escaneandoSerieCajero = false;
+  escaneandoSerieMmbb = false;
 
   private normalizarSerie(texto: string): string {
-  return texto
-    .toUpperCase()
-    .replace(/[^A-Z0-9-]/g, '')
-    .trim();
-}
+    return texto
+      .toUpperCase()
+      .replace(/[^A-Z0-9-]/g, '')
+      .trim();
+  }
 
   private extraerSerie(texto: string): string {
-  const candidatos = (texto.toUpperCase().match(/[A-Z0-9-]{4,}/g) ?? [])
-    .map((c) => this.normalizarSerie(c))
-    .filter((c) => c.length >= 4);
-  return candidatos[0] ?? '';
-}
-
-  async escanearSerie(campo: 'serieCajero' | 'serieMmbb'): Promise < void> {
-  if(!this.atmActivo) {
-  return;
-}
-
-if (campo === 'serieCajero') {
-  this.escaneandoSerieCajero = true;
-} else {
-  this.escaneandoSerieMmbb = true;
-}
-
-try {
-  const foto = await Camera.getPhoto({
-    resultType: CameraResultType.Base64,
-    source: CameraSource.Camera,
-    quality: 75,
-  });
-
-  if (!foto.base64String) {
-    return;
+    const candidatos = (texto.toUpperCase().match(/[A-Z0-9-]{4,}/g) ?? [])
+      .map((c) => this.normalizarSerie(c))
+      .filter((c) => c.length >= 4);
+    return candidatos[0] ?? '';
   }
 
-  const dataUrl = 'data:image/jpeg;base64,' + foto.base64String;
-  const resultado = await recognize(dataUrl, 'eng');
-  const serie = this.extraerSerie(resultado.data.text);
+  async escanearSerie(campo: 'serieCajero' | 'serieMmbb'): Promise<void> {
+    if (!this.atmActivo) {
+      return;
+    }
 
-  if (!serie) {
-    return;
-  }
+    if (campo === 'serieCajero') {
+      this.escaneandoSerieCajero = true;
+    } else {
+      this.escaneandoSerieMmbb = true;
+    }
 
-  if (campo === 'serieCajero') {
-    this.atmActivo.serieCajero = serie;
-  } else {
-    this.atmActivo.serieMmbb = serie;
-  }
+    try {
+      const foto = await Camera.getPhoto({
+        resultType: CameraResultType.Base64,
+        source: CameraSource.Camera,
+        quality: 75,
+      });
 
-  this.sincronizarAtms();
-} catch (error) {
-  console.error('Error OCR de serie:', error);
-} finally {
-  if (campo === 'serieCajero') {
-    this.escaneandoSerieCajero = false;
-  } else {
-    this.escaneandoSerieMmbb = false;
-  }
-}
+      if (!foto.base64String) {
+        return;
+      }
+
+      const dataUrl = 'data:image/jpeg;base64,' + foto.base64String;
+      const resultado = await recognize(dataUrl, 'eng');
+      const serie = this.extraerSerie(resultado.data.text);
+
+      if (!serie) {
+        return;
+      }
+
+      if (campo === 'serieCajero') {
+        this.atmActivo.serieCajero = serie;
+      } else {
+        this.atmActivo.serieMmbb = serie;
+      }
+
+      this.sincronizarAtms();
+    } catch (error) {
+      console.error('Error OCR de serie:', error);
+    } finally {
+      if (campo === 'serieCajero') {
+        this.escaneandoSerieCajero = false;
+      } else {
+        this.escaneandoSerieMmbb = false;
+      }
+    }
   }
 
 }
