@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { addIcons } from 'ionicons';
-import { syncOutline, wifiOutline, addOutline, shieldCheckmarkOutline } from 'ionicons/icons';
+import { syncOutline, wifiOutline, addOutline, shieldCheckmarkOutline, listOutline } from 'ionicons/icons';
 import {
   IonHeader,
   IonToolbar,
@@ -19,7 +19,8 @@ import {
   IonBadge,
   IonFab,
   IonFabButton,
-  IonFooter
+  IonFooter,
+  IonImg,
 } from '@ionic/angular/standalone';
 import { OtContextService, OtTrabajo, OtEstado } from '../../ot-context.service';
 
@@ -47,6 +48,7 @@ import { OtContextService, OtTrabajo, OtEstado } from '../../ot-context.service'
     IonFab,
     IonFabButton,
     IonFooter,
+    IonImg,
   ]
 })
 export class DashboardPage {
@@ -56,7 +58,7 @@ export class DashboardPage {
     private readonly otContextService: OtContextService,
     private readonly router: Router,
   ) {
-    addIcons({ addOutline, syncOutline, wifiOutline, shieldCheckmarkOutline });
+    addIcons({ addOutline, syncOutline, wifiOutline, shieldCheckmarkOutline, listOutline });
   }
 
   ionViewWillEnter(): void {

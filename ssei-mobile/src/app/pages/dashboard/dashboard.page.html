@@ -1,6 +1,7 @@
 <ion-header class="ion-no-border">
   <ion-toolbar id="header-toolbar">
     <ion-title>SSEI</ion-title>
+      <ion-img src="assets/icon/SSEI-OSCURO.png" slot="start" class="logo-SSEI"></ion-img>
     <ion-icon name="shield-checkmark-outline" slot="center">SSEI</ion-icon>
     <ion-buttons class="btn-hoover" slot="end">
       <ion-button fill="clear">
@@ -38,15 +39,16 @@
   </section>
 
   <section class="section">
-    <h3>Lista de Trabajos</h3>
+    <ion-item lines="none" class="section-header">
 
-    <ion-list lines="none">
-      <ion-item
-        button
-        detail="true"
-        *ngFor="let ot of workOrders"
-        (click)="abrirTrabajo(ot.id)"
-      >
+      <h1>Lista de Trabajos</h1>
+        <ion-button slot="end" fill="clear" class="btn-listar">
+          <ion-icon name="list-outline"></ion-icon>
+        </ion-button>
+    </ion-item>
+
+    <ion-list lines="full">
+      <ion-item button detail="true" *ngFor="let ot of workOrders" (click)="abrirTrabajo(ot.id)">
         <ion-label>
           <h2>{{ tituloTrabajo(ot) }} — {{ ot.cliente || 'Sin cliente' }}</h2>
           <p>{{ ot.comuna || 'Sin ubicación' }}</p>
@@ -59,20 +61,17 @@
     </ion-list>
   </section>
 
-<ion-fab vertical="bottom" horizontal="end" slot="fixed">
-  <ion-fab-button color="primary" (click)="nuevoTrabajo()">
-    <ion-icon name="add-outline"></ion-icon>
-  </ion-fab-button>
-</ion-fab>
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button color="primary" (click)="nuevoTrabajo()">
+      <ion-icon name="add-outline"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
 
 </ion-content>
 
 <ion-footer>
   <ion-toolbar>
-    <ion-buttons class="bottom-nav" slot="start">
-      <ion-button class="btn-hoover" [routerLink]="['/dashboard']">Mis Ordenes</ion-button>
-      <ion-button class="btn-hoover" [routerLink]="['/formulario-ot']">Formulario OT</ion-button>
-      <ion-button class="btn-hoover" [routerLink]="['/registro-otubi']">Datos de OT</ion-button>
+    <ion-buttons class="button-group">
       <ion-button class="btn-hoover" [routerLink]="['/login']">Perfil</ion-button>
     </ion-buttons>
   </ion-toolbar>
