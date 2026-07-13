@@ -1,6 +1,8 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { addIcons } from 'ionicons';
+import { lockClosedOutline, mailOutline, arrowForwardOutline } from 'ionicons/icons';
 import {
   IonContent,
   IonCard,
@@ -8,7 +10,8 @@ import {
   IonItem,
   IonLabel,
   IonInput,
-  IonButton
+  IonButton,
+  IonIcon,
 } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
 
@@ -26,14 +29,22 @@ import { Router } from '@angular/router';
     IonItem,
     IonLabel,
     IonInput,
-    IonButton
+    IonButton,
+    IonIcon,
   ]
 })
 export class LoginPage {
   email = '';
   isLoading = false;
 
-  constructor(private router: Router) {}
+
+  constructor(private router: Router) {
+    addIcons({
+      'lock-closed-outline': lockClosedOutline,
+      'mail-outline': mailOutline,
+      'arrow-forward-outline': arrowForwardOutline,
+    });
+  }
 
   onLogin(): void {
     this.isLoading = true;

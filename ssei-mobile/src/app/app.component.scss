@@ -3,8 +3,11 @@
 	right: 14px;
 	bottom: 18px;
 	z-index: 1000;
-	--border-radius: 12px;
-	--padding-start: 12px;
-	--padding-end: 12px;
-	--box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+.sunny {
+  background-color: yellow;
+}
+
+.black {
+  background-color: black;
 }
