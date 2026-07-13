@@ -101,16 +101,18 @@ ion-icon .cloud-upload-outline{
   align-items: center;
   gap: 8px;
   padding: 0 0 8px;
+}
 
-  ion-segment {
-    flex: 1;
-  }
+.atm-tabs ion-segment {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
 
-  .atm-tab-actions {
-    display: flex;
-    flex-shrink: 0;
-    gap: 4px;
-  }
+.atm-tab-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
 }
 
 // ---------- Búsqueda de dirección ----------
@@ -160,5 +162,26 @@ ion-icon .cloud-upload-outline{
   span {
     flex: 1;
     color: var(--ion-color-dark);
+  }
+}
+
+@media (max-width: 640px) {
+  .atm-tabs {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .atm-tab-actions {
+    justify-content: flex-end;
+  }
+
+  .photo-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 900px) {
+  .photo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

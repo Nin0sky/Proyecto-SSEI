@@ -193,8 +193,6 @@ export class OtContextService {
     this.trabajos = [
       { id: '1024', cliente: 'Banco de Chile', atms: [atm('6122')], fotos: [], estado: 'asignado', fechaCreacion: new Date().toISOString(), comuna: 'Santiago Centro', direccion: '', ubicacion: '', origenServidor: true },
       { id: '1025', cliente: 'Banco Estado', atms: [atm('8841')], fotos: [], estado: 'sincronizado', fechaCreacion: new Date().toISOString(), comuna: 'Las Condes', direccion: '', ubicacion: '', origenServidor: true },
-      { id: '1028', cliente: 'Santander', atms: [atm('2210')], fotos: [], estado: 'pendiente_envio', fechaCreacion: new Date().toISOString(), comuna: 'Providencia', direccion: '', ubicacion: '', origenServidor: true },
-      { id: '1022', cliente: 'Banco de Chile', atms: [atm('5001')], fotos: [], estado: 'sincronizado', fechaCreacion: new Date().toISOString(), comuna: 'Maipú', direccion: '', ubicacion: '', origenServidor: true },
     ];
     this.guardar();
   }

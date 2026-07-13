@@ -2,7 +2,7 @@
   --padding-start: 16px;
   --padding-end: 16px;
   --padding-top: 16px;
-  --padding-bottom: 24px;
+  --padding-bottom: 32px;
 }
 
 .atm-controls {
@@ -13,14 +13,19 @@
 }
 
 ion-segment {
-  margin-bottom: 10px;
+  overflow-x: auto;
 }
 
 .actions {
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
   margin: 12px 0 6px;
+}
+
+.actions ion-button {
+  width: 100%;
+  margin: 0;
 }
 
 .personal-card {
@@ -64,17 +69,25 @@ ion-segment {
   }
 }
 
-@media (max-width: 700px) {
-  .personal-row {
+@media (min-width: 768px) {
+  .page-content {
+    --padding-start: 24px;
+    --padding-end: 24px;
+  }
+
+  .actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .actions {
     grid-template-columns: 1fr;
   }
 
-  .signature-box {
-    min-height: 0;
-  }
-
-  .atm-controls {
-    justify-content: space-between;
+  ion-card {
+    margin-left: 0;
+    margin-right: 0;
   }
 }
 

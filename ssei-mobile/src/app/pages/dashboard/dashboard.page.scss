@@ -23,13 +23,16 @@
 
 .kpi-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
 .bottom-nav {
   width: 100%;
-  justify-content: space-around;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  justify-content: stretch;
 }
 
 :host {
@@ -37,6 +40,11 @@
   --ssei-turquoise-strong: #0f766e;
   --ssei-hover-lift: -1px;
   --ssei-hover-scale: 1.02;
+}
+
+.bottom-nav ion-button {
+  width: 100%;
+  margin: 0;
 }
 
 /* Botones del dashboard */
@@ -86,5 +94,22 @@ ion-fab-button:active::part(native) {
   .bottom-nav ion-button::part(native),
   ion-fab-button::part(native) {
     transition: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 768px) {
+  .dashboard-content {
+    --padding-start: 24px;
+    --padding-end: 24px;
+  }
+
+  .bottom-nav {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
