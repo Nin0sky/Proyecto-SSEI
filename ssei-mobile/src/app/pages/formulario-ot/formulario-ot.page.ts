@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { PDFDocument, rgb } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import JSZip from 'jszip';
 import { Component, ViewChildren, QueryList, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -266,6 +266,9 @@ export class FormularioOtPage {
       // Cargar el PDF en pdf-lib
       const pdfDoc = await PDFDocument.load(arrayBufferBase);
 
+      // CARGAR FUENTE COURIER (Monoespaciada)
+      const courierFont = await pdfDoc.embedFont(StandardFonts.Courier);
+
       // Obtener el formulario interactivo si el PDF tiene campos programables (AcroForm)
       const form = pdfDoc.getForm();
       const camposDisponibles = form.getFields().map(f => f.getName());
@@ -325,17 +328,42 @@ export class FormularioOtPage {
           const serieCajero = atm.serieCajero.trim().toUpperCase();
           const serieMmbb = atm.serieMmbb.trim().toUpperCase();
 
-          detalleCompilado += `Tipo de servicio: ${this.etiquetaTipoServicio(atm.tipoServicio)}\n`;
+          detalleCompilado += `${this.etiquetaTipoServicio(atm.tipoServicio)}\n`;
 
           if (tipoNormalizado === 'servicioelectrico' && atm.medicionesElectricas) {
             const med = atm.medicionesElectricas;
-            const fila = (label: string, t: string, a: string, n?: string) =>
-              `${label.padEnd(16)} ${t.padEnd(18)} ${a.padEnd(20)}${med.tieneUpsNueva && n ? ' ' + n : ''}\n`;
 
-            detalleCompilado += `${''.padEnd(22)} Tablero   UPS Antigua${med.tieneUpsNueva ? '  UPS Nueva' : ''}\n`;
-            detalleCompilado += fila('Fase-Neutro:'.padEnd(10), med.tablero.faseNeutro, med.upsAntigua.faseNeutro, med.upsNueva.faseNeutro);
-            detalleCompilado += fila('Neutro-Tierra:'.padEnd(14), med.tablero.neutroTierra, med.upsAntigua.neutroTierra, med.upsNueva.neutroTierra);
-            detalleCompilado += fila('Fase-Tierra:'.padEnd(14), med.tablero.faseTierra, med.upsAntigua.faseTierra, med.upsNueva.faseTierra);
+            // Definimos anchos rígidos idénticos para el encabezado y las filas
+            const labelWidth = 18;
+            const colWidth = 15;
+
+            // Función generadora de filas simétricas con la misma base
+            const fila = (label: string, tableroVal: string, upsAntiguaVal: string, upsNuevaVal?: string) => {
+              const lRef = label.padEnd(labelWidth, ' ');
+              const tRef = tableroVal.padEnd(colWidth, ' ');
+              const aRef = upsAntiguaVal.padEnd(colWidth, ' ');
+              const nRef = med.tieneUpsNueva && upsNuevaVal ? upsNuevaVal.padEnd(colWidth, ' ') : '';
+              return `${lRef}${tRef}${aRef}${nRef}\n`;
+            };
+
+            // Construir encabezado usando exactamente las mismas constantes
+            const headerLabel = ''.padEnd(labelWidth, ' ');
+            const headerTablero = 'Tablero'.padEnd(colWidth, ' ');
+            const headerAntigua = 'UPS Antigua'.padEnd(colWidth, ' ');
+            const headerNueva = med.tieneUpsNueva ? 'UPS Nueva'.padEnd(colWidth, ' ') : '';
+
+            detalleCompilado += `${headerLabel}${headerTablero}${headerAntigua}${headerNueva}\n`;
+
+            // Construir las filas de datos con los parámetros alineados matemáticamente
+            detalleCompilado += fila('Fase-Neutro:', med.tablero.faseNeutro, med.upsAntigua.faseNeutro, med.upsNueva.faseNeutro);
+            // Añadimos espacios manuales por delante (ej: '   ') para centrar el valor con el encabezado de arriba
+            detalleCompilado += fila(
+              'Neutro-Tierra:',
+              '   ' + med.tablero.neutroTierra,
+              '   ' + med.upsAntigua.neutroTierra,
+              med.upsNueva.neutroTierra ? '   ' + med.upsNueva.neutroTierra : ''
+            ); detalleCompilado += fila('Fase-Tierra:', med.tablero.faseTierra, med.upsAntigua.faseTierra, med.upsNueva.faseTierra);
+
           } else if (seriesOpcionales) {
             if (serieCajero) detalleCompilado += `Serie Cajero: ${serieCajero}\n`;
             if (serieMmbb) detalleCompilado += `Serie MMBB: ${serieMmbb}\n`;
@@ -354,10 +382,12 @@ export class FormularioOtPage {
           campoDetalle.setMaxLength(10000);
           const longitud = detalleCompilado.length;
           campoDetalle.setFontSize(longitud > 900 ? 5 : longitud > 600 ? 6 : longitud > 300 ? 8 : 10);
+
+          // ESTA LÍNEA APLICA LA FUENTE MONOESPACIADA DE MANERA DEFINITIVA Y SEGURA
+          campoDetalle.updateAppearances(courierFont);
+
           campoDetalle.setText(detalleCompilado);
         }
-
-
         const limpiarBordesCampos = (): void => {
           for (const field of form.getFields()) {
             const acroField = (field as any).acroField;
