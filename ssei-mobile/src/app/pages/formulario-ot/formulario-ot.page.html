@@ -21,6 +21,7 @@
         <ion-label position="stacked">Tipo de Servicio</ion-label>
         <ion-select [(ngModel)]="atmActivo.tipoServicio" (ionChange)="sincronizarAtms()" interface="popover">
           <ion-select-option value="servicioTecnico">Servicio Técnico</ion-select-option>
+          <ion-select-option value="servicioElectrico">Servicio Electrico</ion-select-option>
           <ion-select-option value="instalacion">Instalación</ion-select-option>
           <ion-select-option value="desanclaje">Desanclaje</ion-select-option>
           <ion-select-option value="movimientoInterno">Movimiento Interno</ion-select-option>
@@ -36,25 +37,115 @@
         <ion-input placeholder="Ejemplo: ATM-001" (ionInput)="sincronizarAtms()"
           [(ngModel)]="atmActivo.numeroAtm"></ion-input>
       </ion-item>
-      <ion-item *ngIf="mostrarCamposSeries">
-        <ion-label position="stacked">Serie Cajero</ion-label>
-        <ion-input placeholder="Ingresa serie del cajero" (ionInput)="sincronizarAtms()"
-          [(ngModel)]="atmActivo.serieCajero">
-        </ion-input>
-        <ion-button slot="end" fill="clear" [disabled]="escaneandoSerieCajero" (click)="escanearSerie('serieCajero')">
-          <ion-icon name="camera-outline"></ion-icon>
-        </ion-button>
-      </ion-item>
-      <ion-item *ngIf="mostrarCamposSeries">
-        <ion-label position="stacked">Serie MMBB</ion-label>
-        <ion-input placeholder="Ingresa serie MMBB" (ionInput)="sincronizarAtms()" [(ngModel)]="atmActivo.serieMmbb">
-        </ion-input>
-        <ion-button slot="end" fill="clear" [disabled]="escaneandoSerieMmbb" (click)="escanearSerie('serieMmbb')">
-          <ion-icon name="camera-outline"></ion-icon>
-        </ion-button>
-      </ion-item>
+      <!-- Sección Servicio Eléctrico -->
+      <ion-card *ngIf="esServicioElectrico">
+        <ion-card-header>
+          <ion-card-title>Mediciones Eléctricas</ion-card-title>
+        </ion-card-header>
+        <ion-card-content class="mediciones-electricas">
+
+          <!-- Toggle UPS Nueva arriba para que el grid sepa cuántas columnas -->
+          <ion-item lines="none">
+            <ion-label>Incluir UPS Nueva</ion-label>
+            <ion-toggle [(ngModel)]="atmActivo.medicionesElectricas!.tieneUpsNueva"
+              (ionChange)="sincronizarAtms()"></ion-toggle>
+          </ion-item>
+
+          <div class="med-grid" [class.con-ups-nueva]="atmActivo.medicionesElectricas!.tieneUpsNueva">
+
+            <!-- Encabezados -->
+            <div class="med-header"></div>
+            <div class="med-header">Tablero</div>
+            <div class="med-header">UPS Antigua</div>
+            <div class="med-header med-col-nueva">UPS Nueva</div>
+
+            <!-- Fase-Neutro -->
+            <div class="med-label">Fase-Neutro</div>
+            <div class="med-cell">
+              <ion-input placeholder="224V" [(ngModel)]="atmActivo.medicionesElectricas!.tablero.faseNeutro"
+                (ionInput)="sincronizarAtms()"
+                (ionBlur)="normalizarVoltajeBlur($event, atmActivo.medicionesElectricas!.tablero, 'faseNeutro')">
+              </ion-input>
+            </div>
+            <div class="med-cell">
+              <ion-input placeholder="224V" [(ngModel)]="atmActivo.medicionesElectricas!.upsAntigua.faseNeutro"
+                (ionInput)="sincronizarAtms()"
+                (ionBlur)="normalizarVoltajeBlur($event, atmActivo.medicionesElectricas!.upsAntigua, 'faseNeutro')">
+              </ion-input>
+            </div>
+            <div class="med-cell med-col-nueva">
+              <ion-input placeholder="224V" [(ngModel)]="atmActivo.medicionesElectricas!.upsNueva.faseNeutro"
+                (ionInput)="sincronizarAtms()"
+                (ionBlur)="normalizarVoltajeBlur($event, atmActivo.medicionesElectricas!.upsNueva, 'faseNeutro')">
+              </ion-input>
+            </div>
+
+            <!-- Neutro-Tierra -->
+            <div class="med-label">Neutro-Tierra</div>
+            <div class="med-cell">
+              <ion-input placeholder="0.4V" [(ngModel)]="atmActivo.medicionesElectricas!.tablero.neutroTierra"
+                (ionInput)="sincronizarAtms()"
+                (ionBlur)="normalizarVoltajeBlur($event, atmActivo.medicionesElectricas!.tablero, 'neutroTierra')">
+              </ion-input>
+            </div>
+            <div class="med-cell">
+              <ion-input placeholder="0.4V" [(ngModel)]="atmActivo.medicionesElectricas!.upsAntigua.neutroTierra"
+                (ionInput)="sincronizarAtms()"
+                (ionBlur)="normalizarVoltajeBlur($event, atmActivo.medicionesElectricas!.upsAntigua, 'neutroTierra')">
+              </ion-input>
+            </div>
+            <div class="med-cell med-col-nueva">
+              <ion-input placeholder="0.4V" [(ngModel)]="atmActivo.medicionesElectricas!.upsNueva.neutroTierra"
+                (ionInput)="sincronizarAtms()"
+                (ionBlur)="normalizarVoltajeBlur($event, atmActivo.medicionesElectricas!.upsNueva, 'neutroTierra')">
+              </ion-input>
+            </div>
+
+            <!-- Fase-Tierra -->
+            <div class="med-label">Fase-Tierra</div>
+            <div class="med-cell">
+              <ion-input placeholder="223V" [(ngModel)]="atmActivo.medicionesElectricas!.tablero.faseTierra"
+                (ionInput)="sincronizarAtms()"
+                (ionBlur)="normalizarVoltajeBlur($event, atmActivo.medicionesElectricas!.tablero, 'faseTierra')">
+              </ion-input>
+            </div>
+            <div class="med-cell">
+              <ion-input placeholder="223V" [(ngModel)]="atmActivo.medicionesElectricas!.upsAntigua.faseTierra"
+                (ionInput)="sincronizarAtms()"
+                (ionBlur)="normalizarVoltajeBlur($event, atmActivo.medicionesElectricas!.upsAntigua, 'faseTierra')">
+              </ion-input>
+            </div>
+            <div class="med-cell med-col-nueva">
+              <ion-input placeholder="223V" [(ngModel)]="atmActivo.medicionesElectricas!.upsNueva.faseTierra"
+                (ionInput)="sincronizarAtms()"
+                (ionBlur)="normalizarVoltajeBlur($event, atmActivo.medicionesElectricas!.upsNueva, 'faseTierra')">
+              </ion-input>
+            </div>
+
+          </div>
+        </ion-card-content>
+      </ion-card>
+
     </ion-card-content>
   </ion-card>
+  <ion-item *ngIf="mostrarCamposSeries">
+    <ion-label position="stacked">Serie Cajero</ion-label>
+    <ion-input placeholder="Ingresa serie del cajero" (ionInput)="sincronizarAtms()"
+      [(ngModel)]="atmActivo.serieCajero">
+    </ion-input>
+    <ion-button slot="end" fill="clear" [disabled]="escaneandoSerieCajero" (click)="escanearSerie('serieCajero')">
+      <ion-icon name="camera-outline"></ion-icon>
+    </ion-button>
+  </ion-item>
+  <ion-item *ngIf="mostrarCamposSeries">
+    <ion-label position="stacked">Serie MMBB</ion-label>
+    <ion-input placeholder="Ingresa serie MMBB" (ionInput)="sincronizarAtms()" [(ngModel)]="atmActivo.serieMmbb">
+    </ion-input>
+    <ion-button slot="end" fill="clear" [disabled]="escaneandoSerieMmbb" (click)="escanearSerie('serieMmbb')">
+      <ion-icon name="camera-outline"></ion-icon>
+    </ion-button>
+  </ion-item>
+
 
   <ion-card>
     <ion-card-header>
@@ -128,9 +219,9 @@
 
 
   <div class="actions">
-    <ion-button color="primary"  [routerLink]="['/dashboard']">
+    <ion-button color="primary" [routerLink]="['/dashboard']">
       <ion-icon name="arrow-back-outline"></ion-icon>Atrás</ion-button>
-    <ion-button color="primary"  [routerLink]="['/registro-otubi']">
+    <ion-button color="primary" [routerLink]="['/registro-otubi']">
       <ion-icon name="arrow-forward-outline"></ion-icon>Siguiente</ion-button>
     <ion-button size="small" color="success" (click)="descargarPdf()">
       <ion-icon name="document-attach"></ion-icon>

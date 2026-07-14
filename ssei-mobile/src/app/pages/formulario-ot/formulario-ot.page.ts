@@ -1,15 +1,17 @@
 import { HttpClient } from '@angular/common/http';
 import { PDFDocument, rgb } from 'pdf-lib';
 import JSZip from 'jszip';
-import { Component, ViewChildren, QueryList } from '@angular/core';
+import { Component, ViewChildren, QueryList, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+// import { Component, ChangeDetectorRef } from '@angular/core';
 import { recognize } from 'tesseract.js'
 import { addIcons } from 'ionicons';
 import { cameraOutline, shareSocial, download, documentAttach, arrowBackOutline, arrowForwardOutline } from 'ionicons/icons';
 import { RouterLink } from '@angular/router';
 import { Share } from '@capacitor/share';
+import { IonToggle } from '@ionic/angular/standalone';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import {
   IonHeader,
@@ -33,7 +35,7 @@ import {
   IonFooter,
   IonIcon,
 } from '@ionic/angular/standalone';
-import { OtAtmDetalle, OtContextService } from '../../ot-context.service';
+import { OtAtmDetalle, OtContextService, MedicionElectrica } from '../../ot-context.service';
 import { SignaturePadComponent } from '../../components/signature-pad/signature-pad.component';
 
 
@@ -67,6 +69,7 @@ import { SignaturePadComponent } from '../../components/signature-pad/signature-
     IonFooter,
     SignaturePadComponent,
     IonIcon,
+    IonToggle,
   ]
 })
 export class FormularioOtPage {
@@ -86,17 +89,19 @@ export class FormularioOtPage {
 
   constructor(
     private readonly otContextService: OtContextService,
-    private readonly http: HttpClient // Inyecta HttpClient para leer el asset de plantilla
+    private readonly http: HttpClient, // Inyecta HttpClient para leer el asset de plantilla
+    private readonly cdr: ChangeDetectorRef,
   ) {
     addIcons({ cameraOutline, shareSocial, download, documentAttach, arrowBackOutline, arrowForwardOutline });
 
+
     const atmsGuardados = this.otContextService.getAtms();
-    this.atms = atmsGuardados.length > 0 ? atmsGuardados : [this.crearAtm(1)];
+    this.atms = this.migrarMediciones(atmsGuardados.length > 0 ? atmsGuardados : [this.crearAtm(1)]);
   }
 
   ionViewWillEnter(): void {
     const atmsGuardados = this.otContextService.getAtms();
-    this.atms = atmsGuardados.length > 0 ? atmsGuardados : [this.crearAtm(1)];
+    this.atms = this.migrarMediciones(atmsGuardados.length > 0 ? atmsGuardados : [this.crearAtm(1)]);
     this.nombreTecnico = this.otContextService.nombreTecnico;
     this.nombreETV = this.otContextService.nombreETV;
     this.nombreAlarma = this.otContextService.nombreAlarma;
@@ -107,13 +112,31 @@ export class FormularioOtPage {
     return this.atms[this.indiceAtmActivo];
   }
 
+  private migrarMediciones(atms: OtAtmDetalle[]): OtAtmDetalle[] {
+    return atms.map(atm => {
+      if (atm.medicionesElectricas) return atm;
+      return {
+        ...atm,
+        medicionesElectricas: {
+          tablero: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
+          upsAntigua: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
+          upsNueva: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
+          tieneUpsNueva: false,
+        },
+      };
+    });
+  }
   private readonly tiposSinSeries = new Set([
     'serviciotecnico',
+    'servicioelectrico',
     'grafica',
     'pintura',
     'asistencia',
   ]);
 
+  get esServicioElectrico(): boolean {
+    return this.normalizarTipoServicio(this.atmActivo?.tipoServicio) === 'servicioelectrico';
+  }
   get mostrarCamposSeries(): boolean {
     const tipo = this.normalizarTipoServicio(this.atmActivo?.tipoServicio);
     return !this.tiposSinSeries.has(tipo);
@@ -169,6 +192,37 @@ export class FormularioOtPage {
   sincronizarAtms(): void {
     this.otContextService.setAtms(this.atms);
   }
+  private normalizarVoltaje(valor: string): string {
+    const limpio = valor.trim();
+    if (!limpio) return '';
+    if (/v$/i.test(limpio)) return limpio.slice(0, -1).trim() + 'V';
+    if (/^[\d.,]+$/.test(limpio)) return limpio + 'V';
+    return limpio;
+  }
+
+  normalizarVoltajeBlur(event: Event, medicion: MedicionElectrica, campo: keyof MedicionElectrica): void {
+    const valorNormalizado = this.normalizarVoltaje(medicion[campo]);
+    medicion[campo] = valorNormalizado;
+    // Actualiza directamente el valor en el elemento ion-input
+    (event.target as any).value = valorNormalizado;
+    this.sincronizarAtms();
+  }
+
+  private readonly etiquetasTipoServicio: Record<string, string> = {
+    serviciotecnico: 'Servicio Técnico',
+    servicioelectrico: 'Servicio Eléctrico',
+    instalacion: 'Instalación',
+    desanclaje: 'Desanclaje',
+    movimientointerno: 'Movimiento Interno',
+    transporte: 'Transporte',
+    grafica: 'Gráfica',
+    pintura: 'Pintura',
+    asistencia: 'Asistencia',
+  };
+
+  private etiquetaTipoServicio(tipo: string): string {
+    return this.etiquetasTipoServicio[this.normalizarTipoServicio(tipo)] ?? tipo;
+  }
 
   private crearAtm(numero: number): OtAtmDetalle {
     return {
@@ -179,6 +233,12 @@ export class FormularioOtPage {
       serieMmbb: '',
       detallesServicio: '',
       observaciones: '',
+      medicionesElectricas: {
+        tablero: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
+        upsAntigua: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
+        upsNueva: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
+        tieneUpsNueva: false,
+      }
     };
   }
 
@@ -254,7 +314,6 @@ export class FormularioOtPage {
           escribir('Text2', this.otContextService.ubicacion || '');
 
         }
-
         // 3. Consolidar el detalle de todos los cajeros (ATMs) en el gran campo de detalleServicio (Text4)
         let detalleCompilado = '';
         this.atms.forEach((atm) => {
@@ -263,27 +322,27 @@ export class FormularioOtPage {
           const serieCajero = atm.serieCajero.trim().toUpperCase();
           const serieMmbb = atm.serieMmbb.trim().toUpperCase();
 
-          detalleCompilado += `Tipo de servicio:  ${capitalizarPrimera(atm.tipoServicio)}\n`;
+          detalleCompilado += `Tipo de servicio: ${this.etiquetaTipoServicio(atm.tipoServicio)}\n`;
 
-          if (seriesOpcionales) {
-            if (serieCajero) {
-              detalleCompilado += `Serie Cajero: ${serieCajero}\n`;
-            }
-            if (serieMmbb) {
-              detalleCompilado += `Serie MMBB: ${serieMmbb}\n`;
-            }
+          if (tipoNormalizado === 'servicioelectrico' && atm.medicionesElectricas) {
+            const med = atm.medicionesElectricas;
+            const fila = (label: string, t: string, a: string, n?: string) =>
+              `${label.padEnd(16)} ${t.padEnd(18)} ${a.padEnd(20)}${med.tieneUpsNueva && n ? ' ' + n : ''}\n`;
+
+            detalleCompilado += `${''.padEnd(22)} Tablero   UPS Antigua${med.tieneUpsNueva ? '  UPS Nueva' : ''}\n`;
+            detalleCompilado += fila('Fase-Neutro:'.padEnd(10), med.tablero.faseNeutro, med.upsAntigua.faseNeutro, med.upsNueva.faseNeutro);
+            detalleCompilado += fila('Neutro-Tierra:'.padEnd(14), med.tablero.neutroTierra, med.upsAntigua.neutroTierra, med.upsNueva.neutroTierra);
+            detalleCompilado += fila('Fase-Tierra:'.padEnd(14), med.tablero.faseTierra, med.upsAntigua.faseTierra, med.upsNueva.faseTierra);
+          } else if (seriesOpcionales) {
+            if (serieCajero) detalleCompilado += `Serie Cajero: ${serieCajero}\n`;
+            if (serieMmbb) detalleCompilado += `Serie MMBB: ${serieMmbb}\n`;
           } else {
             detalleCompilado += `Serie Cajero: ${serieCajero || 'S/N'}\n`;
             detalleCompilado += `Serie MMBB: ${serieMmbb || 'S/N'}\n`;
           }
 
-          if (atm.detallesServicio) {
-            detalleCompilado += `${atm.detallesServicio}\n`;
-          }
-
-          if (atm.observaciones) {
-            detalleCompilado += `Observaciones: ${atm.observaciones}\n`;
-          }
+          if (atm.detallesServicio) detalleCompilado += `${atm.detallesServicio}\n`;
+          if (atm.observaciones) detalleCompilado += `Observaciones: ${atm.observaciones}\n`;
         });
 
         // Escribir el detalle compilado en Text4, DESPUÉS de terminar el loop

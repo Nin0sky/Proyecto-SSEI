@@ -1,5 +1,17 @@
 import { Injectable } from '@angular/core';
 
+export interface MedicionElectrica {
+  faseNeutro: string;
+  neutroTierra: string;
+  faseTierra: string;
+}
+
+export interface MedicionesElectricas {
+  tablero: MedicionElectrica;
+  upsAntigua: MedicionElectrica;
+  upsNueva: MedicionElectrica;
+  tieneUpsNueva: boolean;
+}
 export interface OtAtmDetalle {
   etiqueta: string;
   tipoServicio: string;
@@ -8,6 +20,7 @@ export interface OtAtmDetalle {
   serieMmbb: string;
   detallesServicio: string;
   observaciones: string;
+  medicionesElectricas?: MedicionesElectricas;
 }
 
 export interface OtFotoReporte {

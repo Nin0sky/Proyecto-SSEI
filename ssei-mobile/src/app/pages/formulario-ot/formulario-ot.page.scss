@@ -104,3 +104,47 @@ ion-label {
   --placeholder-opacity: 1;
   color: #1f2937;
 }
+
+.med-grid {
+  display: grid;
+  grid-template-columns: 90px 1fr 1fr;
+  gap: 6px 4px;
+  align-items: center;
+  padding: 8px 0;
+
+  .med-col-nueva {
+    display: none;
+  }
+
+  &.con-ups-nueva {
+    grid-template-columns: 90px 1fr 1fr 1fr;
+
+    .med-col-nueva {
+      display: block;
+    }
+  }
+
+  .med-header {
+    text-align: center;
+    font-size: 0.75em;
+    font-weight: 600;
+    color: var(--ion-color-medium);
+  }
+
+  .med-label {
+    font-size: 0.8em;
+    color: var(--ion-text-color);
+    white-space: nowrap;
+  }
+
+  .med-cell {
+    ion-input {
+      border: 1px solid var(--ion-color-medium);
+      border-radius: 6px;
+      --padding-start: 6px;
+      --padding-end: 6px;
+      font-size: 0.85em;
+      text-align: center;
+    }
+  }
+}
