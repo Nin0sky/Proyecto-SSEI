@@ -5,13 +5,6 @@
   --padding-bottom: 32px;
 }
 
-.atm-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
 ion-segment {
   overflow-x: auto;
 }
@@ -26,28 +19,6 @@ ion-segment {
 .actions ion-button {
   width: 100%;
   margin: 0;
-}
-
-.personal-card {
-  max-width: 760px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.personal-content {
-  padding-top: 6px;
-}
-
-.personal-rows {
-  display: grid;
-  gap: 10px;
-}
-
-.personal-row {
-  display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 12px;
-  align-items: stretch;
 }
 
 .boxed-item {
@@ -69,26 +40,14 @@ ion-segment {
   }
 }
 
-@media (min-width: 768px) {
-  .page-content {
-    --padding-start: 24px;
-    --padding-end: 24px;
-  }
-
-  .actions {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 640px) {
-  .actions {
-    grid-template-columns: 1fr;
-  }
-
-  ion-card {
-    margin-left: 0;
-    margin-right: 0;
-  }
+ion-icon[name="camera-outline"] {
+  margin-top: 3px;
+  padding: 4px;
+  color: #059ef7;
+  height: 20px;
+  width: 20px;
+  border-radius: 4px;
+  border: 3px solid #d1d1d1;
 }
 
 ion-textarea {
@@ -105,46 +64,39 @@ ion-label {
   color: #1f2937;
 }
 
-.med-grid {
-  display: grid;
-  grid-template-columns: 90px 1fr 1fr;
-  gap: 6px 4px;
-  align-items: center;
-  padding: 8px 0;
+// ----------------------------------------------------
+// DISEÑO EXCLUSIVO RESPONSIVO PARA MEDICIONES ELÉCTRICAS
+// ----------------------------------------------------
+.mediciones-section-card {
+  background: var(--ion-color-step-50, #fcfcfc);
+  border: 1px solid var(--ion-color-step-200, #e0e0e0);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  height: calc(100% - 16px); // Alturas simétricas perfectas en pantallas de escritorio
 
-  .med-col-nueva {
-    display: none;
+  ion-item {
+    margin-bottom: 10px;
   }
-
-  &.con-ups-nueva {
-    grid-template-columns: 90px 1fr 1fr 1fr;
-
-    .med-col-nueva {
-      display: block;
-    }
+  
+  ion-item:last-child {
+    margin-bottom: 0;
   }
+}
 
-  .med-header {
-    text-align: center;
-    font-size: 0.75em;
-    font-weight: 600;
-    color: var(--ion-color-medium);
-  }
+.mediciones-section-title {
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--ion-color-primary, #059ef7);
+  text-align: center;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1.5px solid var(--ion-color-step-150, #dcdcdc);
+}
 
-  .med-label {
-    font-size: 0.8em;
-    color: var(--ion-text-color);
-    white-space: nowrap;
-  }
-
-  .med-cell {
-    ion-input {
-      border: 1px solid var(--ion-color-medium);
-      border-radius: 6px;
-      --padding-start: 6px;
-      --padding-end: 6px;
-      font-size: 0.85em;
-      text-align: center;
-    }
-  }
+// Separadores visuales de firmas
+.form-divider {
+  border: 0;
+  border-top: 1px solid var(--ion-color-step-150, #dcdcdc); 
+  margin: 24px 0;
 }

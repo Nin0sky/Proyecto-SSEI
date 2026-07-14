@@ -11,7 +11,7 @@ import { addIcons } from 'ionicons';
 import { cameraOutline, shareSocial, download, documentAttach, arrowBackOutline, arrowForwardOutline } from 'ionicons/icons';
 import { RouterLink } from '@angular/router';
 import { Share } from '@capacitor/share';
-import { IonToggle } from '@ionic/angular/standalone';
+import { IonCol, IonGrid, IonRow, IonToggle } from '@ionic/angular/standalone';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import {
   IonHeader,
@@ -70,6 +70,9 @@ import { SignaturePadComponent } from '../../components/signature-pad/signature-
     SignaturePadComponent,
     IonIcon,
     IonToggle,
+    IonGrid,
+    IonCol,
+    IonRow,
   ]
 })
 export class FormularioOtPage {
