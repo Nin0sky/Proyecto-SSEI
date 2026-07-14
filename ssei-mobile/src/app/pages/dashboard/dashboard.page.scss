@@ -119,3 +119,10 @@ ion-fab-button:active::part(native) {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+.filtro-opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 16px;
+}

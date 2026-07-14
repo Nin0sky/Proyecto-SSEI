@@ -52,3 +52,15 @@
   font-size: 20px;
   margin-bottom: 4px;
 }
+
+.login-button {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  --border-radius: 12px;
+  --background: #00adfd;
+  --color: #000000;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 12px;
+  --padding-bottom: 12px;
+}

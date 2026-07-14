@@ -1,7 +1,7 @@
 <ion-header class="ion-no-border">
   <ion-toolbar id="header-toolbar">
     <ion-title>SSEI</ion-title>
-      <ion-img src="assets/icon/SSEI-OSCURO.png" slot="start" class="logo-SSEI"></ion-img>
+    <ion-img src="assets/icon/SSEI-OSCURO.png" slot="start" class="logo-SSEI"></ion-img>
     <ion-icon name="shield-checkmark-outline" slot="center">SSEI</ion-icon>
     <ion-buttons class="btn-hoover" slot="end">
       <ion-button fill="clear">
@@ -40,15 +40,25 @@
 
   <section class="section">
     <ion-item lines="none" class="section-header">
-
       <h1>Lista de Trabajos</h1>
-        <ion-button slot="end" fill="clear" class="btn-listar">
-          <ion-icon name="list-outline"></ion-icon>
-        </ion-button>
+      <ion-button slot="end" fill="clear" class="btn-listar" (click)="toggleFiltro()">
+        <ion-icon name="list-outline"></ion-icon>
+      </ion-button>
     </ion-item>
 
+    <div *ngIf="filtroVisible" class="filtro-opciones">
+      <ion-button fill="outline" size="small" (click)="seleccionarFiltro('sincronizado')"
+        [color]="filtroEstado === 'sincronizado' ? 'success' : 'medium'">Sincronizado</ion-button>
+      <ion-button fill="outline" size="small" (click)="seleccionarFiltro('pendiente_envio')"
+        [color]="filtroEstado === 'pendiente_envio' ? 'danger' : 'medium'">Pendiente Envío</ion-button>
+      <ion-button fill="outline" size="small" (click)="seleccionarFiltro('en_progreso')"
+        [color]="filtroEstado === 'en_progreso' ? 'primary' : 'medium'">En Progreso</ion-button>
+      <ion-button fill="outline" size="small" (click)="seleccionarFiltro(null)" color="dark">Ver todos</ion-button>
+    </div>
+    <!-- </ion-item> -->
+
     <ion-list lines="full">
-      <ion-item button detail="true" *ngFor="let ot of workOrders" (click)="abrirTrabajo(ot.id)">
+      <ion-item button detail="true" *ngFor="let ot of filteredWorkOrders" (click)="abrirTrabajo(ot.id)">
         <ion-label>
           <h2>{{ tituloTrabajo(ot) }} — {{ ot.cliente || 'Sin cliente' }}</h2>
           <p>{{ ot.comuna || 'Sin ubicación' }}</p>
