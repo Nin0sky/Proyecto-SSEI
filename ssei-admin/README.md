@@ -1,59 +1,68 @@
-# SseiAdmin
+# SSEI Admin
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.30.
+Panel web administrativo para gestión de Órdenes de Trabajo (OT) y seguimiento operativo.
 
-## Development server
+## Requisitos
 
-To start a local development server, run:
+- Node.js 20 o superior
+- npm 10 o superior
+- Backend SSEI ejecutándose en http://localhost:8000
 
-```bash
-ng serve
-```
+## Instalación
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+    npm install
 
-## Code scaffolding
+## Ejecución en desarrollo
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+    npm start
 
-```bash
-ng generate component component-name
-```
+Aplicación disponible en:
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+- http://localhost:4200
 
-```bash
-ng generate --help
-```
+## Scripts disponibles
 
-## Building
+- Inicio desarrollo:
 
-To build the project run:
+      npm start
 
-```bash
-ng build
-```
+- Build producción:
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+      npm run build
 
-## Running unit tests
+- Build en modo watch:
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+      npm run watch
 
-```bash
-ng test
-```
+- Pruebas unitarias:
 
-## Running end-to-end tests
+      npm test
 
-For end-to-end (e2e) testing, run:
+## Rutas principales de la aplicación
 
-```bash
-ng e2e
-```
+- /dashboard
+- /ots
+- /ots/nueva
+- /ots/:id
+- /ots/:id/editar
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+## Integración con backend
 
-## Additional Resources
+El servicio HTTP usa como base:
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- http://localhost:8000
+
+Archivo de configuración actual:
+
+- src/app/core/services/ot.service.ts
+
+Si el backend corre en otra IP o puerto, actualiza la constante base en ese archivo.
+
+## Solución de problemas rápida
+
+- Error de CORS o conexión:
+  - Verifica que la API esté activa en el puerto 8000.
+- Error de dependencias:
+  - Elimina node_modules y package-lock.json, luego ejecuta npm install.
+- Puerto ocupado:
+  - Ejecuta ng serve --port 4201.

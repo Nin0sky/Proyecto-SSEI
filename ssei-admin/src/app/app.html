@@ -2,18 +2,45 @@
   <mat-sidenav mode="side" opened class="sidenav">
     <div class="sidenav-header">
       <mat-icon class="logo-icon">admin_panel_settings</mat-icon>
-      <span class="logo-text">SSEI Admin</span>
+      <span class="logo-text">SSEI</span>
+      <span class="toolbar-spacer"></span>
+
+
     </div>
 
     <mat-nav-list>
       <a mat-list-item routerLink="/dashboard" routerLinkActive="active-link">
-        <mat-icon matListItemIcon>dashboard</mat-icon>
-        <span matListItemTitle>Dashboard</span>
+        <mat-icon matListItemIcon>space_dashboard</mat-icon>
+        <span matListItemTitle>Tablero</span>
       </a>
       <a mat-list-item routerLink="/ots" routerLinkActive="active-link" [routerLinkActiveOptions]="{exact: false}">
-        <mat-icon matListItemIcon>assignment</mat-icon>
-        <span matListItemTitle>Órdenes de trabajo</span>
+        <mat-icon matListItemIcon>add_box</mat-icon>
+        <span matListItemTitle>Generar Trabajo</span>
       </a>
+    </mat-nav-list>
+    <mat-nav-list>
+      <a mat-list-item>
+        <mat-icon matListItemIcon>book</mat-icon>
+        <span matListItemTitle>Biblioteca</span>
+      </a>
+    </mat-nav-list>
+    <mat-nav-list>
+      <a mat-list-item>
+        <mat-icon matListItemIcon>download</mat-icon>
+        <span matListItemTitle>Generar Informe</span>
+      </a>
+    </mat-nav-list>
+    <mat-nav-list>
+      <a mat-list-item>
+        <mat-icon matListItemIcon>settings</mat-icon>
+        <span matListItemTitle>Configuración</span>
+      </a>
+    </mat-nav-list>
+
+    <mat-nav-list class="user-info-list" style="margin-top: auto;">
+      <div class="user-info">
+        <mat-icon class="user-icon">account_circle</mat-icon>
+      </div>
     </mat-nav-list>
   </mat-sidenav>
 
@@ -30,4 +57,5 @@
       <router-outlet />
     </div>
   </mat-sidenav-content>
+
 </mat-sidenav-container>
