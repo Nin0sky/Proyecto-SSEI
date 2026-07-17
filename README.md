@@ -38,6 +38,16 @@ En Linux/macOS, activar entorno con:
 
     python -m uvicorn src.main:app --reload
 
+Variables de entorno opcionales para persistencia dual:
+
+    set SQLITE_DATABASE_URL=sqlite:///./data/ssei.db
+    set ORACLE_DATABASE_URL=oracle+oracledb://usuario:password@host:1521/?service_name=XEPDB1
+    set SQL_ECHO=false
+
+Nota:
+- Si ORACLE_DATABASE_URL no esta configurada, los endpoints admin usan SQLite como fallback de desarrollo.
+- Si ORACLE_DATABASE_URL esta configurada, la capa admin (usuarios/auditoria) usa OracleXE.
+
 API disponible en:
 
 - http://127.0.0.1:8000
@@ -64,6 +74,10 @@ API disponible en:
 - PUT /ots/{ot_id}
 - PATCH /ots/{ot_id}/estado
 - DELETE /ots/{ot_id}
+- GET /admin/users
+- POST /admin/users
+- GET /admin/audit-logs
+- POST /admin/audit-logs
 
 Nota: la base de datos local se crea automáticamente en data/ssei.db al iniciar la API.
 

@@ -54,3 +54,23 @@ class Ot:
     nombre_alarma: str
     origen_servidor: bool
     atms: list[OtAtm] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class User:
+    id: int
+    email: str
+    hashed_password: str
+    full_name: str
+    role: str
+    is_active: bool
+    created_at: datetime
+
+
+@dataclass(slots=True)
+class AuditLog:
+    id: int
+    user_id: int
+    action: str
+    details: str
+    created_at: datetime

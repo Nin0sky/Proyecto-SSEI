@@ -1,4 +1,15 @@
-node_modules/
-.ionic/
-www/
-dist/
+# .copilotignore
+# Ignorar entornos virtuales y dependencias de Python
+.venv/
+__pycache__/
+*.pyc
+
+# Ignorar los frontends por completo cuando trabajes en el backend
+ssei-admin/
+ssei-mobile/
+
+# Ignorar carpetas de desarrollo y compilación
+.git/
+.vscode/
+data/
+tests/

@@ -101,3 +101,34 @@ class OtRead(BaseModel):
     nombre_alarma: str
     origen_servidor: bool
     atms: list[OtAtmRead] = []
+
+
+class UserCreate(BaseModel):
+    email: str = Field(min_length=5, max_length=255)
+    hashed_password: str = Field(min_length=8, max_length=255)
+    full_name: str = Field(min_length=3, max_length=150)
+    role: str = Field(pattern="^(admin|coordinador|tecnico|externo)$")
+    is_active: bool = True
+
+
+class UserRead(BaseModel):
+    id: int
+    email: str
+    full_name: str
+    role: str
+    is_active: bool
+    created_at: datetime
+
+
+class AuditLogCreate(BaseModel):
+    user_id: int
+    action: str = Field(min_length=2, max_length=100)
+    details: str = Field(min_length=2, max_length=5000)
+
+
+class AuditLogRead(BaseModel):
+    id: int
+    user_id: int
+    action: str
+    details: str
+    created_at: datetime

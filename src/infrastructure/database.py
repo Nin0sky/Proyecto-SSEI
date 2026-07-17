@@ -1,36 +1,53 @@
-# .\src\infrastructure\database.py
 import os
+from pathlib import Path
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-# 1. Cargamos la URL de la base de datos desde variables de entorno para mayor seguridad.
-# Por defecto, configuramos una estructura compatible con Oracle XE usando el driver 'oracledb'.
-DATABASE_URL = os.getenv(
-    "DATABASE_URL", 
-    "oracle+oracledb://usuario:password@localhost:1521/?service_name=XEPDB1"
-)
 
-# 2. Creamos el motor de SQLAlchemy (Engine)
-engine = create_engine(
-    DATABASE_URL,
-    echo=True,             # Muestra las consultas SQL en consola (ideal para desarrollo)
-    pool_pre_ping=True,    # Verifica si la conexión sigue viva antes de usarla (evita caídas en redes inestables)
-    pool_recycle=3600      # Recicla las conexiones inactivas cada hora
-)
-
-# 3. Creamos la fábrica de sesiones de base de datos
-SessionLocal = sessionmaker(
-    autocommit=False, 
-    autoflush=False, 
-    bind=engine
-)
-
-# 4. Definimos la clase Base declarativa para construir nuestros modelos de persistencia
 Base = declarative_base()
 
-# 5. Generador/Dependencia para abrir y cerrar la sesión por cada petición HTTP (útil para FastAPI)
-def get_db():
-    db = SessionLocal()
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_SQLITE_URL = f"sqlite:///{(PROJECT_ROOT / 'data' / 'ssei.db').as_posix()}"
+
+SQLITE_DATABASE_URL = os.getenv("SQLITE_DATABASE_URL", DEFAULT_SQLITE_URL)
+ORACLE_DATABASE_URL = os.getenv("ORACLE_DATABASE_URL")
+SQL_ECHO = os.getenv("SQL_ECHO", "false").lower() == "true"
+
+
+mobile_engine = create_engine(
+    SQLITE_DATABASE_URL,
+    echo=SQL_ECHO,
+    pool_pre_ping=True,
+    connect_args={"check_same_thread": False},
+)
+
+MobileSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=mobile_engine)
+
+
+admin_engine = create_engine(
+    ORACLE_DATABASE_URL,
+    echo=SQL_ECHO,
+    pool_pre_ping=True,
+    pool_recycle=3600,
+) if ORACLE_DATABASE_URL else None
+
+AdminSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=admin_engine) if admin_engine else None
+
+
+def get_mobile_db():
+    db = MobileSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+def get_admin_db():
+    if AdminSessionLocal is None:
+        raise RuntimeError("ORACLE_DATABASE_URL is not configured")
+
+    db = AdminSessionLocal()
     try:
         yield db
     finally:
