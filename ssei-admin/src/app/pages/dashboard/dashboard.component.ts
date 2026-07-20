@@ -31,10 +31,12 @@ export class DashboardComponent implements OnInit {
   kpis: KpiCard[] = [];
 
   readonly estadoIcons: Record<OtEstado, string> = {
-    asignado: 'assignment_ind',
+    creada: 'note_add',
+    asignada: 'assignment_ind',
     en_progreso: 'build',
     pendiente_envio: 'cloud_upload',
-    sincronizado: 'check_circle',
+    sincronizada: 'check_circle',
+    cerrada: 'task_alt',
   };
 
   ngOnInit() {
@@ -49,7 +51,7 @@ export class DashboardComponent implements OnInit {
   }
 
   private buildKpis(ots: OtTrabajo[]) {
-    const estados: OtEstado[] = ['asignado', 'en_progreso', 'pendiente_envio', 'sincronizado'];
+    const estados: OtEstado[] = ['creada', 'asignada', 'en_progreso', 'pendiente_envio', 'sincronizada', 'cerrada'];
     this.kpis = estados.map(estado => ({
       estado,
       label: OT_ESTADO_LABELS[estado],

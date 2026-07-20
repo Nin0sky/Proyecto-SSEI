@@ -8,7 +8,7 @@
         <mat-icon>arrow_back</mat-icon>
       </a>
       <div>
-        <h1 class="detail-title">OT #{{ ot.id }} — {{ ot.cliente }}</h1>
+        <h1 class="detail-title">OT #{{ ot.id }} — {{ ot.banco }}</h1>
         <span class="estado-badge" [style.background-color]="estadoColor(ot.estado)">
           {{ estadoLabel(ot.estado) }}
         </span>
@@ -31,12 +31,16 @@
       <mat-card-content>
         <div class="info-grid">
           <div class="info-item">
-            <span class="info-label">Cliente</span>
-            <span>{{ ot.cliente }}</span>
+            <span class="info-label">Banco</span>
+            <span>{{ ot.banco }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">Fecha creación</span>
             <span>{{ ot.fecha_creacion | date:'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Hora programada</span>
+            <span>{{ ot.hora_programada | date:'dd/MM/yyyy HH:mm' }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">Comuna</span>
@@ -49,6 +53,10 @@
           <div class="info-item">
             <span class="info-label">Técnico</span>
             <span>{{ ot.nombre_tecnico || '—' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">ID técnico</span>
+            <span>{{ ot.tecnico_id || '—' }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">ETV</span>

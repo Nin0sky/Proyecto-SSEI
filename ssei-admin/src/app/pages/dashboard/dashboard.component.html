@@ -36,7 +36,7 @@
         <thead>
           <tr>
             <th>ID</th>
-            <th>Cliente</th>
+            <th>Banco</th>
             <th>ATMs</th>
             <th>Técnico</th>
             <th>Estado</th>
@@ -46,7 +46,7 @@
         <tbody>
           <tr *ngFor="let ot of recientes" class="clickable-row" [routerLink]="['/ots', ot.id]">
             <td>#{{ ot.id }}</td>
-            <td>{{ ot.cliente }}</td>
+            <td>{{ ot.banco }}</td>
             <td>{{ atmLabels(ot) }}</td>
             <td>{{ ot.nombre_tecnico || '—' }}</td>
             <td>

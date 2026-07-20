@@ -41,7 +41,7 @@ export class OtListaComponent implements OnInit {
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatPaginator) paginator!: MatPaginator;
 
-  displayedColumns = ['id', 'cliente', 'atms', 'nombre_tecnico', 'estado', 'fecha_creacion', 'acciones'];
+  displayedColumns = ['id', 'banco', 'atms', 'nombre_tecnico', 'estado', 'fecha_creacion', 'acciones'];
   dataSource = new MatTableDataSource<OtTrabajo>([]);
   loading = true;
 
@@ -50,10 +50,12 @@ export class OtListaComponent implements OnInit {
 
   readonly estados: Array<{ value: OtEstado | ''; label: string }> = [
     { value: '', label: 'Todos los estados' },
-    { value: 'asignado', label: 'Asignado' },
+    { value: 'creada', label: 'Creada' },
+    { value: 'asignada', label: 'Asignada' },
     { value: 'en_progreso', label: 'En progreso' },
     { value: 'pendiente_envio', label: 'Pendiente envío' },
-    { value: 'sincronizado', label: 'Sincronizado' },
+    { value: 'sincronizada', label: 'Sincronizada' },
+    { value: 'cerrada', label: 'Cerrada' },
   ];
 
   ngOnInit() { this.cargar(); }
@@ -67,7 +69,7 @@ export class OtListaComponent implements OnInit {
         this.dataSource.paginator = this.paginator;
         this.dataSource.filterPredicate = (ot, f) => {
           const [texto, estado] = f.split('||');
-          const matchTexto = !texto || [ot.cliente, ot.nombre_tecnico, ot.comuna, ...ot.atms.map(a => a.numero_atm)]
+          const matchTexto = !texto || [ot.banco, ot.nombre_tecnico, ot.comuna, ...ot.atms.map(a => a.numero_atm)]
             .join(' ').toLowerCase().includes(texto);
           const matchEstado = !estado || ot.estado === estado;
           return matchTexto && matchEstado;
@@ -89,7 +91,7 @@ export class OtListaComponent implements OnInit {
   }
 
   eliminar(ot: OtTrabajo) {
-    if (!confirm(`¿Eliminar OT #${ot.id} (${ot.cliente})?`)) return;
+    if (!confirm(`¿Eliminar OT #${ot.id} (${ot.banco})?`)) return;
     this.otService.eliminar(ot.id).subscribe({
       next: () => {
         this.snackBar.open('OT eliminada', 'OK', { duration: 3000 });

@@ -13,18 +13,25 @@
       <mat-card-content>
         <div class="form-grid">
           <mat-form-field appearance="outline">
-            <mat-label>Cliente *</mat-label>
-            <mat-select formControlName="cliente">
-              <mat-option *ngFor="let c of clientes" [value]="c">{{ c }}</mat-option>
+            <mat-label>Banco *</mat-label>
+            <mat-select formControlName="banco">
+              <mat-option *ngFor="let banco of bancos" [value]="banco">{{ banco }}</mat-option>
             </mat-select>
-            <mat-error *ngIf="form.get('cliente')?.invalid">Requerido</mat-error>
+            <mat-error *ngIf="form.get('banco')?.invalid">Requerido</mat-error>
           </mat-form-field>
 
           <mat-form-field appearance="outline">
-            <mat-label>Estado *</mat-label>
-            <mat-select formControlName="estado">
-              <mat-option *ngFor="let e of estados" [value]="e.value">{{ e.label }}</mat-option>
+            <mat-label>Hora programada *</mat-label>
+            <input matInput type="datetime-local" formControlName="hora_programada" />
+            <mat-error *ngIf="form.get('hora_programada')?.invalid">Requerido</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Técnico asignado *</mat-label>
+            <mat-select formControlName="tecnico_id">
+              <mat-option *ngFor="let tecnico of tecnicos" [value]="tecnico.id">{{ tecnico.nombre }} (ID {{ tecnico.id }})</mat-option>
             </mat-select>
+            <mat-error *ngIf="form.get('tecnico_id')?.invalid">Requerido</mat-error>
           </mat-form-field>
 
           <mat-form-field appearance="outline">
@@ -33,14 +40,11 @@
           </mat-form-field>
 
           <mat-form-field appearance="outline">
-            <mat-label>Dirección</mat-label>
+            <mat-label>Dirección *</mat-label>
             <input matInput formControlName="direccion" />
+            <mat-error *ngIf="form.get('direccion')?.invalid">Requerida (mínimo 3 caracteres)</mat-error>
           </mat-form-field>
         </div>
-
-        <mat-checkbox formControlName="origen_servidor">
-          Trabajo originado desde servidor
-        </mat-checkbox>
       </mat-card-content>
     </mat-card>
 
@@ -95,6 +99,7 @@
               <mat-form-field appearance="outline">
                 <mat-label>Número ATM</mat-label>
                 <input matInput formControlName="numero_atm" />
+                <mat-error *ngIf="atm.get('numero_atm')?.invalid">Requerido</mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
@@ -103,6 +108,7 @@
                   <mat-option value="">— Seleccionar —</mat-option>
                   <mat-option *ngFor="let t of tiposServicio" [value]="t">{{ t }}</mat-option>
                 </mat-select>
+                <mat-error *ngIf="atm.get('tipo_servicio')?.invalid">Requerido</mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline">

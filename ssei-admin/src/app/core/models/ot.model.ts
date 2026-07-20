@@ -1,4 +1,4 @@
-export type OtEstado = 'asignado' | 'en_progreso' | 'pendiente_envio' | 'sincronizado';
+export type OtEstado = 'creada' | 'asignada' | 'en_progreso' | 'pendiente_envio' | 'sincronizada' | 'cerrada';
 
 export interface OtAtm {
   id?: number;
@@ -14,11 +14,13 @@ export interface OtAtm {
 
 export interface OtTrabajo {
   id: number;
-  cliente: string;
+  banco: string;
   estado: OtEstado;
   fecha_creacion: string;
+  hora_programada: string;
   comuna: string;
   direccion: string;
+  tecnico_id: number | null;
   nombre_tecnico: string;
   nombre_etv: string;
   nombre_alarma: string;
@@ -27,10 +29,11 @@ export interface OtTrabajo {
 }
 
 export interface OtCreate {
-  cliente: string;
-  estado: OtEstado;
+  banco: string;
   comuna: string;
   direccion: string;
+  hora_programada: string;
+  tecnico_id: number;
   nombre_tecnico: string;
   nombre_etv: string;
   nombre_alarma: string;
@@ -38,15 +41,19 @@ export interface OtCreate {
 }
 
 export const OT_ESTADO_LABELS: Record<OtEstado, string> = {
-  asignado: 'Asignado',
+  creada: 'Creada',
+  asignada: 'Asignada',
   en_progreso: 'En progreso',
   pendiente_envio: 'Pendiente envío',
-  sincronizado: 'Sincronizado',
+  sincronizada: 'Sincronizada',
+  cerrada: 'Cerrada',
 };
 
 export const OT_ESTADO_COLORS: Record<OtEstado, string> = {
-  asignado: '#1976d2',
+  creada: '#546e7a',
+  asignada: '#1976d2',
   en_progreso: '#f57c00',
   pendiente_envio: '#7b1fa2',
-  sincronizado: '#388e3c',
+  sincronizada: '#388e3c',
+  cerrada: '#37474f',
 };

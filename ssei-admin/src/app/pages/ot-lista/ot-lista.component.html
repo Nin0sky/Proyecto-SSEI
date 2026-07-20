@@ -2,7 +2,7 @@
   <mat-card-content>
     <div class="filter-row">
       <mat-form-field appearance="outline" class="filter-search">
-        <mat-label>Buscar por cliente, técnico, ATM…</mat-label>
+        <mat-label>Buscar por banco, técnico, ATM…</mat-label>
         <input matInput [(ngModel)]="filtroTexto" (ngModelChange)="aplicarFiltro()" />
         <mat-icon matPrefix>search</mat-icon>
       </mat-form-field>
@@ -47,10 +47,10 @@
         <td mat-cell *matCellDef="let ot">{{ ot.id }}</td>
       </ng-container>
 
-      <!-- Cliente -->
-      <ng-container matColumnDef="cliente">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>Cliente</th>
-        <td mat-cell *matCellDef="let ot">{{ ot.cliente }}</td>
+      <!-- Banco -->
+      <ng-container matColumnDef="banco">
+        <th mat-header-cell *matHeaderCellDef mat-sort-header>Banco</th>
+        <td mat-cell *matCellDef="let ot">{{ ot.banco }}</td>
       </ng-container>
 
       <!-- ATMs -->

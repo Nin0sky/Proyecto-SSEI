@@ -38,10 +38,12 @@ export class OtDetalleComponent implements OnInit {
   nuevoEstado: OtEstado | '' = '';
 
   readonly estados: Array<{ value: OtEstado; label: string }> = [
-    { value: 'asignado', label: 'Asignado' },
+    { value: 'creada', label: 'Creada' },
+    { value: 'asignada', label: 'Asignada' },
     { value: 'en_progreso', label: 'En progreso' },
     { value: 'pendiente_envio', label: 'Pendiente envío' },
-    { value: 'sincronizado', label: 'Sincronizado' },
+    { value: 'sincronizada', label: 'Sincronizada' },
+    { value: 'cerrada', label: 'Cerrada' },
   ];
 
   ngOnInit() {
