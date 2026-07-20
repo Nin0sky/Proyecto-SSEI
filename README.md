@@ -116,6 +116,10 @@ ssei-admin/src/app/core/services/ot.service.ts
 
 Ubicación: ssei-mobile
 
+### Inicializacion 
+
+    uvicorn src.main:app --reload --port 8000
+
 ### Instalación
 
     cd ssei-mobile

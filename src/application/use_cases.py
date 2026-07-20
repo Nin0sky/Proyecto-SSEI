@@ -1,6 +1,5 @@
 from src.domain.models import Ot, OtAtm, Requirement, RequirementUseCaseTrace, UseCase
-from src.infrastructure.repositories import OtAtmRepository, OtRepository, RequirementRepository, TraceabilityRepository, UseCaseRepository
-
+from src.infrastructure.repositories import OtAtmRepository, OtRepository, RequirementRepository, TraceabilityRepository, UseCaseRepository, UserRepository
 
 class RequirementService:
     def __init__(self, repository: RequirementRepository):
@@ -56,6 +55,7 @@ class OtService:
     def __init__(self, ot_repo: OtRepository, atm_repo: OtAtmRepository):
         self.ot_repo = ot_repo
         self.atm_repo = atm_repo
+        self.user_repo = UserRepository()  # <-- Añadimos el repositorio aquí de forma segura
 
     def _with_atms(self, ot: Ot) -> Ot:
         """Embed ATMs into the OT dataclass."""
@@ -81,6 +81,12 @@ class OtService:
         nombre_alarma: str,
         atms: list[dict],
     ) -> Ot:
+        # CORRECCIÓN: Buscamos el nombre del técnico de manera dinámica en la base de datos
+        if not nombre_tecnico and tecnico_id:
+            tecnico = self.user_repo.get_by_id(tecnico_id)
+            if tecnico:
+                nombre_tecnico = tecnico.full_name
+
         ot = self.ot_repo.create(
             banco=banco,
             comuna=comuna,
@@ -109,6 +115,12 @@ class OtService:
         nombre_alarma: str | None,
         atms: list[dict] | None,
     ) -> Ot | None:
+        # Si se cambia de técnico y no viene nombre del técnico, lo recuperamos
+        if tecnico_id and not nombre_tecnico:
+            tecnico = self.user_repo.get_by_id(tecnico_id)
+            if tecnico:
+                nombre_tecnico = tecnico.full_name
+
         ot = self.ot_repo.update(
             ot_id=ot_id,
             banco=banco,
@@ -120,6 +132,7 @@ class OtService:
             nombre_etv=nombre_etv,
             nombre_alarma=nombre_alarma,
         )
+        # ... resto del método original
         if ot is None:
             return None
         if atms is not None:

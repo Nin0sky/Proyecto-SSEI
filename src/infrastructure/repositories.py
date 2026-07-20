@@ -47,9 +47,9 @@ class RequirementRepository:
             session.refresh(item)
             return self._row_to_entity(item)
 
-    def get_by_id(self, requirement_id: int) -> Requirement | None:
-        with MobileSessionLocal() as session:
-            row = session.get(RequirementDB, requirement_id)
+    def get_by_id(self, user_id: int) -> User | None:
+        with self._session_factory()() as session:
+            row = session.get(UserDB, user_id)
             return self._row_to_entity(row) if row else None
 
     @staticmethod
@@ -69,6 +69,11 @@ class UseCaseRepository:
         with MobileSessionLocal() as session:
             rows = session.query(UseCaseDB).order_by(UseCaseDB.id.desc()).all()
             return [self._row_to_entity(row) for row in rows]
+        
+    def get_by_id(self, use_case_id: int) -> UseCase | None:
+        with MobileSessionLocal() as session:
+            row = session.get(UseCaseDB, use_case_id)
+            return self._row_to_entity(row) if row else None
 
     def create(self, code: str, name: str, description: str) -> UseCase:
         with MobileSessionLocal() as session:
@@ -354,6 +359,11 @@ class UserRepository:
         with self._session_factory()() as session:
             rows = session.query(UserDB).order_by(UserDB.id.desc()).all()
             return [self._row_to_entity(row) for row in rows]
+        
+    def get_by_id(self, user_id: int) -> User | None:
+        with self._session_factory()() as session:
+            row = session.get(UserDB, user_id)
+            return self._row_to_entity(row) if row else None
 
     def create(self, email: str, hashed_password: str, full_name: str, role: str, is_active: bool = True) -> User:
         with self._session_factory()() as session:
