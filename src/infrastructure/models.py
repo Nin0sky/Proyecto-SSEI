@@ -71,9 +71,10 @@ class OtDB(Base):
     __tablename__ = "ots"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    cliente: Mapped[str] = mapped_column(String(100), nullable=False, default="")
-    estado: Mapped[str] = mapped_column(String(50), nullable=False, default="asignado")
+    banco: Mapped[str] = mapped_column(String(100), nullable=False, default="")
+    estado: Mapped[str] = mapped_column(String(50), nullable=False, default="asignada")
     fecha_creacion: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    hora_programada: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     comuna: Mapped[str] = mapped_column(String(100), nullable=False, default="")
     direccion: Mapped[str] = mapped_column(Text, nullable=False, default="")
     nombre_tecnico: Mapped[str] = mapped_column(String(100), nullable=False, default="")

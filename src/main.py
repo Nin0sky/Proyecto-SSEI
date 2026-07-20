@@ -1,4 +1,6 @@
 from dataclasses import asdict
+from hashlib import pbkdf2_hmac
+from secrets import token_hex
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -158,11 +160,13 @@ def link_requirement_use_case(requirement_id: int, use_case_id: int) -> Traceabi
 def _ot_to_read(ot) -> OtRead:
     return OtRead(
         id=ot.id,
-        cliente=ot.cliente,
+        banco=ot.banco,
         estado=ot.estado,
         fecha_creacion=ot.fecha_creacion,
+        hora_programada=ot.hora_programada,
         comuna=ot.comuna,
         direccion=ot.direccion,
+        tecnico_id=ot.tecnico_id,
         nombre_tecnico=ot.nombre_tecnico,
         nombre_etv=ot.nombre_etv,
         nombre_alarma=ot.nombre_alarma,
@@ -192,9 +196,11 @@ def list_ots(estado: str | None = Query(default=None)) -> list[OtRead]:
 @app.post("/ots", response_model=OtRead, status_code=201)
 def create_ot(payload: OtCreate) -> OtRead:
     ot = ot_service.create_ot(
-        cliente=payload.cliente,
+        banco=payload.banco,
         comuna=payload.comuna,
         direccion=payload.direccion,
+        hora_programada=payload.hora_programada,
+        tecnico_id=payload.tecnico_id,
         nombre_tecnico=payload.nombre_tecnico,
         nombre_etv=payload.nombre_etv,
         nombre_alarma=payload.nombre_alarma,
@@ -215,13 +221,15 @@ def get_ot(ot_id: int) -> OtRead:
 def update_ot(ot_id: int, payload: OtUpdate) -> OtRead:
     ot = ot_service.update_ot(
         ot_id=ot_id,
-        cliente=payload.cliente,
+        banco=payload.banco,
         comuna=payload.comuna,
         direccion=payload.direccion,
+        hora_programada=payload.hora_programada,
+        tecnico_id=payload.tecnico_id,
         nombre_tecnico=payload.nombre_tecnico,
         nombre_etv=payload.nombre_etv,
         nombre_alarma=payload.nombre_alarma,
-        atms=[a.model_dump() for a in payload.atms],
+        atms=[a.model_dump() for a in payload.atms] if payload.atms is not None else None,
     )
     if ot is None:
         raise HTTPException(status_code=404, detail="OT no encontrada")
@@ -264,10 +272,13 @@ def list_users() -> list[UserRead]:
 
 @app.post("/admin/users", response_model=UserRead, status_code=201)
 def create_user(payload: UserCreate) -> UserRead:
+    salt = token_hex(16)
+    password_hash = pbkdf2_hmac("sha256", payload.password.encode("utf-8"), bytes.fromhex(salt), 390000).hex()
+    stored_hash = f"pbkdf2_sha256${salt}${password_hash}"
     try:
         user = user_repository.create(
             email=payload.email,
-            hashed_password=payload.hashed_password,
+            hashed_password=stored_hash,
             full_name=payload.full_name,
             role=payload.role,
             is_active=payload.is_active,

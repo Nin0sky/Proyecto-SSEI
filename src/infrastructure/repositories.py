@@ -239,9 +239,11 @@ class OtRepository:
 
     def create(
         self,
-        cliente: str,
+        banco: str,
         comuna: str,
         direccion: str,
+        hora_programada: datetime,
+        tecnico_id: int,
         nombre_tecnico: str,
         nombre_etv: str,
         nombre_alarma: str,
@@ -249,11 +251,13 @@ class OtRepository:
     ) -> Ot:
         with MobileSessionLocal() as session:
             item = OtDB(
-                cliente=cliente,
-                estado="asignado",
+                banco=banco,
+                estado="asignada",
                 fecha_creacion=datetime.now(UTC),
+                hora_programada=hora_programada,
                 comuna=comuna,
                 direccion=direccion,
+                tecnico_id=tecnico_id,
                 nombre_tecnico=nombre_tecnico,
                 nombre_etv=nombre_etv,
                 nombre_alarma=nombre_alarma,
@@ -272,24 +276,36 @@ class OtRepository:
     def update(
         self,
         ot_id: int,
-        cliente: str,
-        comuna: str,
-        direccion: str,
-        nombre_tecnico: str,
-        nombre_etv: str,
-        nombre_alarma: str,
+        banco: str | None = None,
+        comuna: str | None = None,
+        direccion: str | None = None,
+        hora_programada: datetime | None = None,
+        tecnico_id: int | None = None,
+        nombre_tecnico: str | None = None,
+        nombre_etv: str | None = None,
+        nombre_alarma: str | None = None,
     ) -> Ot | None:
         with MobileSessionLocal() as session:
             item = session.get(OtDB, ot_id)
             if item is None:
                 return None
 
-            item.cliente = cliente
-            item.comuna = comuna
-            item.direccion = direccion
-            item.nombre_tecnico = nombre_tecnico
-            item.nombre_etv = nombre_etv
-            item.nombre_alarma = nombre_alarma
+            if banco is not None:
+                item.banco = banco
+            if comuna is not None:
+                item.comuna = comuna
+            if direccion is not None:
+                item.direccion = direccion
+            if hora_programada is not None:
+                item.hora_programada = hora_programada
+            if tecnico_id is not None:
+                item.tecnico_id = tecnico_id
+            if nombre_tecnico is not None:
+                item.nombre_tecnico = nombre_tecnico
+            if nombre_etv is not None:
+                item.nombre_etv = nombre_etv
+            if nombre_alarma is not None:
+                item.nombre_alarma = nombre_alarma
             session.commit()
             session.refresh(item)
             return self._row_to_entity(item)
@@ -315,11 +331,13 @@ class OtRepository:
     def _row_to_entity(row: OtDB) -> Ot:
         return Ot(
             id=row.id,
-            cliente=row.cliente,
+            banco=row.banco,
             estado=row.estado,
             fecha_creacion=row.fecha_creacion,
+            hora_programada=row.hora_programada,
             comuna=row.comuna,
             direccion=row.direccion,
+            tecnico_id=row.tecnico_id,
             nombre_tecnico=row.nombre_tecnico,
             nombre_etv=row.nombre_etv,
             nombre_alarma=row.nombre_alarma,

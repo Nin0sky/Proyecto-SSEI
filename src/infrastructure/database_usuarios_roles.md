@@ -15,7 +15,7 @@ Para garantizar la seguridad del sistema y la separación de funciones, se defin
 | **Administrador** | `admin` | SSEI Admin (Web) | Acceso total, gestión de usuarios (crear/desactivar cuentas), visualización de logs de auditoría. |
 | **Coordinador** | `coordinador` | SSEI Admin (Web) | Creación, asignación, edición y eliminación lógica de OTs; ordenamiento y generación de informes DOCX. |
 | **Técnico** | `tecnico` | SSEI Mobile (App) | Lectura de OTs asignadas, registro de actividades en terreno, captura offline y sincronización de evidencias. |
-| **Externo** | `externo` | SSEI Admin (Web) | Vista de solo lectura (Dashboard de control) del estado de los trabajos de su interés. |
+| **Externo** | `externo` | SSEI Admin (Web) | Lectura de OTs asignadas, registro de actividades en terreno, captura offline y sincronización de evidencias. |
 
 ---
 

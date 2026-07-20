@@ -47,13 +47,23 @@ class TraceabilityRead(BaseModel):
 # OT Schemas
 # ---------------------------------------------------------------------------
 
-OtEstado = Literal["asignado", "en_progreso", "pendiente_envio", "sincronizado"]
+OtEstado = Literal[
+    "creada",
+    "asignada",
+    "en_progreso",
+    "pendiente_envio",
+    "sincronizada",
+    "cerrada",
+    # Compatibilidad temporal con estados antiguos.
+    "asignado",
+    "sincronizado",
+]
 
 
 class OtAtmCreate(BaseModel):
     etiqueta: str = Field(default="ATM 1", max_length=50)
-    tipo_servicio: str = Field(default="instalacion", max_length=60)
-    numero_atm: str = Field(default="", max_length=20)
+    tipo_servicio: str = Field(min_length=2, max_length=60)
+    numero_atm: str = Field(min_length=1, max_length=20)
     serie_cajero: str = Field(default="", max_length=60)
     serie_mmbb: str = Field(default="", max_length=60)
     detalles_servicio: str = Field(default="", max_length=2000)
@@ -66,23 +76,27 @@ class OtAtmRead(OtAtmCreate):
 
 
 class OtCreate(BaseModel):
-    cliente: str = Field(max_length=100)
+    banco: str = Field(min_length=2, max_length=100)
     comuna: str = Field(default="", max_length=100)
-    direccion: str = Field(default="", max_length=200)
+    direccion: str = Field(min_length=3, max_length=200)
+    hora_programada: datetime
+    tecnico_id: int = Field(ge=1)
     nombre_tecnico: str = Field(default="", max_length=100)
     nombre_etv: str = Field(default="", max_length=100)
     nombre_alarma: str = Field(default="", max_length=100)
-    atms: list[OtAtmCreate] = Field(default_factory=list)
+    atms: list[OtAtmCreate] = Field(min_length=1)
 
 
 class OtUpdate(BaseModel):
-    cliente: str = Field(max_length=100)
-    comuna: str = Field(default="", max_length=100)
-    direccion: str = Field(default="", max_length=200)
-    nombre_tecnico: str = Field(default="", max_length=100)
-    nombre_etv: str = Field(default="", max_length=100)
-    nombre_alarma: str = Field(default="", max_length=100)
-    atms: list[OtAtmCreate] = Field(default_factory=list)
+    banco: str | None = Field(default=None, min_length=2, max_length=100)
+    comuna: str | None = Field(default=None, max_length=100)
+    direccion: str | None = Field(default=None, min_length=3, max_length=200)
+    hora_programada: datetime | None = None
+    tecnico_id: int | None = Field(default=None, ge=1)
+    nombre_tecnico: str | None = Field(default=None, max_length=100)
+    nombre_etv: str | None = Field(default=None, max_length=100)
+    nombre_alarma: str | None = Field(default=None, max_length=100)
+    atms: list[OtAtmCreate] | None = None
 
 
 class OtEstadoUpdate(BaseModel):
@@ -91,11 +105,13 @@ class OtEstadoUpdate(BaseModel):
 
 class OtRead(BaseModel):
     id: int
-    cliente: str
+    banco: str
     estado: str
     fecha_creacion: datetime
+    hora_programada: datetime
     comuna: str
     direccion: str
+    tecnico_id: int | None = None
     nombre_tecnico: str
     nombre_etv: str
     nombre_alarma: str
@@ -105,7 +121,7 @@ class OtRead(BaseModel):
 
 class UserCreate(BaseModel):
     email: str = Field(min_length=5, max_length=255)
-    hashed_password: str = Field(min_length=8, max_length=255)
+    password: str = Field(min_length=8, max_length=255)
     full_name: str = Field(min_length=3, max_length=150)
     role: str = Field(pattern="^(admin|coordinador|tecnico|externo)$")
     is_active: bool = True

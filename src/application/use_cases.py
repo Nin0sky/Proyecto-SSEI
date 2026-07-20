@@ -71,18 +71,22 @@ class OtService:
 
     def create_ot(
         self,
-        cliente: str,
+        banco: str,
         comuna: str,
         direccion: str,
+        hora_programada,
+        tecnico_id: int,
         nombre_tecnico: str,
         nombre_etv: str,
         nombre_alarma: str,
         atms: list[dict],
     ) -> Ot:
         ot = self.ot_repo.create(
-            cliente=cliente,
+            banco=banco,
             comuna=comuna,
             direccion=direccion,
+            hora_programada=hora_programada,
+            tecnico_id=tecnico_id,
             nombre_tecnico=nombre_tecnico,
             nombre_etv=nombre_etv,
             nombre_alarma=nombre_alarma,
@@ -95,29 +99,34 @@ class OtService:
     def update_ot(
         self,
         ot_id: int,
-        cliente: str,
-        comuna: str,
-        direccion: str,
-        nombre_tecnico: str,
-        nombre_etv: str,
-        nombre_alarma: str,
-        atms: list[dict],
+        banco: str | None,
+        comuna: str | None,
+        direccion: str | None,
+        hora_programada,
+        tecnico_id: int | None,
+        nombre_tecnico: str | None,
+        nombre_etv: str | None,
+        nombre_alarma: str | None,
+        atms: list[dict] | None,
     ) -> Ot | None:
         ot = self.ot_repo.update(
             ot_id=ot_id,
-            cliente=cliente,
+            banco=banco,
             comuna=comuna,
             direccion=direccion,
+            hora_programada=hora_programada,
+            tecnico_id=tecnico_id,
             nombre_tecnico=nombre_tecnico,
             nombre_etv=nombre_etv,
             nombre_alarma=nombre_alarma,
         )
         if ot is None:
             return None
-        # Reemplazar ATMs: eliminar las anteriores y crear las nuevas
-        self.atm_repo.delete_by_ot(ot_id)
-        for atm in atms:
-            self.atm_repo.create(ot_id=ot.id, **atm)
+        if atms is not None:
+            # Reemplazar ATMs: eliminar las anteriores y crear las nuevas.
+            self.atm_repo.delete_by_ot(ot_id)
+            for atm in atms:
+                self.atm_repo.create(ot_id=ot.id, **atm)
         return self._with_atms(ot)
 
     def update_estado(self, ot_id: int, estado: str) -> Ot | None:

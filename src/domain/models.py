@@ -44,11 +44,13 @@ class OtAtm:
 @dataclass(slots=True)
 class Ot:
     id: int
-    cliente: str
+    banco: str
     estado: str          # asignado | en_progreso | pendiente_envio | sincronizado
     fecha_creacion: datetime
+    hora_programada: datetime
     comuna: str
     direccion: str
+    tecnico_id: int | None
     nombre_tecnico: str
     nombre_etv: str
     nombre_alarma: str
