@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,6 +9,9 @@ import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatTimepickerModule } from '@angular/material/timepicker';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { provideNativeDateAdapter } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { OtService } from '../../core/services/ot.service';
@@ -22,8 +25,10 @@ import { OtTrabajo, OtCreate, OtEstado } from '../../core/models/ot.model';
     MatCardModule, MatButtonModule, MatIconModule,
     MatInputModule, MatFormFieldModule, MatSelectModule,
     MatDividerModule,
-    MatProgressSpinnerModule, MatSnackBarModule
+    MatProgressSpinnerModule, MatSnackBarModule,
+    MatTimepickerModule, MatDatepickerModule, FormsModule
   ],
+  providers: [provideNativeDateAdapter()],
   templateUrl: './ot-form.component.html',
   styleUrl: './ot-form.component.scss'
 })
@@ -34,19 +39,21 @@ export class OtFormComponent implements OnInit {
   private otService = inject(OtService);
   private snackBar = inject(MatSnackBar);
 
+  value!: Date;
+
   form!: FormGroup;
   loading = false;
   loadingOt = false;
   editando = false;
   otId?: number;
 
-  readonly bancos = ['Banco de Chile', 'Banco Estado', 'Santander', 'BCI', 'Itaú', 'BICE', 'Scotiabank'];
+  readonly bancos = ['Banco de Chile', 'Banco Estado', 'Loomis', 'Banco Santander', 'Banco BCI', 'Banco Itaú', 'Banco Falabella', 'Banco Edwards', 'Scotiabank'];
   readonly tecnicos = [
     { id: 1, nombre: 'Técnico 1' },
     { id: 2, nombre: 'Técnico 2' },
     { id: 3, nombre: 'Técnico 3' },
   ];
-  readonly tiposServicio = ['Preventivo', 'Correctivo', 'Instalación', 'Retiro', 'Actualización'];
+  readonly tiposServicio = ['Servicio Tecnico', 'Servicio Electrico', 'Instalación de ATM', 'Retiro de ATM', 'Grafica', 'Desratizacion', 'SPA ATM', 'Anclaje', 'Desanclaje'];
   readonly estados: Array<{ value: OtEstado; label: string }> = [
     { value: 'creada', label: 'Creada' },
     { value: 'asignada', label: 'Asignada' },
@@ -59,14 +66,13 @@ export class OtFormComponent implements OnInit {
   ngOnInit() {
     this.form = this.fb.group({
       banco: ['', Validators.required],
-      hora_programada: ['', Validators.required],
+      numero_atm: ['', Validators.required],
+      tipo_servicio: ['', Validators.required],
+      fecha_programada: [null, Validators.required],
+      hora_programada_time: [null, Validators.required],
       tecnico_id: [null, [Validators.required, Validators.min(1)]],
       comuna: [''],
-      direccion: ['', [Validators.required, Validators.minLength(3)]],
-      nombre_tecnico: [''],
-      nombre_etv: [''],
-      nombre_alarma: [''],
-      atms: this.fb.array([])
+      direccion: ['', [Validators.required, Validators.minLength(3)]]
     });
 
     const id = this.route.snapshot.paramMap.get('id');
@@ -78,66 +84,67 @@ export class OtFormComponent implements OnInit {
         next: (ot) => { this.cargarOt(ot); this.loadingOt = false; },
         error: () => { this.loadingOt = false; }
       });
-    } else {
-      this.agregarAtm();
     }
   }
-
-  get atms(): FormArray { return this.form.get('atms') as FormArray; }
-
-  private atmGroup(data?: Partial<OtTrabajo['atms'][0]>) {
-    return this.fb.group({
-      etiqueta: [data?.etiqueta ?? `ATM ${this.atms.length + 1}`],
-      tipo_servicio: [data?.tipo_servicio ?? '', Validators.required],
-      numero_atm: [data?.numero_atm ?? '', Validators.required],
-      serie_cajero: [data?.serie_cajero ?? ''],
-      serie_mmbb: [data?.serie_mmbb ?? ''],
-      detalles_servicio: [data?.detalles_servicio ?? ''],
-      observaciones: [data?.observaciones ?? '']
-    });
-  }
-
-  agregarAtm() { this.atms.push(this.atmGroup()); }
-  eliminarAtm(i: number) { if (this.atms.length > 1) this.atms.removeAt(i); }
 
   private cargarOt(ot: OtTrabajo) {
+    const parsedDate = ot.hora_programada ? new Date(ot.hora_programada) : null;
+    const primerAtm = ot.atms && ot.atms.length > 0 ? ot.atms[0] : null;
+
     this.form.patchValue({
       banco: ot.banco,
-      hora_programada: this.toDateTimeLocalValue(ot.hora_programada),
+      numero_atm: primerAtm ? primerAtm.numero_atm : '',
+      tipo_servicio: primerAtm ? primerAtm.tipo_servicio : '',
+      fecha_programada: parsedDate,
+      hora_programada_time: parsedDate,
       tecnico_id: ot.tecnico_id,
       comuna: ot.comuna,
-      direccion: ot.direccion,
-      nombre_tecnico: ot.nombre_tecnico,
-      nombre_etv: ot.nombre_etv,
-      nombre_alarma: ot.nombre_alarma
+      direccion: ot.direccion
     });
-    while (this.atms.length) this.atms.removeAt(0);
-    if (ot.atms.length === 0) {
-      this.agregarAtm();
-    } else {
-      ot.atms.forEach(a => this.atms.push(this.atmGroup(a)));
-    }
   }
 
   guardar() {
-    if (this.atms.length === 0) {
-      this.snackBar.open('Debe ingresar al menos un ATM', 'OK', { duration: 3000 });
-      return;
-    }
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     this.loading = true;
     const data = this.form.getRawValue();
 
+    // Procesar y combinar fecha y hora para la API
+    let horaProgramadaStr = '';
+    if (data.fecha_programada instanceof Date && data.hora_programada_time instanceof Date) {
+      const combinedDate = new Date(data.fecha_programada);
+      combinedDate.setHours(
+        data.hora_programada_time.getHours(),
+        data.hora_programada_time.getMinutes(),
+        0,
+        0
+      );
+
+      const pad = (n: number) => String(n).padStart(2, '0');
+      // Produce una cadena en formato local "YYYY-MM-DDTHH:MM:SS"
+      horaProgramadaStr = `${combinedDate.getFullYear()}-${pad(combinedDate.getMonth() + 1)}-${pad(combinedDate.getDate())}T${pad(combinedDate.getHours())}:${pad(combinedDate.getMinutes())}:00`;
+    }
+
+    // Adaptamos el payload plano al esquema de OtCreate esperado por el Backend
     const payload: OtCreate = {
       banco: data.banco,
-      hora_programada: data.hora_programada,
+      hora_programada: horaProgramadaStr,
       tecnico_id: Number(data.tecnico_id),
       comuna: data.comuna ?? '',
       direccion: data.direccion,
-      nombre_tecnico: data.nombre_tecnico ?? '',
-      nombre_etv: data.nombre_etv ?? '',
-      nombre_alarma: data.nombre_alarma ?? '',
-      atms: data.atms,
+      nombre_tecnico: '',
+      nombre_etv: '',
+      nombre_alarma: '',
+      atms: [
+        {
+          etiqueta: 'ATM 1',
+          numero_atm: data.numero_atm,
+          tipo_servicio: data.tipo_servicio,
+          serie_cajero: '',
+          serie_mmbb: '',
+          detalles_servicio: '',
+          observaciones: ''
+        }
+      ],
     };
 
     const op = this.editando && this.otId
@@ -155,14 +162,5 @@ export class OtFormComponent implements OnInit {
         this.snackBar.open('Error al guardar la OT', 'OK', { duration: 3000 });
       }
     });
-  }
-
-  private toDateTimeLocalValue(value: string): string {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-      return '';
-    }
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
   }
 }

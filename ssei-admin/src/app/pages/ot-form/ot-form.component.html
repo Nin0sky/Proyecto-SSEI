@@ -13,23 +13,60 @@
       <mat-card-content>
         <div class="form-grid">
           <mat-form-field appearance="outline">
-            <mat-label>Banco *</mat-label>
+            <mat-label>Cliente</mat-label>
             <mat-select formControlName="banco">
               <mat-option *ngFor="let banco of bancos" [value]="banco">{{ banco }}</mat-option>
             </mat-select>
             <mat-error *ngIf="form.get('banco')?.invalid">Requerido</mat-error>
           </mat-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Hora programada *</mat-label>
-            <input matInput type="datetime-local" formControlName="hora_programada" />
-            <mat-error *ngIf="form.get('hora_programada')?.invalid">Requerido</mat-error>
-          </mat-form-field>
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Número ATM</mat-label>
+              <input matInput formControlName="numero_atm" />
+              <!-- Corrección: Se cambia 'atm' por 'form' -->
+              <mat-error *ngIf="form.get('numero_atm')?.invalid">Requerido</mat-error>
+            </mat-form-field>
+          </div>
+
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Tipo de servicio</mat-label>
+              <mat-select formControlName="tipo_servicio">
+                <mat-option value="">— Seleccionar —</mat-option>
+                <mat-option *ngFor="let t of tiposServicio" [value]="t">{{ t }}</mat-option>
+              </mat-select>
+              <!-- Corrección: Se cambia 'atm' por 'form' -->
+              <mat-error *ngIf="form.get('tipo_servicio')?.invalid">Requerido</mat-error>
+            </mat-form-field>
+          </div>
+          <mat-card>
+            <div class="form-grid">
+              <!-- Campo Fecha Programada con Datepicker -->
+              <mat-form-field appearance="outline">
+                <mat-label>Fecha programada</mat-label>
+                <input matInput [matDatepicker]="picker" formControlName="fecha_programada" />
+                <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+                <mat-datepicker #picker></mat-datepicker>
+                <mat-error *ngIf="form.get('fecha_programada')?.invalid">Requerido</mat-error>
+              </mat-form-field>
+
+              <!-- Campo Hora Programada con Timepicker -->
+              <mat-form-field appearance="outline">
+                <mat-label>Hora programada</mat-label>
+                <input matInput [matTimepicker]="timepicker" formControlName="hora_programada_time" />
+                <mat-timepicker-toggle matIconSuffix [for]="timepicker"></mat-timepicker-toggle>
+                <mat-timepicker #timepicker></mat-timepicker>
+                <mat-error *ngIf="form.get('hora_programada_time')?.invalid">Requerido</mat-error>
+              </mat-form-field>
+            </div>
+          </mat-card>
 
           <mat-form-field appearance="outline">
-            <mat-label>Técnico asignado *</mat-label>
+            <mat-label>Técnico asignado</mat-label>
             <mat-select formControlName="tecnico_id">
-              <mat-option *ngFor="let tecnico of tecnicos" [value]="tecnico.id">{{ tecnico.nombre }} (ID {{ tecnico.id }})</mat-option>
+              <mat-option *ngFor="let tecnico of tecnicos" [value]="tecnico.id">{{ tecnico.nombre }} (ID {{ tecnico.id
+                }})</mat-option>
             </mat-select>
             <mat-error *ngIf="form.get('tecnico_id')?.invalid">Requerido</mat-error>
           </mat-form-field>
@@ -40,100 +77,10 @@
           </mat-form-field>
 
           <mat-form-field appearance="outline">
-            <mat-label>Dirección *</mat-label>
+            <mat-label>Dirección</mat-label>
             <input matInput formControlName="direccion" />
             <mat-error *ngIf="form.get('direccion')?.invalid">Requerida (mínimo 3 caracteres)</mat-error>
           </mat-form-field>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <!-- Personal -->
-    <mat-card class="form-card">
-      <mat-card-header><mat-card-title>Personal asignado</mat-card-title></mat-card-header>
-      <mat-card-content>
-        <div class="form-grid">
-          <mat-form-field appearance="outline">
-            <mat-label>Nombre técnico</mat-label>
-            <input matInput formControlName="nombre_tecnico" />
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Nombre ETV</mat-label>
-            <input matInput formControlName="nombre_etv" />
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Nombre alarma</mat-label>
-            <input matInput formControlName="nombre_alarma" />
-          </mat-form-field>
-        </div>
-      </mat-card-content>
-    </mat-card>
-
-    <!-- ATMs -->
-    <mat-card class="form-card">
-      <mat-card-header>
-        <mat-card-title>ATMs</mat-card-title>
-        <span class="header-spacer"></span>
-        <button mat-stroked-button type="button" (click)="agregarAtm()">
-          <mat-icon>add</mat-icon> Agregar ATM
-        </button>
-      </mat-card-header>
-      <mat-card-content>
-        <div formArrayName="atms">
-          <div *ngFor="let atm of atms.controls; let i = index" [formGroupName]="i" class="atm-section">
-            <div class="atm-section-header">
-              <span class="atm-section-title">ATM {{ i + 1 }}</span>
-              <button mat-icon-button type="button" (click)="eliminarAtm(i)"
-                [disabled]="atms.length === 1" color="warn" matTooltip="Eliminar ATM">
-                <mat-icon>delete</mat-icon>
-              </button>
-            </div>
-            <div class="form-grid">
-              <mat-form-field appearance="outline">
-                <mat-label>Etiqueta</mat-label>
-                <input matInput formControlName="etiqueta" />
-              </mat-form-field>
-
-              <mat-form-field appearance="outline">
-                <mat-label>Número ATM</mat-label>
-                <input matInput formControlName="numero_atm" />
-                <mat-error *ngIf="atm.get('numero_atm')?.invalid">Requerido</mat-error>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline">
-                <mat-label>Tipo de servicio</mat-label>
-                <mat-select formControlName="tipo_servicio">
-                  <mat-option value="">— Seleccionar —</mat-option>
-                  <mat-option *ngFor="let t of tiposServicio" [value]="t">{{ t }}</mat-option>
-                </mat-select>
-                <mat-error *ngIf="atm.get('tipo_servicio')?.invalid">Requerido</mat-error>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline">
-                <mat-label>Serie cajero</mat-label>
-                <input matInput formControlName="serie_cajero" />
-              </mat-form-field>
-
-              <mat-form-field appearance="outline">
-                <mat-label>Serie MMBB</mat-label>
-                <input matInput formControlName="serie_mmbb" />
-              </mat-form-field>
-            </div>
-
-            <mat-form-field appearance="outline" style="width: 100%">
-              <mat-label>Detalles del servicio</mat-label>
-              <textarea matInput formControlName="detalles_servicio" rows="3"></textarea>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline" style="width: 100%">
-              <mat-label>Observaciones</mat-label>
-              <textarea matInput formControlName="observaciones" rows="2"></textarea>
-            </mat-form-field>
-
-            <mat-divider *ngIf="i < atms.length - 1"></mat-divider>
-          </div>
         </div>
       </mat-card-content>
     </mat-card>
