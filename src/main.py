@@ -66,6 +66,7 @@ ot_service = OtService(ot_repo=ot_repository, atm_repo=ot_atm_repository)
 def startup_event() -> None:
     init_db()
     init_admin_db()
+    seed_tecnicos()
 
 
 @app.get("/health")
@@ -310,3 +311,30 @@ def create_audit_log(payload: AuditLogCreate) -> AuditLogRead:
         details=payload.details,
     )
     return AuditLogRead(**asdict(log))
+
+def seed_tecnicos() -> None:
+    """Registra técnicos por defecto en la base de datos si no existen."""
+    tecnicos_por_defecto = [
+        {"email": "rodolfo@ssei.cl", "full_name": "Rodolfo Carreño", "role": "tecnico"},
+        {"email": "juan@ssei.cl", "full_name": "Juan Albornoz", "role": "tecnico"},
+        {"email": "pedro@ssei.cl", "full_name": "Pedro Berrios", "role": "tecnico"},
+    ]
+    
+    for tec in tecnicos_por_defecto:
+        try:
+            # Generamos una contraseña por defecto (ej: 'password123') usando el mismo hash del backend
+            salt = token_hex(16)
+            password_hash = pbkdf2_hmac("sha256", "password123".encode("utf-8"), bytes.fromhex(salt), 390000).hex()
+            stored_hash = f"pbkdf2_sha256${salt}${password_hash}"
+            
+            user_repository.create(
+                email=tec["email"],
+                hashed_password=stored_hash,
+                full_name=tec["full_name"],
+                role=tec["role"],
+                is_active=True
+            )
+            print(f"Técnico registrado exitosamente: {tec['full_name']}")
+        except IntegrityError:
+            # Si el correo ya existe, SQLite capturará la violación de la restricción UNIQUE y continuará
+            pass

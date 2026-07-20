@@ -49,9 +49,9 @@ export class OtFormComponent implements OnInit {
 
   readonly bancos = ['Banco de Chile', 'Banco Estado', 'Loomis', 'Banco Santander', 'Banco BCI', 'Banco Itaú', 'Banco Falabella', 'Banco Edwards', 'Scotiabank'];
   readonly tecnicos = [
-    { id: 1, nombre: 'Técnico 1' },
-    { id: 2, nombre: 'Técnico 2' },
-    { id: 3, nombre: 'Técnico 3' },
+    { id: 1, nombre: 'Rodolfo Carreño' },
+    { id: 2, nombre: 'Juan Albornoz' },
+    { id: 3, nombre: 'Pedro Berrios' },
   ];
   readonly tiposServicio = ['Servicio Tecnico', 'Servicio Electrico', 'Instalación de ATM', 'Retiro de ATM', 'Grafica', 'Desratizacion', 'SPA ATM', 'Anclaje', 'Desanclaje'];
   readonly estados: Array<{ value: OtEstado; label: string }> = [
@@ -72,6 +72,7 @@ export class OtFormComponent implements OnInit {
       hora_programada_time: [null, Validators.required],
       tecnico_id: [null, [Validators.required, Validators.min(1)]],
       comuna: [''],
+      ubicacion: [''],
       direccion: ['', [Validators.required, Validators.minLength(3)]]
     });
 
@@ -99,7 +100,8 @@ export class OtFormComponent implements OnInit {
       hora_programada_time: parsedDate,
       tecnico_id: ot.tecnico_id,
       comuna: ot.comuna,
-      direccion: ot.direccion
+      direccion: ot.direccion,
+      ubicacion: primerAtm ? primerAtm.ubicacion : '', 
     });
   }
 
@@ -133,7 +135,7 @@ export class OtFormComponent implements OnInit {
       direccion: data.direccion,
       nombre_tecnico: '',
       nombre_etv: '',
-      nombre_alarma: '',
+      ubicacion: '',
       atms: [
         {
           etiqueta: 'ATM 1',
@@ -142,7 +144,8 @@ export class OtFormComponent implements OnInit {
           serie_cajero: '',
           serie_mmbb: '',
           detalles_servicio: '',
-          observaciones: ''
+          observaciones: '',
+          ubicacion: '',
         }
       ],
     };

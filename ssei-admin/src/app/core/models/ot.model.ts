@@ -10,6 +10,8 @@ export interface OtAtm {
   serie_mmbb: string;
   detalles_servicio: string;
   observaciones: string;
+  ubicacion: string;
+  direccion?: string;
 }
 
 export interface OtTrabajo {
@@ -31,13 +33,14 @@ export interface OtTrabajo {
 export interface OtCreate {
   banco: string;
   comuna: string;
+  ubicacion: string;
   direccion: string;
   hora_programada: string;
   tecnico_id: number;
   nombre_tecnico: string;
   nombre_etv: string;
-  nombre_alarma: string;
   atms: OtAtm[];
+
 }
 
 export const OT_ESTADO_LABELS: Record<OtEstado, string> = {

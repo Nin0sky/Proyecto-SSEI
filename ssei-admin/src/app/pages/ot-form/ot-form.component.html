@@ -40,47 +40,66 @@
               <mat-error *ngIf="form.get('tipo_servicio')?.invalid">Requerido</mat-error>
             </mat-form-field>
           </div>
-          <mat-card>
-            <div class="form-grid">
-              <!-- Campo Fecha Programada con Datepicker -->
-              <mat-form-field appearance="outline">
-                <mat-label>Fecha programada</mat-label>
-                <input matInput [matDatepicker]="picker" formControlName="fecha_programada" />
-                <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
-                <mat-datepicker #picker></mat-datepicker>
-                <mat-error *ngIf="form.get('fecha_programada')?.invalid">Requerido</mat-error>
-              </mat-form-field>
 
-              <!-- Campo Hora Programada con Timepicker -->
+
+
+          <div class="form-grid">
+            <mat-card-title>Programación</mat-card-title>
+            <!-- Campo Fecha Programada con Datepicker -->
+            <mat-form-field appearance="outline">
+              <mat-label>Fecha programada</mat-label>
+              <input matInput [matDatepicker]="picker" formControlName="fecha_programada" />
+              <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+              <mat-datepicker #picker></mat-datepicker>
+              <mat-error *ngIf="form.get('fecha_programada')?.invalid">Requerido</mat-error>
+            </mat-form-field>
+            <!-- Campo Hora Programada con Timepicker -->
+            <mat-form-field appearance="outline">
+              <mat-label>Hora programada</mat-label>
+              <input matInput [matTimepicker]="timepicker" formControlName="hora_programada_time" />
+              <mat-timepicker-toggle matIconSuffix [for]="timepicker"></mat-timepicker-toggle>
+              <mat-timepicker #timepicker></mat-timepicker>
+              <mat-error *ngIf="form.get('hora_programada_time')?.invalid">Requerido</mat-error>
+            </mat-form-field>
+          </div>
+
+          <div class="form-grid">
+            <mat-card-title>Ubicación</mat-card-title>
+            <div class="form-grid">
               <mat-form-field appearance="outline">
-                <mat-label>Hora programada</mat-label>
-                <input matInput [matTimepicker]="timepicker" formControlName="hora_programada_time" />
-                <mat-timepicker-toggle matIconSuffix [for]="timepicker"></mat-timepicker-toggle>
-                <mat-timepicker #timepicker></mat-timepicker>
-                <mat-error *ngIf="form.get('hora_programada_time')?.invalid">Requerido</mat-error>
+                <mat-label>Dirección</mat-label>
+                <input matInput formControlName="direccion" />
               </mat-form-field>
             </div>
-          </mat-card>
+            <div class="form-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>Comuna</mat-label>
+                <input matInput formControlName="comuna" />
+              </mat-form-field>
+            </div>
+            <div class="form-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>Ubicacion</mat-label>
+                <input matInput formControlName="ubicacion" />
+              </mat-form-field>
+            </div>
+          </div>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Técnico asignado</mat-label>
-            <mat-select formControlName="tecnico_id">
-              <mat-option *ngFor="let tecnico of tecnicos" [value]="tecnico.id">{{ tecnico.nombre }} (ID {{ tecnico.id
-                }})</mat-option>
-            </mat-select>
-            <mat-error *ngIf="form.get('tecnico_id')?.invalid">Requerido</mat-error>
-          </mat-form-field>
 
-          <mat-form-field appearance="outline">
-            <mat-label>Comuna</mat-label>
-            <input matInput formControlName="comuna" />
-          </mat-form-field>
-
-          <mat-form-field appearance="outline">
-            <mat-label>Dirección</mat-label>
-            <input matInput formControlName="direccion" />
-            <mat-error *ngIf="form.get('direccion')?.invalid">Requerida (mínimo 3 caracteres)</mat-error>
-          </mat-form-field>
+          <div class="form-grid">
+            <mat-card class="form-card">
+              <mat-card-title>Asignación de técnico</mat-card-title>
+              <mat-form-field appearance="outline">
+                <mat-label>Técnico asignado</mat-label>
+                <mat-select formControlName="tecnico_id">
+                  <mat-option *ngFor="let tecnico of tecnicos" [value]="tecnico.id">{{ tecnico.nombre }} (ID {{
+                    tecnico.id
+                    }})</mat-option>
+                </mat-select>
+                <mat-error *ngIf="form.get('tecnico_id')?.invalid">Requerido</mat-error>
+              </mat-form-field>
+            </mat-card>
+          </div>
         </div>
       </mat-card-content>
     </mat-card>
