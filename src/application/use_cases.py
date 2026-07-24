@@ -80,6 +80,7 @@ class OtService:
         nombre_etv: str,
         nombre_alarma: str,
         atms: list[dict],
+        region: str | None = None,  # <-- Añadimos el parámetro de región aquí
     ) -> Ot:
         # CORRECCIÓN: Buscamos el nombre del técnico de manera dinámica en la base de datos
         if not nombre_tecnico and tecnico_id:
@@ -97,6 +98,7 @@ class OtService:
             nombre_etv=nombre_etv,
             nombre_alarma=nombre_alarma,
             origen_servidor=True,
+            region=region,
         )
         for atm in atms:
             self.atm_repo.create(ot_id=ot.id, **atm)
@@ -106,6 +108,7 @@ class OtService:
         self,
         ot_id: int,
         banco: str | None,
+        region: str | None,
         comuna: str | None,
         direccion: str | None,
         hora_programada,
@@ -124,6 +127,7 @@ class OtService:
         ot = self.ot_repo.update(
             ot_id=ot_id,
             banco=banco,
+            region=region,
             comuna=comuna,
             direccion=direccion,
             hora_programada=hora_programada,

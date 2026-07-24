@@ -20,6 +20,7 @@ export interface OtTrabajo {
   estado: OtEstado;
   fecha_creacion: string;
   hora_programada: string;
+  region?: string;
   comuna: string;
   direccion: string;
   tecnico_id: number | null;
@@ -30,8 +31,14 @@ export interface OtTrabajo {
   atms: OtAtm[];
 }
 
+export interface Region {
+  id: number;
+  nombre: string;
+}
+
 export interface OtCreate {
   banco: string;
+  region?: string;
   comuna: string;
   ubicacion: string;
   direccion: string;

@@ -15,7 +15,7 @@ import { provideNativeDateAdapter } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { OtService } from '../../core/services/ot.service';
-import { OtTrabajo, OtCreate, OtEstado } from '../../core/models/ot.model';
+import { OtTrabajo, OtCreate, OtEstado, Region } from '../../core/models/ot.model';
 
 @Component({
   selector: 'app-ot-form',
@@ -53,6 +53,8 @@ export class OtFormComponent implements OnInit {
     { id: 2, nombre: 'Juan Albornoz' },
     { id: 3, nombre: 'Pedro Berrios' },
   ];
+  region: Region[] = []; // <-- Cambiado de readonly estático a dinámico
+
   readonly tiposServicio = ['Servicio Tecnico', 'Servicio Electrico', 'Instalación de ATM', 'Retiro de ATM', 'Grafica', 'Desratizacion', 'SPA ATM', 'Anclaje', 'Desanclaje'];
   readonly estados: Array<{ value: OtEstado; label: string }> = [
     { value: 'creada', label: 'Creada' },
@@ -73,7 +75,14 @@ export class OtFormComponent implements OnInit {
       tecnico_id: [null, [Validators.required, Validators.min(1)]],
       comuna: [''],
       ubicacion: [''],
-      direccion: ['', [Validators.required, Validators.minLength(3)]]
+      direccion: ['', [Validators.required, Validators.minLength(3)]],
+      region: [null, Validators.required] // Asegúrate de tenerlo validado en el controlador si lo deseas
+    });
+
+    // Cargar regiones desde el backend
+    this.otService.listarRegiones().subscribe({
+      next: (data) => this.region = data,
+      error: () => this.snackBar.open('Error al cargar las regiones', 'OK', { duration: 3000 })
     });
 
     const id = this.route.snapshot.paramMap.get('id');
@@ -109,6 +118,8 @@ export class OtFormComponent implements OnInit {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     this.loading = true;
     const data = this.form.getRawValue();
+    const regionSeleccionada = this.region.find(r => r.id === Number(data.region));
+    const regionNombre = regionSeleccionada ? regionSeleccionada.nombre : '';
 
     // Procesar y combinar fecha y hora para la API
     let horaProgramadaStr = '';
@@ -136,6 +147,7 @@ export class OtFormComponent implements OnInit {
       nombre_tecnico: '',
       nombre_etv: '',
       ubicacion: '',
+      region: regionNombre,
       atms: [
         {
           etiqueta: 'ATM 1',

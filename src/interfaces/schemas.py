@@ -73,10 +73,15 @@ class OtAtmCreate(BaseModel):
 class OtAtmRead(OtAtmCreate):
     id: int
     ot_id: int
+    
+class RegionRead(BaseModel):
+    id: int
+    nombre: str
 
 
 class OtCreate(BaseModel):
     banco: str = Field(min_length=2, max_length=100)
+    region: str | None = Field(default=None, max_length=100) 
     comuna: str = Field(default="", max_length=100)
     direccion: str = Field(min_length=3, max_length=200)
     ubicacion: str = Field(default="", max_length=200)
@@ -90,6 +95,7 @@ class OtCreate(BaseModel):
 
 class OtUpdate(BaseModel):
     banco: str | None = Field(default=None, min_length=2, max_length=100)
+    region: str | None = Field(default=None, max_length=100)
     comuna: str | None = Field(default=None, max_length=100)
     direccion: str | None = Field(default=None, min_length=3, max_length=200)
     hora_programada: datetime | None = None
@@ -110,6 +116,7 @@ class OtRead(BaseModel):
     estado: str
     fecha_creacion: datetime
     hora_programada: datetime
+    region: str | None = None 
     comuna: str
     direccion: str
     tecnico_id: int | None = None

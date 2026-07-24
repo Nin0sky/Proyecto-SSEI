@@ -16,6 +16,7 @@ from src.infrastructure.repositories import (
     TraceabilityRepository,
     UseCaseRepository,
     UserRepository,
+    RegionRepository,
 )
 from src.interfaces.schemas import (
     AuditLogCreate,
@@ -32,6 +33,7 @@ from src.interfaces.schemas import (
     UseCaseRead,
     UserCreate,
     UserRead,
+    RegionRead,
 )
 
 
@@ -55,7 +57,7 @@ ot_repository = OtRepository()
 ot_atm_repository = OtAtmRepository()
 user_repository = UserRepository()
 audit_log_repository = AuditLogRepository()
-
+region_repository = RegionRepository()
 requirement_service = RequirementService(repository=requirement_repository)
 use_case_service = UseCaseService(repository=use_case_repository)
 traceability_service = TraceabilityService(repository=traceability_repository)
@@ -165,6 +167,7 @@ def _ot_to_read(ot) -> OtRead:
         estado=ot.estado,
         fecha_creacion=ot.fecha_creacion,
         hora_programada=ot.hora_programada,
+        region=ot.region, 
         comuna=ot.comuna,
         direccion=ot.direccion,
         tecnico_id=ot.tecnico_id,
@@ -198,6 +201,7 @@ def list_ots(estado: str | None = Query(default=None)) -> list[OtRead]:
 def create_ot(payload: OtCreate) -> OtRead:
     ot = ot_service.create_ot(
         banco=payload.banco,
+        region=payload.region,
         comuna=payload.comuna,
         direccion=payload.direccion,
         hora_programada=payload.hora_programada,
@@ -223,6 +227,7 @@ def update_ot(ot_id: int, payload: OtUpdate) -> OtRead:
     ot = ot_service.update_ot(
         ot_id=ot_id,
         banco=payload.banco,
+        region=payload.region,
         comuna=payload.comuna,
         direccion=payload.direccion,
         hora_programada=payload.hora_programada,
@@ -338,3 +343,36 @@ def seed_tecnicos() -> None:
         except IntegrityError:
             # Si el correo ya existe, SQLite capturará la violación de la restricción UNIQUE y continuará
             pass
+
+def seed_regiones() -> None:
+    if region_repository.count() == 0:
+        regiones_chile = [
+            'Región de Arica y Parinacota',
+            'Región de Tarapacá',
+            'Región de Antofagasta',
+            'Región de Atacama',
+            'Región de Coquimbo',
+            'Región de Valparaíso',
+            'Región Metropolitana',
+            'Región de O’Higgins',
+            'Región del Maule',
+            'Región de Ñuble',
+            'Región del Biobío',
+            'Región de La Araucanía',
+            'Región de Los Ríos',
+            'Región de Los Lagos',
+            'Región de Aysén',
+            'Región de Magallanes'
+        ]
+        region_repository.bulk_create(regiones_chile)
+
+@app.on_event("startup")
+def startup_event() -> None:
+    init_db()
+    init_admin_db()
+    seed_tecnicos()
+    seed_regiones()  # <-- Añadir esta llamada
+    
+@app.get("/regiones", response_model=list[RegionRead])
+def list_regiones() -> list[RegionRead]:
+    return [RegionRead(id=r.id, nombre=r.nombre) for r in region_repository.list_all()]

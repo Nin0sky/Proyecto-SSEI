@@ -55,6 +55,7 @@ class Ot:
     nombre_etv: str
     nombre_alarma: str
     origen_servidor: bool
+    region: str | None = None 
     atms: list[OtAtm] = field(default_factory=list)
 
 
@@ -76,3 +77,9 @@ class AuditLog:
     action: str
     details: str
     created_at: datetime
+
+
+@dataclass(slots=True)
+class Region:
+    id: int
+    nombre: str

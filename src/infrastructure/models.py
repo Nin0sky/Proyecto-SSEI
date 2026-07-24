@@ -16,6 +16,11 @@ class RequirementDB(Base):
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="pendiente")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
 
+class RegionDB(Base):
+    __tablename__ = "regiones"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    nombre: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
 
 class UseCaseDB(Base):
     __tablename__ = "use_cases"
@@ -75,6 +80,7 @@ class OtDB(Base):
     estado: Mapped[str] = mapped_column(String(50), nullable=False, default="asignada")
     fecha_creacion: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     hora_programada: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    region: Mapped[str] = mapped_column(String(100), nullable=True, default="")
     comuna: Mapped[str] = mapped_column(String(100), nullable=False, default="")
     direccion: Mapped[str] = mapped_column(Text, nullable=False, default="")
     nombre_tecnico: Mapped[str] = mapped_column(String(100), nullable=False, default="")

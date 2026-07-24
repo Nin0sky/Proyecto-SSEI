@@ -43,6 +43,10 @@
             <span>{{ ot.hora_programada | date:'dd/MM/yyyy HH:mm' }}</span>
           </div>
           <div class="info-item">
+            <span class="info-label">Region</span>
+            <span>{{ ot.region || '—' }}</span>
+          </div>
+          <div class="info-item">
             <span class="info-label">Comuna</span>
             <span>{{ ot.comuna || '—' }}</span>
           </div>

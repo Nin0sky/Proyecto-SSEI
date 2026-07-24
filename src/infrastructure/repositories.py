@@ -3,7 +3,7 @@ from typing import Iterable
 
 from sqlalchemy.exc import IntegrityError
 
-from src.domain.models import AuditLog, Ot, OtAtm, Requirement, RequirementUseCaseTrace, UseCase, User
+from src.domain.models import AuditLog, Ot, OtAtm, Requirement, RequirementUseCaseTrace, UseCase, User, Region
 from src.infrastructure.database import AdminSessionLocal, MobileSessionLocal
 from src.infrastructure.models import (
     AuditLogDB,
@@ -13,6 +13,7 @@ from src.infrastructure.models import (
     RequirementUseCaseTraceDB,
     UseCaseDB,
     UserDB,
+    RegionDB,
 )
 
 
@@ -253,6 +254,7 @@ class OtRepository:
         nombre_etv: str,
         nombre_alarma: str,
         origen_servidor: bool = True,
+        region: str | None = None,
     ) -> Ot:
         with MobileSessionLocal() as session:
             item = OtDB(
@@ -260,6 +262,7 @@ class OtRepository:
                 estado="asignada",
                 fecha_creacion=datetime.now(UTC),
                 hora_programada=hora_programada,
+                region=region,
                 comuna=comuna,
                 direccion=direccion,
                 tecnico_id=tecnico_id,
@@ -282,6 +285,7 @@ class OtRepository:
         self,
         ot_id: int,
         banco: str | None = None,
+        region: str | None = None,
         comuna: str | None = None,
         direccion: str | None = None,
         hora_programada: datetime | None = None,
@@ -297,6 +301,8 @@ class OtRepository:
 
             if banco is not None:
                 item.banco = banco
+            if region is not None:
+                item.region = region
             if comuna is not None:
                 item.comuna = comuna
             if direccion is not None:
@@ -340,6 +346,7 @@ class OtRepository:
             estado=row.estado,
             fecha_creacion=row.fecha_creacion,
             hora_programada=row.hora_programada,
+            region=row.region,
             comuna=row.comuna,
             direccion=row.direccion,
             tecnico_id=row.tecnico_id,
@@ -428,4 +435,27 @@ class AuditLogRepository:
             action=row.action,
             details=row.details,
             created_at=row.created_at,
+        )
+
+class RegionRepository:
+    def list_all(self) -> list[Region]:
+        with MobileSessionLocal() as session:
+            rows = session.query(RegionDB).order_by(RegionDB.id).all()
+            return [self._row_to_entity(row) for row in rows]
+
+    def count(self) -> int:
+        with MobileSessionLocal() as session:
+            return session.query(RegionDB).count()
+
+    def bulk_create(self, nombres: list[str]) -> None:
+        with MobileSessionLocal() as session:
+            regiones = [RegionDB(nombre=nombre) for nombre in nombres]
+            session.add_all(regiones)
+            session.commit()
+
+    @staticmethod
+    def _row_to_entity(row: RegionDB) -> Region:
+        return Region(
+            id=row.id,
+            nombre=row.nombre
         )

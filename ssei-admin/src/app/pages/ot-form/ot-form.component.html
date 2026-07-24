@@ -83,6 +83,15 @@
                 <input matInput formControlName="ubicacion" />
               </mat-form-field>
             </div>
+            <div class="form-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>Region</mat-label>
+                <mat-select formControlName="region">
+                  <mat-option *ngFor="let region of region" [value]="region.id">{{ region.nombre }}</mat-option>
+                </mat-select>
+                <mat-error *ngIf="form.get('region')?.invalid">Requerido</mat-error>
+              </mat-form-field>
+            </div>
           </div>
 
 
