@@ -362,6 +362,12 @@ class UserRepository:
     def _session_factory():
         return AdminSessionLocal or MobileSessionLocal
 
+    def get_by_email(self, email: str) -> User | None:
+        """Busca un usuario por su email electrónico para procesos de autenticación."""
+        with self._session_factory()() as session:
+            row = session.query(UserDB).filter(UserDB.email == email).first()
+            return self._row_to_entity(row) if row else None
+
     def list_all(self) -> list[User]:
         with self._session_factory()() as session:
             rows = session.query(UserDB).order_by(UserDB.id.desc()).all()

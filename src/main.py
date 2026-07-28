@@ -2,9 +2,14 @@ from dataclasses import asdict
 from hashlib import pbkdf2_hmac
 from secrets import token_hex
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import IntegrityError
+
+#IMPORTACIONES DE SEGURIDAD
+from src.infrastructure.security import verificar_password, crear_access_token, obtener_usuario_actual, verificar_rol
+from src.interfaces.schemas import LoginRequest, TokenResponse
+#############################33
 
 from src.application.use_cases import OtService, RequirementService, TraceabilityService, UseCaseService
 from src.infrastructure.db import init_admin_db, init_db
@@ -191,14 +196,20 @@ def _ot_to_read(ot) -> OtRead:
         ],
     )
 
-
+#-------Se aplica el decorador Depends para requerir un login válido (cualquier rol) antes de acceder a la lista de OTs. Esto asegura que solo los usuarios autenticados puedan ver las OTs, independientemente de su rol.
 @app.get("/ots", response_model=list[OtRead])
-def list_ots(estado: str | None = Query(default=None)) -> list[OtRead]:
+def list_ots(
+    estado: str | None = Query(default=None),
+    token_data: dict = Depends(obtener_usuario_actual)  # Requiere login válido (cualquier rol)
+) -> list[OtRead]:
     return [_ot_to_read(ot) for ot in ot_service.list_ots(estado=estado)]
 
 
 @app.post("/ots", response_model=OtRead, status_code=201)
-def create_ot(payload: OtCreate) -> OtRead:
+def create_ot(
+    payload: OtCreate,
+    token_data: dict = Depends(verificar_rol(["admin", "coordinador"]))  # Solo Admin o Coordinador
+) -> OtRead:
     ot = ot_service.create_ot(
         banco=payload.banco,
         region=payload.region,
@@ -215,15 +226,23 @@ def create_ot(payload: OtCreate) -> OtRead:
 
 
 @app.get("/ots/{ot_id}", response_model=OtRead)
-def get_ot(ot_id: int) -> OtRead:
+def get_ot(
+    ot_id: int,
+    token_data: dict = Depends(obtener_usuario_actual)  # Requiere login válido
+) -> OtRead:
     ot = ot_service.get_ot(ot_id)
     if ot is None:
         raise HTTPException(status_code=404, detail="OT no encontrada")
     return _ot_to_read(ot)
 
 
+
 @app.put("/ots/{ot_id}", response_model=OtRead)
-def update_ot(ot_id: int, payload: OtUpdate) -> OtRead:
+def update_ot(
+    ot_id: int,
+    payload: OtUpdate,
+    token_data: dict = Depends(verificar_rol(["admin", "coordinador"]))  # Solo Admin o Coordinador
+) -> OtRead:
     ot = ot_service.update_ot(
         ot_id=ot_id,
         banco=payload.banco,
@@ -243,7 +262,11 @@ def update_ot(ot_id: int, payload: OtUpdate) -> OtRead:
 
 
 @app.patch("/ots/{ot_id}/estado", response_model=OtRead)
-def update_ot_estado(ot_id: int, payload: OtEstadoUpdate) -> OtRead:
+def update_ot_estado(
+    ot_id: int,
+    payload: OtEstadoUpdate,
+    token_data: dict = Depends(verificar_rol(["admin", "coordinador"]))  # Solo Admin o Coordinador
+) -> OtRead:
     ot = ot_service.update_estado(ot_id=ot_id, estado=payload.estado)
     if ot is None:
         raise HTTPException(status_code=404, detail="OT no encontrada")
@@ -251,10 +274,12 @@ def update_ot_estado(ot_id: int, payload: OtEstadoUpdate) -> OtRead:
 
 
 @app.delete("/ots/{ot_id}", status_code=204)
-def delete_ot(ot_id: int) -> None:
+def delete_ot(
+    ot_id: int,
+    token_data: dict = Depends(verificar_rol(["admin", "coordinador"]))  # Solo Admin o Coordinador
+) -> None:
     if not ot_service.delete_ot(ot_id):
         raise HTTPException(status_code=404, detail="OT no encontrada")
-
 
 # ---------------------------------------------------------------------------
 # Admin foundations: users and audit logs
@@ -300,7 +325,52 @@ def create_user(payload: UserCreate) -> UserRead:
         is_active=user.is_active,
         created_at=user.created_at,
     )
+# ---------------------------------------------------------------------------
+# Autenticación Endpoints
+# ---------------------------------------------------------------------------
 
+@app.post("/auth/login", response_model=TokenResponse)
+def login(payload: LoginRequest) -> TokenResponse:
+    # 1. Buscar al usuario en la base de datos por email
+    user = user_repository.get_by_email(payload.email)
+    if not user:
+        raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+
+    # 2. Validar que la cuenta esté activa para iniciar sesión
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Usuario desactivado. Contacte al administrador.")
+
+    # 3. Validar coincidencia de la contraseña plana contra el Hash PBKDF2
+    is_valid = verificar_password(payload.password, user.hashed_password)
+    if not is_valid:
+        raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+
+    # 4. Generar Claims para el Payload JWT
+    token_payload = {
+        "sub": user.email,
+        "id": user.id,
+        "name": user.full_name,
+        "role": user.role
+    }
+
+    # 5. Firmar JWT
+    token = crear_access_token(data=token_payload)
+
+    # 6. Preparar lectura de los datos públicos del usuario
+    user_read_data = UserRead(
+        id=user.id,
+        email=user.email,
+        full_name=user.full_name,
+        role=user.role,
+        is_active=user.is_active,
+        created_at=user.created_at
+    )
+
+    return TokenResponse(
+        access_token=token,
+        token_type="bearer",
+        user=user_read_data
+    )
 
 @app.get("/admin/audit-logs", response_model=list[AuditLogRead])
 def list_audit_logs() -> list[AuditLogRead]:

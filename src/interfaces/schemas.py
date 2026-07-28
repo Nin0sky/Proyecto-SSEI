@@ -156,3 +156,17 @@ class AuditLogRead(BaseModel):
     action: str
     details: str
     created_at: datetime
+
+# ---------------------------------------------------------------------------
+# Login
+# ---------------------------------------------------------------------------
+
+# En src/interfaces/schemas.py
+class LoginRequest(BaseModel):
+    email: str = Field(min_length=5, max_length=255)
+    password: str = Field(min_length=8, max_length=255)
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserRead
