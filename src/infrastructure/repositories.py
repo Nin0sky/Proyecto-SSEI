@@ -396,6 +396,24 @@ class UserRepository:
                 raise
             session.refresh(item)
             return self._row_to_entity(item)
+        
+    def delete(self, user_id: int) -> bool:
+        """Borra físicamente un usuario si no posee registros relacionados."""
+        with self._session_factory()() as session:
+            rowcount = session.query(UserDB).filter(UserDB.id == user_id).delete()
+            session.commit()
+            return rowcount > 0
+
+    def toggle_active(self, user_id: int, is_active: bool) -> User | None:
+        """Borrado Lógico: Alterna el estado activo/inactivo de una cuenta."""
+        with self._session_factory()() as session:
+            user_db = session.get(UserDB, user_id)
+            if not user_db:
+                return None
+            user_db.is_active = is_active
+            session.commit()
+            session.refresh(user_db)
+            return self._row_to_entity(user_db)
 
     @staticmethod
     def _row_to_entity(row: UserDB) -> User:

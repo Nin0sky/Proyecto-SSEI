@@ -325,6 +325,31 @@ def create_user(payload: UserCreate) -> UserRead:
         is_active=user.is_active,
         created_at=user.created_at,
     )
+@app.delete("/admin/users/{user_id}", status_code=204)
+def delete_user(user_id: int) -> None:
+    try:
+        if not user_repository.delete(user_id):
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    except IntegrityError as exc:
+        raise HTTPException(
+            status_code=409, 
+            detail="No se puede borrar el usuario porque tiene registros históricos o auditorías asociadas. Considere desactivarlo."
+        ) from exc
+
+
+@app.patch("/admin/users/{user_id}/status", response_model=UserRead)
+def toggle_user_status(user_id: int, is_active: bool = Query(...)) -> UserRead:
+    user = user_repository.toggle_active(user_id, is_active)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return UserRead(
+        id=user.id,
+        email=user.email,
+        full_name=user.full_name,
+        role=user.role,
+        is_active=user.is_active,
+        created_at=user.created_at
+    )
 # ---------------------------------------------------------------------------
 # Autenticación Endpoints
 # ---------------------------------------------------------------------------

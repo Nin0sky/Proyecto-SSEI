@@ -42,6 +42,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
     data: { roles: ['admin', 'coordinador'] }
   },
+    {
+    path: 'usuarios',
+    loadComponent: () => import('./pages/usuarios/usuarios.component').then(m => m.UsuariosComponent),
+    canActivate: [authGuard],
+    data: { roles: ['admin'] } // Solo cuentas 'admin' pueden entrar a administrar personal
+  },
 
   // Cualquier ruta inválida redirige de vuelta al dashboard
   { path: '**', redirectTo: 'dashboard' }
