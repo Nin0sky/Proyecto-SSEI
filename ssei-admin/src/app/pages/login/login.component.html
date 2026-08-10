@@ -1,0 +1,43 @@
+<div class="login-container">
+  <mat-card class="login-card">
+    <mat-card-header>
+      <div class="header-logo">
+        <mat-icon color="primary" class="logo-icon">security</mat-icon>
+        <h2>SSEI Administrativo</h2>
+      </div>
+      <mat-card-subtitle>Ingrese sus credenciales de acceso</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup].="loginForm" (ngSubmit)="onSubmit()">
+        
+        <!-- Campo Email -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Correo Electrónico</mat-label>
+          <input matInput type="email" placeholder="usuario@ssei.cl" formControlName="email">
+          <mat-icon matSuffix>email</mat-icon>
+          <mat-error *ngIf="loginForm.get('email')?.hasError('required')">El correo es obligatorio</mat-error>
+          <mat-error *ngIf="loginForm.get('email')?.hasError('email')">Ingrese un formato de correo válido</mat-error>
+        </mat-form-field>
+
+        <!-- Campo Contraseña -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Contraseña</mat-label>
+          <input matInput [type]="hidePassword() ? 'password' : 'text'" formControlName="password">
+          <button mat-icon-button matSuffix (click)="hidePassword.set(!hidePassword())" type="button" [attr.aria-label]="'Ocultar contraseña'">
+            <mat-icon>{{hidePassword() ? 'visibility_off' : 'visibility'}}</mat-icon>
+          </button>
+          <mat-error *ngIf="loginForm.get('password')?.hasError('required')">La contraseña es obligatoria</mat-error>
+          <mat-error *ngIf="loginForm.get('password')?.hasError('minlength')">La contraseña debe tener mínimo 8 caracteres</mat-error>
+        </mat-form-field>
+
+        <!-- Botón de Envío -->
+        <button mat-raised-button color="primary" class="full-width login-button" type="submit" [disabled]="loginForm.invalid || isLoading()">
+          <span *ngIf="!isLoading()">Ingresar al Sistema</span>
+          <span *ngIf="isLoading()">Verificando credenciales...</span>
+        </button>
+
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>
