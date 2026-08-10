@@ -1,0 +1,259 @@
+<div class="library-container">
+  <div class="view-header">
+    <h1>Biblioteca Interactiva de Documentos</h1>
+    <p>Consulte, descargue y administre planos, manuales técnicos de cajeros e instructivos de manera veloz.</p>
+  </div>
+
+  <mat-tab-group class="custom-tabs">
+    <!-- PESTAÑA 1: EXPLORADOR INTERACTIVO -->
+    <mat-tab label="Explorador de Documentos">
+
+      <!-- Panel de Filtros Inteligentes (Tu Visión de Negocio) -->
+      <div class="filters-panel">
+        <mat-form-field appearance="outline" class="search-field">
+          <mat-label>Buscador Inteligente (Nombre o ATM)</mat-label>
+          <input matInput placeholder="ej: manual santander atm 103" [value]="filtroTexto()"
+            (input)="filtroTexto.set($any($event.target).value)">
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="filter-dropdown">
+          <mat-label>Filtrar por Cliente</mat-label>
+          <mat-select [value]="filtroBanco()" (selectionChange)="filtroBanco.set($event.value)">
+            <mat-option value="todos">Todos los Clientes</mat-option>
+            <mat-option *ngFor="let banco of bancosDisponibles" [value]="banco">{{banco}}</mat-option>
+          </mat-select>
+          <mat-icon matSuffix>business</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="filter-dropdown">
+          <mat-label>Filtrar por Categoría</mat-label>
+          <mat-select [value]="filtroCategoria()" (selectionChange)="filtroCategoria.set($event.value)">
+            <mat-option value="todas">Todas las Categorías</mat-option>
+            <mat-option value="manuales">Manuales Técnicos</mat-option>
+            <mat-option value="planos">Planos de Cajero</mat-option>
+            <mat-option value="procedimientos">Procedimiento Operativo</mat-option>
+            <mat-option value="otros">Otros</mat-option>
+          </mat-select>
+          <mat-icon matSuffix>category</mat-icon>
+        </mat-form-field>
+      </div>
+
+      <div class="grid-layout">
+        <!-- Tabla de Documentos -->
+        <mat-card class="table-card">
+          <mat-card-content class="table-scroll-container">
+            <div *ngIf="isLoading()" class="loading-placeholder">
+              <span>Cargando colección de la biblioteca...</span>
+            </div>
+
+            <table mat-table [dataSource]="documentosFiltrados()" class="ssei-table" *ngIf="!isLoading()">
+
+              <!-- Icono y Nombre -->
+              <ng-container matColumnDef="archivo">
+                <th mat-header-cell *matHeaderCellDef>Documento</th>
+                <td mat-cell *matCellDef="let element" class="file-name-cell">
+                  <mat-icon class="file-type-icon">insert_drive_file</mat-icon>
+                  <div class="file-text-meta">
+                    <span class="file-title" (click)="descargar(element)">{{element.nombreOriginal}}</span>
+                    <span class="file-date">Subido el {{element.createdAt | date: 'dd MMMM yyyy, HH:mm'}}</span>
+                  </div>
+                </td>
+              </ng-container>
+
+              <!-- Categoría -->
+              <ng-container matColumnDef="categoria">
+                <th mat-header-cell *matHeaderCellDef>Categoría</th>
+                <td mat-cell *matCellDef="let element">
+                  {{ obtenerNombreCategoria(element.categoria) }}
+                </td>
+              </ng-container>
+
+              <!-- Banco -->
+              <ng-container matColumnDef="banco">
+                <th mat-header-cell *matHeaderCellDef>Cliente</th>
+                <td mat-cell *matCellDef="let element">
+                  <span class="client-badge" *ngIf="element.banco">{{element.banco}}</span>
+                  <span class="text-muted" *ngIf="!element.banco">-</span>
+                </td>
+              </ng-container>
+
+              <!-- ATM -->
+              <ng-container matColumnDef="numeroAtm">
+                <th mat-header-cell *matHeaderCellDef>ATM</th>
+                <td mat-cell *matCellDef="let element">
+                  <span class="atm-chip" *ngIf="element.numeroAtm">ATM {{element.numeroAtm}}</span>
+                  <span class="text-muted" *ngIf="!element.numeroAtm">-</span>
+                </td>
+              </ng-container>
+
+              <!-- Peso -->
+              <ng-container matColumnDef="peso">
+                <th mat-header-cell *matHeaderCellDef>Tamaño</th>
+                <td mat-cell *matCellDef="let element">{{ formatearPeso(element.pesoBytes) }}</td>
+              </ng-container>
+
+              <!-- Creado El -->
+              <ng-container matColumnDef="createdAt">
+                <th mat-header-cell *matHeaderCellDef>Registro</th>
+                <td mat-cell *matCellDef="let element">{{element.createdAt | date: 'dd/MM/yyyy'}}</td>
+              </ng-container>
+
+              <!-- Acciones -->
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef class="text-right">Acciones</th>
+                <td mat-cell *matCellDef="let element" class="text-right">
+                  <button mat-icon-button color="primary" (click)="descargar(element)" title="Descargar Documento">
+                    <mat-icon>download</mat-icon>
+                  </button>
+                  <button mat-icon-button color="warn" (click)="moverTrash(element)"
+                    *ngIf="authService.hasRole(['admin'])" title="Mover a Papelera de Reciclaje">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderCellDef></tr>
+              <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+            </table>
+
+            <div *ngIf="!isLoading() && documentosFiltrados().length === 0" class="no-records-card">
+              <mat-icon class="sad-icon">folder_open</mat-icon>
+              <p>No se encontraron planos, manuales o archivos en esta agrupación.</p>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-tab>
+
+    <!-- PESTAÑA 2: CARGA DE DOCUMENTOS (Solo Admin y Coordinadores) -->
+    <mat-tab label="Subir Documento Digital" *ngIf="authService.hasRole(['admin', 'coordinador'])">
+      <div class="upload-tab-centered">
+        <mat-card class="upload-card">
+          <mat-card-header>
+            <mat-card-title>Subir Nuevo Archivo Digital</mat-card-title>
+            <mat-card-subtitle>Anexe planos de cajeros o instructivos estructurándolos para su
+              indexación.</mat-card-subtitle>
+          </mat-card-header>
+
+          <mat-card-content class="upload-form-content">
+            <form [formGroup]="uploadForm" (ngSubmit)="onUpload()">
+
+              <!-- Categoría -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Categoría del Documento</mat-label>
+                <mat-select formControlName="categoria">
+                  <mat-option value="manuales">Manual Técnico</mat-option>
+                  <mat-option value="planos">Planos de Cajero</mat-option>
+                  <mat-option value="procedimientos">Procedimiento Operativo</mat-option>
+                  <mat-option value="otros">Otros</mat-option>
+                </mat-select>
+                <mat-icon matSuffix>category</mat-icon>
+              </mat-form-field>
+
+              <!-- Banco / Cliente -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Asociar a Cliente (Opcional)</mat-label>
+                <mat-select formControlName="banco">
+                  <mat-option value="">Ninguno</mat-option>
+                  <!-- CORRECCIÓN: Usar bancosDisponibles -->
+                  <mat-option *ngFor="let b of bancosDisponibles" [value]="b">{{b}}</mat-option>
+                </mat-select>
+                <mat-icon matSuffix>business</mat-icon>
+              </mat-form-field>
+
+              <!-- Número de ATM -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Asociar a Número ATM (Opcional)</mat-label>
+                <input matInput placeholder="ej: 103" formControlName="numeroAtm">
+                <mat-icon matSuffix class="select-icon">settings_input_composite</mat-icon>
+              </mat-form-field>
+
+              <!-- Input Archivo Físico -->
+              <div class="file-picker-area">
+                <input type="file" id="fileInput" (change)="onFileSelected($event)" style="display: none;">
+                <label for="fileInput" class="pick-file-label">
+                  <mat-icon class="picker-icon">cloud_upload</mat-icon>
+                  <span>{{ archivoSeleccionado ? archivoSeleccionado.name : 'Seleccionar Archivo (Máx 20MB)' }}</span>
+                </label>
+              </div>
+
+              <!-- Botón de Envío -->
+              <button mat-raised-button color="primary" class="full-width-btn" type="submit"
+                [disabled]="!archivoSeleccionado || uploadForm.invalid || isUploading()">
+                <mat-icon>cloud_done</mat-icon>
+                {{ isUploading() ? 'Cargando archivo digital...' : 'Subir e Indexar Documento' }}
+              </button>
+            </form>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-tab>
+
+    <!-- PESTAÑA 3: PAPELERA DE SEGURIDAD (Solo Administradores) -->
+    <mat-tab label="Papelera de Respaldo" *ngIf="authService.hasRole(['admin'])">
+      <mat-card class="table-card" style="margin-top: 20px;">
+        <mat-card-header>
+          <mat-card-title>Historial de Eliminaciones Recientes (Papelera de Respaldo)</mat-card-title>
+          <mat-card-subtitle>Los archivos listados abajo se guardarán por un plazo de 30 días, tras el cual se
+            auto-eliminarán del sistema permanentemente.</mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content class="table-scroll-container" style="padding: 24px;">
+          <table mat-table [dataSource]="papelera()" class="ssei-table" *ngIf="papelera().length > 0">
+
+            <!-- Nombre -->
+            <ng-container matColumnDef="archivo">
+              <th mat-header-cell *matHeaderCellDef>Documento</th>
+              <td mat-cell *matCellDef="let element" class="file-name-cell">
+                <mat-icon class="file-type-icon text-muted">delete</mat-icon>
+                <div class="file-text-meta">
+                  <span class="file-title text-muted"
+                    style="text-decoration: line-through;">{{element.nombreOriginal}}</span>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Categoría -->
+            <ng-container matColumnDef="categoria">
+              <th mat-header-cell *matHeaderCellDef>Categoría</th>
+              <td mat-cell *matCellDef="let element">{{ obtenerNombreCategoria(element.categoria) }}</td>
+            </ng-container>
+
+            <!-- Peso -->
+            <ng-container matColumnDef="peso">
+              <th mat-header-cell *matHeaderCellDef>Tamaño</th>
+              <td mat-cell *matCellDef="let element">{{ formatearPeso(element.pesoBytes) }}</td>
+            </ng-container>
+
+            <!-- Eliminado El -->
+            <ng-container matColumnDef="deletedAt">
+              <th mat-header-cell *matHeaderCellDef>Eliminado El</th>
+              <td mat-cell *matCellDef="let element">{{element.deletedAt | date: 'dd/MM/yyyy HH:mm'}}</td>
+            </ng-container>
+
+            <!-- Acciones -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef class="text-right">Acciones</th>
+              <td mat-cell *matCellDef="let element" class="text-right">
+                <button mat-flat-button color="accent" (click)="restaurar(element)"
+                  title="Restaurar de vuelta a Biblioteca">
+                  <mat-icon>restore</mat-icon>
+                  Restaurar
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderCellDef></tr>
+            <tr mat-row *matRowDef="let row; columns: papeleraColumns;"></tr>
+          </table>
+
+          <div *ngIf="papelera().length === 0" class="no-records-card">
+            <mat-icon class="sad-icon">delete_sweep</mat-icon>
+            <p>La Papelera de Respaldo se encuentra vacía.</p>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </mat-tab>
+  </mat-tab-group>
+</div>

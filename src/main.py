@@ -2,14 +2,23 @@ from dataclasses import asdict
 from hashlib import pbkdf2_hmac
 from secrets import token_hex
 
-from fastapi import FastAPI, HTTPException, Query, Depends
+import os
+import shutil
+
+from pathlib import Path
+from fastapi import BackgroundTasks
+
+from fastapi import FastAPI, HTTPException, Query, Depends, UploadFile, File, Form
+from fastapi.responses import FileResponse
+from secrets import token_hex
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import IntegrityError
 
 #IMPORTACIONES DE SEGURIDAD
 from src.infrastructure.security import verificar_password, crear_access_token, obtener_usuario_actual, verificar_rol
-from src.interfaces.schemas import LoginRequest, TokenResponse
-#############################33
+from src.interfaces.schemas import LoginRequest, TokenResponse, DocumentoRead
+#############################
+
 
 from src.application.use_cases import OtService, RequirementService, TraceabilityService, UseCaseService
 from src.infrastructure.db import init_admin_db, init_db
@@ -22,6 +31,7 @@ from src.infrastructure.repositories import (
     UseCaseRepository,
     UserRepository,
     RegionRepository,
+    DocumentoRepository,
 )
 from src.interfaces.schemas import (
     AuditLogCreate,
@@ -44,6 +54,39 @@ from src.interfaces.schemas import (
 
 app = FastAPI(title="SSEI API", version="0.3.0")
 
+# Instanciamos el repositorio al inicio de src/main.py
+documento_repository = DocumentoRepository()
+
+# Directorio raíz del almacenamiento de archivos de la biblioteca
+BIBLIOTECA_UPLOAD_DIR = Path("data") / "biblioteca"
+
+def ejecutar_limpieza_papelera_30_dias() -> None:
+    """
+    Tarea en segundo plano que busca documentos que lleven más de 30 días en la papelera,
+    los elimina físicamente del disco y posteriormente borra el registro de la Base de Datos.
+    """
+    try:
+        # Obtenemos todos los registros expirados (más de 30 días)
+        documentos_expirados = documento_repository.get_expired_documents(age_days=30)
+        
+        for doc in documentos_expirados:
+            # Construimos la ruta del archivo físico en el servidor
+            ruta_archivo = BIBLIOTECA_UPLOAD_DIR / doc.nombre_sistema
+            
+            # 1. Borramos el archivo del almacenamiento físico si existe
+            if ruta_archivo.exists():
+                try:
+                    os.remove(ruta_archivo)
+                    print(f"Limpieza Física: Archivo removido del disco: {ruta_archivo}")
+                except Exception as file_err:
+                    print(f"Alerta: No se pudo eliminar el archivo físico {ruta_archivo}. Detalle: {file_err}")
+            
+            # 2. Borramos permanentemente el metadato de SQLite de manera segura
+            documento_repository.permanent_delete(doc.id)
+            print(f"Limpieza Base de Datos: Registro removido para ID {doc.id}")
+            
+    except Exception as exc:
+        print(f"Error crítico durante la limpieza automática de la biblioteca: {exc}")
 # CORS permite conexiones desde app mobile y panel admin durante desarrollo.
 app.add_middleware(
     CORSMiddleware,
@@ -74,6 +117,22 @@ def startup_event() -> None:
     init_db()
     init_admin_db()
     seed_tecnicos()
+    
+@app.on_event("startup")
+def startup_event() -> None:
+    # 1. Crea la carpeta de almacenamiento de la biblioteca si no existe
+    BIBLIOTECA_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    
+    # 2. Ejecutar tareas de inicio clásicas
+    init_db()
+    init_admin_db()
+    seed_admin()
+    seed_tecnicos()
+    seed_regiones()
+    
+    # 3. Disparar limpieza automática de archivos expirados en la papelera
+    print("Iniciando depuración pasiva de la papelera de reciclaje de documentos...")
+    ejecutar_limpieza_papelera_30_dias()
 
 
 @app.get("/health")
@@ -497,3 +556,183 @@ def startup_event() -> None:
 @app.get("/regiones", response_model=list[RegionRead])
 def list_regiones() -> list[RegionRead]:
     return [RegionRead(id=r.id, nombre=r.nombre) for r in region_repository.list_all()]
+
+# ---------------------------------------------------------------------------
+# Biblioteca Endpoints
+# ---------------------------------------------------------------------------
+from src.interfaces.schemas import DocumentoRead
+
+@app.post("/biblioteca/upload", response_model=DocumentoRead, status_code=201)
+def upload_documento(
+    categoria: str = Form(...),
+    banco: str | None = Form(None),
+    numero_atm: str | None = Form(None),
+    file: UploadFile = File(...),
+    token_data: dict = Depends(verificar_rol(["admin", "coordinador"])) # Solo Admin o Coordinator cargan docs
+) -> DocumentoRead:
+    # 1. Definir rutas relativas seguras basadas en Año/Mes
+    ahora = datetime.now()
+    anio = ahora.strftime("%Y")
+    mes = ahora.strftime("%m")
+    
+    # Crear carpeta física de disco correspondiente
+    subcarpeta_fecha = Path(anio) / mes
+    directorio_destino = BIBLIOTECA_UPLOAD_DIR / subcarpeta_fecha
+    directorio_destino.mkdir(parents=True, exist_ok=True)
+    
+    # 2. Renombrar archivo usando un UUIDv4 o token_hex para evitar colisiones
+    ext = os.path.splitext(file.filename)[1]
+    nombre_renombrado = f"{token_hex(16)}{ext}"
+    ruta_archivo_fisico = directorio_destino / nombre_renombrado
+    
+    # 3. Guardar el archivo físico en el almacenamiento de disco
+    try:
+        with ruta_archivo_fisico.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"No se pudo guardar el archivo en el servidor: {exc}")
+    
+    # 4. Registrar los metadatos mapeados en la Base de Datos SQLite
+    # Guardamos la ruta relativa (ej: '2026/08/abcde.pdf') en vez de la absoluta
+    ruta_relativa_sistema = str(subcarpeta_fecha / nombre_renombrado).replace("\\", "/")
+    
+    # Leemos la ID del creador desde el Token desencriptado
+    creador_id = token_data.get("id")
+    
+    doc = documento_repository.create(
+        nombre_original=file.filename,
+        nombre_sistema=ruta_relativa_sistema,
+        peso_bytes=file.size or 0,
+        mimetype=file.content_type or "application/octet-stream",
+        categoria=categoria,
+        banco=banco if banco else None,
+        numero_atm=numero_atm if numero_atm else None,
+        subido_por_id=creador_id
+    )
+    
+    return DocumentoRead(
+        id=doc.id,
+        nombre_original=doc.nombre_original,
+        nombre_sistema=doc.nombre_sistema,
+        peso_bytes=doc.peso_bytes,
+        mimetype=doc.mimetype,
+        categoria=doc.categoria,
+        banco=doc.banco,
+        numero_atm=doc.numero_atm,
+        subido_por_id=doc.subido_por_id,
+        created_at=doc.created_at,
+        deleted_at=doc.deleted_at,
+        deleted_by_id=doc.deleted_by_id
+    )
+
+
+@app.get("/biblioteca/documentos", response_model=list[DocumentoRead])
+def list_documentos_activos(
+    token_data: dict = Depends(obtener_usuario_actual) # Todo usuario autenticado puede visualizar
+) -> list[DocumentoRead]:
+    docs = documento_repository.list_all_active()
+    return [DocumentoRead(
+        id=d.id,
+        nombre_original=d.nombre_original,
+        nombre_sistema=d.nombre_sistema,
+        peso_bytes=d.peso_bytes,
+        mimetype=d.mimetype,
+        categoria=d.categoria,
+        banco=d.banco,
+        numero_atm=d.numero_atm,
+        subido_por_id=d.subido_por_id,
+        created_at=d.created_at,
+        deleted_at=d.deleted_at,
+        deleted_by_id=d.deleted_by_id
+    ) for d in docs]
+
+
+@app.get("/biblioteca/papelera", response_model=list[DocumentoRead])
+def list_documentos_papelera(
+    token_data: dict = Depends(verificar_rol(["admin"])) # Solo el Administrador ve la Papelera de Reciclaje
+) -> list[DocumentoRead]:
+    docs = documento_repository.list_trash()
+    return [DocumentoRead(
+        id=d.id,
+        nombre_original=d.nombre_original,
+        nombre_sistema=d.nombre_sistema,
+        peso_bytes=d.peso_bytes,
+        mimetype=d.mimetype,
+        categoria=d.categoria,
+        banco=d.banco,
+        numero_atm=d.numero_atm,
+        subido_por_id=d.subido_por_id,
+        created_at=d.created_at,
+        deleted_at=d.deleted_at,
+        deleted_by_id=d.deleted_by_id
+    ) for d in docs]
+
+
+@app.get("/biblioteca/download/{doc_id}")
+def download_documento(
+    doc_id: int,
+    token_data: dict = Depends(obtener_usuario_actual) # Descarga segura para todo usuario autenticado
+) -> FileResponse:
+    doc = documento_repository.get_by_id(doc_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento no encontrado o eliminado.")
+        
+    ruta_archivo = BIBLIOTECA_UPLOAD_DIR / doc.nombre_sistema
+    if not ruta_archivo.exists():
+        raise HTTPException(status_code=404, detail="El archivo físico ya no se encuentra en el disco del servidor.")
+        
+    # Retorna la descarga binaria nativa renombrándola al nombre original del cliente
+    return FileResponse(
+        path=ruta_archivo,
+        media_type=doc.mimetype,
+        filename=doc.nombre_original
+    )
+
+
+@app.patch("/biblioteca/{doc_id}/trash", response_model=DocumentoRead)
+def soft_delete_documento(
+    doc_id: int,
+    token_data: dict = Depends(verificar_rol(["admin"])) # Solo el Administrador puede enviar a la Papelera
+) -> DocumentoRead:
+    usuario_id = token_data.get("id")
+    doc = documento_repository.soft_delete(doc_id, user_id=usuario_id)
+    if not doc:
+         raise HTTPException(status_code=404, detail="Documento no encontrado.")
+    return DocumentoRead(
+        id=doc.id,
+        nombre_original=doc.nombre_original,
+        nombre_sistema=doc.nombre_sistema,
+        peso_bytes=doc.peso_bytes,
+        mimetype=doc.mimetype,
+        categoria=doc.categoria,
+        banco=doc.banco,
+        numero_atm=doc.numero_atm,
+        subido_por_id=doc.subido_por_id,
+        created_at=doc.created_at,
+        deleted_at=doc.deleted_at,
+        deleted_by_id=doc.deleted_by_id
+    )
+
+
+@app.patch("/biblioteca/{doc_id}/restore", response_model=DocumentoRead)
+def restore_documento(
+    doc_id: int,
+    token_data: dict = Depends(verificar_rol(["admin"])) # Solo el Administrador puede restaurar la papelera
+) -> DocumentoRead:
+    doc = documento_repository.restore(doc_id)
+    if not doc:
+         raise HTTPException(status_code=404, detail="Documento no encontrado.")
+    return DocumentoRead(
+        id=doc.id,
+        nombre_original=doc.nombre_original,
+        nombre_sistema=doc.nombre_sistema,
+        peso_bytes=doc.peso_bytes,
+        mimetype=doc.mimetype,
+        categoria=doc.categoria,
+        banco=doc.banco,
+        numero_atm=doc.numero_atm,
+        subido_por_id=doc.subido_por_id,
+        created_at=doc.created_at,
+        deleted_at=doc.deleted_at,
+        deleted_by_id=doc.deleted_by_id
+    )

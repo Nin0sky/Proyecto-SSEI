@@ -83,3 +83,18 @@ class AuditLog:
 class Region:
     id: int
     nombre: str
+
+@dataclass(slots=True)
+class Documento:
+    id: int
+    nombre_original: str
+    nombre_sistema: str
+    peso_bytes: int
+    mimetype: str
+    categoria: str
+    banco: str | None
+    numero_atm: str | None
+    subido_por_id: int | None
+    created_at: datetime
+    deleted_at: datetime | None = None
+    deleted_by_id: int | None = None

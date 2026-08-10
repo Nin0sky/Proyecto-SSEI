@@ -48,7 +48,11 @@ export const routes: Routes = [
     canActivate: [authGuard],
     data: { roles: ['admin'] } // Solo cuentas 'admin' pueden entrar a administrar personal
   },
-
+  {
+    path: 'biblioteca',
+    loadComponent: () => import('./pages/biblioteca/biblioteca.component').then(m => m.BibliotecaComponent),
+    canActivate: [authGuard] // Protegida para cualquier integrante administrativo autenticado
+  },
   // Cualquier ruta inválida redirige de vuelta al dashboard
   { path: '**', redirectTo: 'dashboard' }
 ];

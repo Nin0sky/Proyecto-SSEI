@@ -170,3 +170,21 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserRead
+    
+# ---------------------------------------------------------------------------
+# Biblioteca Schemas
+# ---------------------------------------------------------------------------
+
+class DocumentoRead(BaseModel):
+    id: int
+    nombre_original: str
+    nombre_sistema: str
+    peso_bytes: int
+    mimetype: str
+    categoria: str
+    banco: str | None = None
+    numero_atm: str | None = None
+    subido_por_id: int | None = None
+    created_at: datetime
+    deleted_at: datetime | None = None
+    deleted_by_id: int | None = None

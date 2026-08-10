@@ -109,3 +109,26 @@ class OtAtmDB(Base):
     observaciones: Mapped[str] = mapped_column(Text, nullable=False, default="")
 
     ot: Mapped[OtDB] = relationship(back_populates="atms")
+    
+    
+class DocumentoDB(Base):
+    __tablename__ = "biblioteca_documentos"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    nombre_original: Mapped[str] = mapped_column(String(255), nullable=False)
+    nombre_sistema: Mapped[str] = mapped_column(String(255), nullable=False)
+    peso_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    mimetype: Mapped[str] = mapped_column(String(100), nullable=False)
+    
+    # METADATA DE NEGOCIO (Filtros del visualizador interactivo)
+    categoria: Mapped[str] = mapped_column(String(50), nullable=False, default="otros")
+    banco: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    numero_atm: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    
+    # AUDITORÍA Y SEGURIDAD
+    subido_por_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    
+    # PAPELERA DE RECICLAJE (Soft delete de 30 días)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, default=None)
+    deleted_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)

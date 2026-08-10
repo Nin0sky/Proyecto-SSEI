@@ -3,6 +3,9 @@ from typing import Iterable
 
 from sqlalchemy.exc import IntegrityError
 
+from src.domain.models import Documento
+from src.infrastructure.models import DocumentoDB
+
 from src.domain.models import AuditLog, Ot, OtAtm, Requirement, RequirementUseCaseTrace, UseCase, User, Region
 from src.infrastructure.database import AdminSessionLocal, MobileSessionLocal
 from src.infrastructure.models import (
@@ -482,4 +485,125 @@ class RegionRepository:
         return Region(
             id=row.id,
             nombre=row.nombre
+        )
+# ---------------------------------------------------------------------------
+# Biblioteca Repositories (con Soporte para Papelera de 30 días)
+# ---------------------------------------------------------------------------
+
+class DocumentoRepository:
+    @staticmethod
+    def _session_factory():
+        return AdminSessionLocal or MobileSessionLocal
+
+    def list_all_active(self) -> list[Documento]:
+        """Devuelve todos los documentos de la biblioteca que NO están en la papelera."""
+        with self._session_factory()() as session:
+            rows = (
+                session.query(DocumentoDB)
+                .filter(DocumentoDB.deleted_at == None)
+                .order_by(DocumentoDB.id.desc())
+                .all()
+            )
+            return [self._row_to_entity(row) for row in rows]
+
+    def list_trash(self) -> list[Documento]:
+        """Devuelve los documentos que están en la papelera de reciclaje."""
+        with self._session_factory()() as session:
+            rows = (
+                session.query(DocumentoDB)
+                .filter(DocumentoDB.deleted_at != None)
+                .order_by(DocumentoDB.deleted_at.desc())
+                .all()
+            )
+            return [self._row_to_entity(row) for row in rows]
+
+    def get_by_id(self, doc_id: int) -> Documento | None:
+        """Busca un documento por su ID."""
+        with self._session_factory()() as session:
+            row = session.get(DocumentoDB, doc_id)
+            return self._row_to_entity(row) if row else None
+
+    def create(
+        self,
+        nombre_original: str,
+        nombre_sistema: str,
+        peso_bytes: int,
+        mimetype: str,
+        categoria: str,
+        banco: str | None = None,
+        numero_atm: str | None = None,
+        subido_por_id: int | None = None,
+    ) -> Documento:
+        """Registra un nuevo documento en la base de datos."""
+        with self._session_factory()() as session:
+            item = DocumentoDB(
+                nombre_original=nombre_original,
+                nombre_sistema=nombre_sistema,
+                peso_bytes=peso_bytes,
+                mimetype=mimetype,
+                categoria=categoria,
+                banco=banco,
+                numero_atm=numero_atm,
+                subido_por_id=subido_por_id,
+                created_at=datetime.now(UTC),
+            )
+            session.add(item)
+            session.commit()
+            session.refresh(item)
+            return self._row_to_entity(item)
+
+    def soft_delete(self, doc_id: int, user_id: int) -> Documento | None:
+        """Mueve un documento a la papelera (Soft Delete)."""
+        with self._session_factory()() as session:
+            row = session.get(DocumentoDB, doc_id)
+            if not row:
+                return None
+            row.deleted_at = datetime.now(UTC)
+            row.deleted_by_id = user_id
+            session.commit()
+            session.refresh(row)
+            return self._row_to_entity(row)
+
+    def restore(self, doc_id: int) -> Documento | None:
+        """Restaura un documento de la papelera de reciclaje."""
+        with self._session_factory()() as session:
+            row = session.get(DocumentoDB, doc_id)
+            if not row:
+                return None
+            row.deleted_at = None
+            row.deleted_by_id = None
+            session.commit()
+            session.refresh(row)
+            return self._row_to_entity(row)
+
+    def get_expired_documents(self, age_days: int = 30) -> list[DocumentoDB]:
+        """Obtiene las filas que llevan más de 30 días en la papelera para borrado físico."""
+        with self._session_factory()() as session:
+            limit_date = datetime.now(UTC) - timedelta(days=age_days)
+            # Solo consultamos las entidades ORM directas para borrarlas del disco
+            rows = session.query(DocumentoDB).filter(DocumentoDB.deleted_at <= limit_date).all()
+            return rows
+
+    def permanent_delete(self, doc_id: int) -> bool:
+        """Borra definitivamente la fila de la base de datos."""
+        with self._session_factory()() as session:
+            rowcount = session.query(DocumentoDB).filter(DocumentoDB.id == doc_id).delete()
+            session.commit()
+            return rowcount > 0
+
+    @staticmethod
+    def _row_to_entity(row: DocumentoDB) -> Documento:
+        return Documento(
+            id=row.id,
+            nombre_original=row.nombre_original,
+            nombre_sistema=row.nombre_sistema,
+            peso_bytes=row.peso_bytes,
+            mimetype=row.mimetype,
+            categoria=row.categoria,
+            banco=row.banco,
+            numero_atm=row.numero_atm,
+            subido_por_id=row.subido_por_id,
+            created_at=row.created_at,
+            deleted_at=row.deleted_at,
+            deleted_by_id=row.deleted_by_id,
         )
