@@ -465,6 +465,7 @@ def seed_regiones() -> None:
 def startup_event() -> None:
     init_db()
     init_admin_db()
+    seed_admin()  # <-- Añadir esta llamada
     seed_tecnicos()
     seed_regiones()  # <-- Añadir esta llamada
     
