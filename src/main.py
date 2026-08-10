@@ -413,6 +413,31 @@ def seed_tecnicos() -> None:
         except IntegrityError:
             # Si el correo ya existe, SQLite capturará la violación de la restricción UNIQUE y continuará
             pass
+        
+def seed_admin() -> None:
+    """Registra el Administrador por defecto si no existe en la base de datos."""
+    admin_default = {
+        "email": "admin@ssei.cl", 
+        "full_name": "Administrador Principal", 
+        "role": "admin"
+    }
+    try:
+        # Contraseña segura inicial: Administrador123*
+        salt = token_hex(16)
+        password_hash = pbkdf2_hmac("sha256", "Administrador123*".encode("utf-8"), bytes.fromhex(salt), 390000).hex()
+        stored_hash = f"pbkdf2_sha256${salt}${password_hash}"
+        
+        user_repository.create(
+            email=admin_default["email"],
+            hashed_password=stored_hash,
+            full_name=admin_default["full_name"],
+            role=admin_default["role"],
+            is_active=True
+        )
+        print(f"Administrador semilla registrado con éxito: {admin_default['email']}")
+    except IntegrityError:
+        # Ya existe registrado en la base de datos
+        pass
 
 def seed_regiones() -> None:
     if region_repository.count() == 0:
