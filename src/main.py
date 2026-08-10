@@ -422,9 +422,9 @@ def seed_admin() -> None:
         "role": "admin"
     }
     try:
-        # Contraseña segura inicial: Administrador123*
+        # Contraseña segura inicial: Administrador123* o Asd12345*
         salt = token_hex(16)
-        password_hash = pbkdf2_hmac("sha256", "Administrador123*".encode("utf-8"), bytes.fromhex(salt), 390000).hex()
+        password_hash = pbkdf2_hmac("sha256", "Asd12345*".encode("utf-8"), bytes.fromhex(salt), 390000).hex()
         stored_hash = f"pbkdf2_sha256${salt}${password_hash}"
         
         user_repository.create(

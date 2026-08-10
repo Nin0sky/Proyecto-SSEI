@@ -1,60 +1,66 @@
 @if (authService.isAuthenticated()) {
   <mat-sidenav-container class="app-container">
-    <!-- Menú Lateral -->
     <mat-sidenav mode="side" opened class="sidenav">
       <div class="sidenav-header">
         <mat-icon class="logo-icon">admin_panel_settings</mat-icon>
         <span class="logo-text">SSEI</span>
-        <span class="toolbar-spacer"></span>
       </div>
 
       <mat-nav-list>
+        <!-- 1. Tablero -->
         <a mat-list-item routerLink="/dashboard" routerLinkActive="active-link">
           <mat-icon matListItemIcon>space_dashboard</mat-icon>
           <span matListItemTitle>Tablero</span>
         </a>
-        <a mat-list-item routerLink="/ots" routerLinkActive="active-link" [routerLinkActiveOptions]="{exact: false}">
-          <mat-icon matListItemIcon>add_box</mat-icon>
-          <span matListItemTitle>Generar Trabajo</span>
-        </a>
-      </mat-nav-list>
 
-      <mat-nav-list>
-        <a mat-list-item>
+        <!-- 2. Gestión de OTs -->
+        @if (authService.hasRole(['coordinador'])) {
+          <a mat-list-item routerLink="/ots" routerLinkActive="active-link">
+            <mat-icon matListItemIcon>add_box</mat-icon>
+            <span matListItemTitle>Generar Trabajo</span>
+          </a>
+        }
+
+        <!-- 3. Biblioteca -->
+        <a mat-list-item routerLink="/biblioteca" routerLinkActive="active-link">
           <mat-icon matListItemIcon>book</mat-icon>
           <span matListItemTitle>Biblioteca</span>
         </a>
+
+        <!-- 4. Informes -->
+        @if (authService.hasRole(['coordinador'])) {
+          <a mat-list-item routerLink="/informes" routerLinkActive="active-link">
+            <mat-icon matListItemIcon>download</mat-icon>
+            <span matListItemTitle>Generar Informe</span>
+          </a>
+        }
+
+        <!-- 5. Configuración de Usuarios -->
+        @if (authService.hasRole(['admin'])) {
+          <a mat-list-item routerLink="/usuarios" routerLinkActive="active-link">
+            <mat-icon matListItemIcon>manage_accounts</mat-icon>
+            <span matListItemTitle>Gestión de Usuarios</span>
+          </a>
+        }
       </mat-nav-list>
 
-      <mat-nav-list>
-        <a mat-list-item>
-          <mat-icon matListItemIcon>download</mat-icon>
-          <span matListItemTitle>Generar Informe</span>
-        </a>
-      </mat-nav-list>
-
-      <mat-nav-list>
-        <a mat-list-item>
-          <mat-icon matListItemIcon>settings</mat-icon>
-          <span matListItemTitle>Configuración</span>
-        </a>
-      </mat-nav-list>
-
-      <!-- Información del Usuario Autenticado y Cierre de Sesión -->
-      <mat-nav-list class="user-info-list" style="margin-top: auto; padding: 16px;">
-        <div class="user-info" style="display: flex; flex-direction: column; gap: 8px;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <mat-icon class="user-icon">account_circle</mat-icon>
-            <div style="display: flex; flex-direction: column;">
-              <strong style="font-size: 14px; line-height: 1.2;">{{ authService.currentUser()?.fullName }}</strong>
-              <span style="font-size: 11px; text-transform: uppercase; color: #757575;">{{ authService.currentUser()?.role }}</span>
-            </div>
+      <!-- Apartado Estilizado de la Sesión de Usuario Activo -->
+      <div class="user-auth-footer">
+        <div class="user-profile-badge">
+          <mat-icon class="user-avatar-icon">account_circle</mat-icon>
+          <div class="user-metadata">
+            <span class="user-name">{{ authService.currentUser()?.fullName }}</span>
+            <span class="user-role-label" [ngClass]="authService.currentUser()?.role">
+              {{ authService.currentUser()?.role }}
+            </span>
           </div>
-          <button mat-stroked-button color="warn" (click)="logout()" style="width: 100%; margin-top: 8px;">
-            <mat-icon>logout</mat-icon> Salir
-          </button>
         </div>
-      </mat-nav-list>
+        <button mat-flat-button (click)="logout()" class="logout-action-btn">
+          <mat-icon>logout</mat-icon>
+          Cerrar Sesión
+        </button>
+      </div>
+
     </mat-sidenav>
 
     <!-- Contenido Principal -->
@@ -62,9 +68,12 @@
       <mat-toolbar color="primary" class="main-toolbar">
         <span>{{ title() }}</span>
         <span class="toolbar-spacer"></span>
-        <a mat-stroked-button routerLink="/ots/nueva" color="accent" class="nueva-ot-btn">
-          <mat-icon>add</mat-icon> Nueva OT
-        </a>
+        <!-- Solo mostrar botón de nueva OT en la toolbar si se es coordinador -->
+        @if (authService.hasRole(['coordinador'])) {
+          <a mat-stroked-button routerLink="/ots/nueva" color="accent" class="nueva-ot-btn">
+            <mat-icon>add</mat-icon> Nueva OT
+          </a>
+        }
       </mat-toolbar>
 
       <div class="content-area">
@@ -73,6 +82,5 @@
     </mat-sidenav-content>
   </mat-sidenav-container>
 } @else {
-  <!-- Vista de Login y accesos públicos 100% limpia a pantalla completa -->
   <router-outlet />
 }

@@ -1,58 +1,105 @@
-.app-container {
-  height: 100vh;
-  width: 100vw;
+.logo-text{
+  padding: 16px 0 0 12px;
+  margin: auto;
+  font-size: 25px;
+  font-weight: 600;
+  color: #212121;
+}
+.logo-icon{
+  padding : 12px 0 0 14px;
+  margin: auto;
+  color: #212121;
+  font-size: 30px;
+  width: 40px;
+  height: 40px;
+}
+.sidenav {
+  display: flex;
+  flex-direction: column;
+  width: 250px;
+  height: 100%;
+  border-right: 3px solid rgba(0, 0, 0, 0.08);
+  padding: 0 2px 0 0;
 }
 
-.sidenav {
-  width: 220px;
-  background: #1a237e;
-  color: white;
+.user-auth-footer {
+  margin-top: auto; // Empuja el contenido al fondo del panel
+  padding: 16px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  background-color: #fafafa;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 
-  .sidenav-header {
+  .user-profile-badge {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 20px 16px 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.15);
-    margin-bottom: 8px;
+    gap: 12px;
 
-    .logo-icon { font-size: 28px; width: 28px; height: 28px; color: #90caf9; }
-    .logo-text { font-size: 18px; font-weight: 600; color: white; }
-  }
-
-  .mat-mdc-list-item {
-    color: rgba(255,255,255,0.85);
-    border-radius: 8px;
-    margin: 2px 8px;
-
-    mat-icon { color: rgba(255,255,255,0.7); }
-
-    &.active-link {
-      background: rgba(144, 202, 249, 0.2);
-      color: white;
-      mat-icon { color: #90caf9; }
+    .user-avatar-icon {
+      font-size: 40px;
+      width: 40px;
+      height: 40px;
+      color: #9e9e9e;
     }
 
-    &:hover { background: rgba(255,255,255,0.1); }
+    .user-metadata {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      .user-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #212121;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 140px;
+      }
+
+      .user-role-label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        padding: 2px 8px;
+        border-radius: 4px;
+        width: fit-content;
+        letter-spacing: 0.5px;
+
+        // Diseños distintivos según el rol
+        &.admin {
+          background-color: rgba(244, 67, 54, 0.12);
+          color: #f44336;
+        }
+
+        &.coordinador {
+          background-color: rgba(33, 150, 243, 0.12);
+          color: #2196f3;
+        }
+      }
+    }
   }
-}
 
-.main-toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  .logout-action-btn {
+    margin: 10px 10px 10px 10px;
 
-  .toolbar-spacer { flex: 1; }
-
-  .nueva-ot-btn {
-    color: white;
-    border-color: rgba(255,255,255,0.5);
+    width: 80%;
+    font-weight: 500;
+    font-size: 13px;
+    height: 38px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background-color: #f44336;
+    color: #000000;
+    
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
   }
-}
-
-.content-area {
-  padding: 24px;
-  background: #f5f5f5;
-  min-height: calc(100vh - 64px);
 }

@@ -1,5 +1,5 @@
 import { Component, signal, inject } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { CommonModule } from '@angular/common'; // Agregamos CommonModule para directivas condicionales
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
@@ -27,10 +27,12 @@ import { AuthService } from './core/services/auth.service'; // Importamos el ser
 export class App {
   // Inyectamos el servicio de Autenticación
   protected readonly authService = inject(AuthService);
+  private readonly router = inject(Router); // Inyectamos Router
   protected readonly title = signal('SSEI Admin');
 
   // Método de conveniencia para cerrar la sesión
   logout(): void {
-    this.authService.logout();
+    this.authService.logout(); // Limpia localStorage y reinicia signals
+    this.router.navigate(['/login']); // Redirecciona al endpoint visual de autenticación
   }
 }
