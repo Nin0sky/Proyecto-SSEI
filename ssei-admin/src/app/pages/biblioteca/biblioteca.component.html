@@ -9,35 +9,51 @@
     <mat-tab label="Explorador de Documentos">
 
       <!-- Panel de Filtros Inteligentes (Tu Visión de Negocio) -->
-      <div class="filters-panel">
-        <mat-form-field appearance="outline" class="search-field">
-          <mat-label>Buscador Inteligente (Nombre o ATM)</mat-label>
-          <input matInput placeholder="ej: manual santander atm 103" [value]="filtroTexto()"
-            (input)="filtroTexto.set($any($event.target).value)">
-          <mat-icon matSuffix>search</mat-icon>
-        </mat-form-field>
+      <!-- Filtro de Segmentación Principal por Visión de Negocio -->
+      <div class="segmentation-container" style="margin-bottom: 16px; display: flex; gap: 10px;">
+        <button mat-stroked-button [color]="filtroSeccion() === 'todos' ? 'primary' : ''"
+          [style.font-weight]="filtroSeccion() === 'todos' ? 'bold' : 'normal'" (click)="filtroSeccion.set('todos')">
+          <mat-icon>folder</mat-icon> Toda la Biblioteca
+        </button>
 
-        <mat-form-field appearance="outline" class="filter-dropdown">
-          <mat-label>Filtrar por Cliente</mat-label>
-          <mat-select [value]="filtroBanco()" (selectionChange)="filtroBanco.set($event.value)">
-            <mat-option value="todos">Todos los Clientes</mat-option>
-            <mat-option *ngFor="let banco of bancosDisponibles" [value]="banco">{{banco}}</mat-option>
-          </mat-select>
-          <mat-icon matSuffix>business</mat-icon>
-        </mat-form-field>
+        <button mat-stroked-button [color]="filtroSeccion() === 'documentacion' ? 'primary' : ''"
+          [style.font-weight]="filtroSeccion() === 'documentacion' ? 'bold' : 'normal'"
+          (click)="filtroSeccion.set('documentacion')">
+          <mat-icon>auto_stories</mat-icon> Manuales y Fichas Técnicas
+        </button>
 
-        <mat-form-field appearance="outline" class="filter-dropdown">
-          <mat-label>Filtrar por Categoría</mat-label>
-          <mat-select [value]="filtroCategoria()" (selectionChange)="filtroCategoria.set($event.value)">
-            <mat-option value="todas">Todas las Categorías</mat-option>
+        <button mat-stroked-button [color]="filtroSeccion() === 'respaldos' ? 'primary' : ''"
+          [style.font-weight]="filtroSeccion() === 'respaldos' ? 'bold' : 'normal'"
+          (click)="filtroSeccion.set('respaldos')">
+          <mat-icon>assignment_turned_in</mat-icon> Respaldos de Trabajos en Terreno (OTs)
+        </button>
+      </div>
+
+      <!-- Filtro de Categorías Dinámico en el actual selector (actualice sus mat-options) -->
+      <mat-form-field appearance="outline" class="filter-dropdown">
+        <mat-label>Filtrar por Categoría / Tipo</mat-label>
+        <mat-select [value]="filtroCategoria()" (selectionChange)="filtroCategoria.set($event.value)">
+          <mat-option value="todas">Todas las Categorías</mat-option>
+          <!-- Documentación -->
+          <mat-optgroup label="Documentación Fija">
             <mat-option value="manuales">Manuales Técnicos</mat-option>
             <mat-option value="planos">Planos de Cajero</mat-option>
             <mat-option value="procedimientos">Procedimiento Operativo</mat-option>
-            <mat-option value="otros">Otros</mat-option>
-          </mat-select>
-          <mat-icon matSuffix>category</mat-icon>
-        </mat-form-field>
-      </div>
+          </mat-optgroup>
+          <!-- Trabajos de Campo -->
+          <mat-optgroup label="Evidencias / Trabajos de OT">
+            <mat-option value="instalacion">Instalaciones</mat-option>
+            <mat-option value="desanclaje">Desanclajes</mat-option>
+            <mat-option value="movimientointerno">Movimientos Internos</mat-option>
+            <mat-option value="transporte">Transportes</mat-option>
+            <mat-option value="servicioelectrico">Servicio Eléctrico</mat-option>
+            <mat-option value="serviciotecnico">Servicios Técnicos</mat-option>
+            <mat-option value="grafica">Gráfica e Imagen</mat-option>
+            <mat-option value="otros">Otros Respaldos</mat-option>
+          </mat-optgroup>
+        </mat-select>
+        <mat-icon matSuffix>category</mat-icon>
+      </mat-form-field>
 
       <div class="grid-layout">
         <!-- Tabla de Documentos -->
@@ -103,6 +119,11 @@
               <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef class="text-right">Acciones</th>
                 <td mat-cell *matCellDef="let element" class="text-right">
+                  <!-- Botón Explorar ZIP (Solo para compresiones) -->
+                  <button mat-icon-button color="accent" *ngIf="element.nombreOriginal.endsWith('.zip')"
+                    (click)="explorarPaqueteZip(element)" title="Explorar fotos y PDF integrados">
+                    <mat-icon>unarchive</mat-icon>
+                  </button>
                   <button mat-icon-button color="primary" (click)="descargar(element)" title="Descargar Documento">
                     <mat-icon>download</mat-icon>
                   </button>
@@ -139,14 +160,27 @@
           <mat-card-content class="upload-form-content">
             <form [formGroup]="uploadForm" (ngSubmit)="onUpload()">
 
-              <!-- Categoría -->
+              <!-- Categoría con estructura segmentada en Subida -->
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Categoría del Documento</mat-label>
                 <mat-select formControlName="categoria">
-                  <mat-option value="manuales">Manual Técnico</mat-option>
-                  <mat-option value="planos">Planos de Cajero</mat-option>
-                  <mat-option value="procedimientos">Procedimiento Operativo</mat-option>
-                  <mat-option value="otros">Otros</mat-option>
+                  <!-- Documentación -->
+                  <mat-optgroup label="Documentación de Referencia">
+                    <mat-option value="manuales">Manual Técnico</mat-option>
+                    <mat-option value="planos">Planos de Cajero</mat-option>
+                    <mat-option value="procedimientos">Procedimiento Operativo</mat-option>
+                  </mat-optgroup>
+                  <!-- Trabajos Terreno (App-mobile) -->
+                  <mat-optgroup label="Respaldos e Históricos del ATM">
+                    <mat-option value="instalacion">Instalación / OT</mat-option>
+                    <mat-option value="desanclaje">Desanclaje / OT</mat-option>
+                    <mat-option value="movimientointerno">Movimiento Interno</mat-option>
+                    <mat-option value="transporte">Transporte</mat-option>
+                    <mat-option value="servicioelectrico">Servicio Eléctrico</mat-option>
+                    <mat-option value="serviciotecnico">Servicio Técnico</mat-option>
+                    <mat-option value="grafica">Instalación Gráfica</mat-option>
+                    <mat-option value="otros">Otros Respaldos de Campo</mat-option>
+                  </mat-optgroup>
                 </mat-select>
                 <mat-icon matSuffix>category</mat-icon>
               </mat-form-field>
@@ -169,13 +203,33 @@
                 <mat-icon matSuffix class="select-icon">settings_input_composite</mat-icon>
               </mat-form-field>
 
-              <!-- Input Archivo Físico -->
+              <!-- Input Archivo Físico Optimizado para Multiformato -->
               <div class="file-picker-area">
-                <input type="file" id="fileInput" (change)="onFileSelected($event)" style="display: none;">
+                <input type="file" id="fileInput" (change)="onFileSelected($event)" style="display: none;"
+                  accept=".pdf,.zip,.png,.jpg,.jpeg,.mp4">
                 <label for="fileInput" class="pick-file-label">
-                  <mat-icon class="picker-icon">cloud_upload</mat-icon>
-                  <span>{{ archivoSeleccionado ? archivoSeleccionado.name : 'Seleccionar Archivo (Máx 20MB)' }}</span>
+                  <mat-icon class="picker-icon">folder_zip</mat-icon>
+                  <span>
+                    {{ archivoSeleccionado ? archivoSeleccionado.name : 'Seleccionar Archivo PDF, comprimido ZIP de OTs,
+                    fotos o videos (Máx 20MB)' }}
+                  </span>
                 </label>
+              </div>
+              <div *ngIf="esCategoriaRespaldo()"
+                style="background-color: #e3f2fd; border-left: 4px solid #1e88e5; padding: 12px; margin-bottom: 16px; border-radius: 4px;">
+                <p style="margin: 0; font-size: 12px; color: #0d47a1; font-weight: 500;">
+                  💼 Formato de Respaldo de Obra:
+                </p>
+                <span style="font-size: 11px; color: #1565c0;">
+                  Este registro corresponde a un trabajo de campo. Se sugiere subir el paquete de imágenes comprimido
+                  (.zip) o el reporte PDF firmado recolectado desde la App.
+                </span>
+              </div>
+
+              <div class="helper-text-container"
+                style="margin-top: 8px; font-size: 11px; color: #555555; text-align: center;">
+                <p><strong>💡 Consejo útil de Respaldo móvil:</strong> Se recomienda subir el paquete <code>.zip</code>
+                  consolidado que exporta la App Móvil para unificar en un solo registro el PDF e imágenes del ATM.</p>
               </div>
 
               <!-- Botón de Envío -->
@@ -256,4 +310,41 @@
       </mat-card>
     </mat-tab>
   </mat-tab-group>
+  <!-- Modal Visor de Contenido ZIP Interno -->
+  <div class="zip-viewer-backdrop" *ngIf="mostrarModalZip()">
+    <mat-card class="zip-viewer-modal">
+      <div class="modal-header">
+        <h2>Explorador de Paquete de Respaldo</h2>
+        <button mat-icon-button (click)="cerrarVisorZip()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p><strong>Paquete:</strong> {{ documentoZipSeleccionado()?.nombreOriginal }}</p>
+
+        <div *ngIf="zipCargando()" class="loading-state">
+          <mat-icon class="pulse-icon">hourglass_empty</mat-icon>
+          <span>Descifrando e indexando imágenes del paquete ZIP...</span>
+        </div>
+
+        <div *ngIf="!zipCargando()" class="zip-files-list">
+          <div class="zip-file-item" *ngFor="let file of archivosZipAbierto()">
+            <mat-icon class="file-icon" [color]="file.tipo === 'imagen' ? 'accent' : 'primary'">
+              {{ file.tipo === 'imagen' ? 'image' : file.tipo === 'pdf' ? 'picture_as_pdf' : 'description' }}
+            </mat-icon>
+            <span class="file-name">{{ file.nombre }}</span>
+            <span class="badge" [class.badge-img]="file.tipo === 'imagen'">{{ file.tipo.toUpperCase() }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button mat-button color="primary" (click)="descargar(documentoZipSeleccionado()!)">
+          <mat-icon>download_for_offline</mat-icon> Descargar Paquete Completo
+        </button>
+        <button mat-flat-button color="warn" (click)="cerrarVisorZip()">Cerrar Vista</button>
+      </div>
+    </mat-card>
+  </div>
 </div>

@@ -1,4 +1,5 @@
 from dataclasses import asdict
+import datetime
 from hashlib import pbkdf2_hmac
 from secrets import token_hex
 
@@ -9,7 +10,7 @@ from pathlib import Path
 from fastapi import BackgroundTasks
 
 from fastapi import FastAPI, HTTPException, Query, Depends, UploadFile, File, Form
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from secrets import token_hex
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import IntegrityError
@@ -568,62 +569,70 @@ def upload_documento(
     banco: str | None = Form(None),
     numero_atm: str | None = Form(None),
     file: UploadFile = File(...),
-    token_data: dict = Depends(verificar_rol(["admin", "coordinador"])) # Solo Admin o Coordinator cargan docs
-) -> DocumentoRead:
-    # 1. Definir rutas relativas seguras basadas en Año/Mes
-    ahora = datetime.now()
-    anio = ahora.strftime("%Y")
-    mes = ahora.strftime("%m")
-    
-    # Crear carpeta física de disco correspondiente
-    subcarpeta_fecha = Path(anio) / mes
-    directorio_destino = BIBLIOTECA_UPLOAD_DIR / subcarpeta_fecha
-    directorio_destino.mkdir(parents=True, exist_ok=True)
-    
-    # 2. Renombrar archivo usando un UUIDv4 o token_hex para evitar colisiones
-    ext = os.path.splitext(file.filename)[1]
-    nombre_renombrado = f"{token_hex(16)}{ext}"
-    ruta_archivo_fisico = directorio_destino / nombre_renombrado
-    
-    # 3. Guardar el archivo físico en el almacenamiento de disco
+    token_data: dict = Depends(verificar_rol(["admin", "coordinador"]))
+):
     try:
+        # 1. Definir rutas relativas seguras basadas en Año/Mes
+        ahora = datetime.datetime.now()
+        anio = ahora.strftime("%Y")
+        mes = ahora.strftime("%m")
+        
+        # Crear carpeta física de disco correspondiente
+        subcarpeta_fecha = Path(anio) / mes
+        directorio_destino = BIBLIOTECA_UPLOAD_DIR / subcarpeta_fecha
+        directorio_destino.mkdir(parents=True, exist_ok=True)
+        
+        # 2. Renombrar archivo usando un UUID o token_hex para evitar colisiones
+        ext = os.path.splitext(file.filename)[1]
+        nombre_renombrado = f"{token_hex(16)}{ext}"
+        ruta_archivo_fisico = directorio_destino / nombre_renombrado
+        
+        # 3. Guardar el archivo físico en el almacenamiento de disco
         with ruta_archivo_fisico.open("wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
+        
+        # 4. Obtener el peso real del archivo escrito en disco en Bytes
+        peso_bytes = ruta_archivo_fisico.stat().st_size
+        
+        # 5. Registrar los metadatos mapeados en la Base de Datos SQLite
+        ruta_relativa_sistema = str(subcarpeta_fecha / nombre_renombrado).replace("\\", "/")
+        creador_id = token_data.get("id")
+        
+        doc = documento_repository.create(
+            nombre_original=file.filename,
+            nombre_sistema=ruta_relativa_sistema,
+            peso_bytes=peso_bytes,
+            mimetype=file.content_type or "application/octet-stream",
+            categoria=categoria,
+            banco=banco if banco else None,
+            numero_atm=numero_atm if numero_atm else None,
+            subido_por_id=creador_id
+        )
+        
+        return DocumentoRead(
+            id=doc.id,
+            nombre_original=doc.nombre_original,
+            nombre_sistema=doc.nombre_sistema,
+            peso_bytes=doc.peso_bytes,
+            mimetype=doc.mimetype,
+            categoria=doc.categoria,
+            banco=doc.banco,
+            numero_atm=doc.numero_atm,
+            subido_por_id=doc.subido_por_id,
+            created_at=doc.created_at
+        )
+
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"No se pudo guardar el archivo en el servidor: {exc}")
-    
-    # 4. Registrar los metadatos mapeados en la Base de Datos SQLite
-    # Guardamos la ruta relativa (ej: '2026/08/abcde.pdf') en vez de la absoluta
-    ruta_relativa_sistema = str(subcarpeta_fecha / nombre_renombrado).replace("\\", "/")
-    
-    # Leemos la ID del creador desde el Token desencriptado
-    creador_id = token_data.get("id")
-    
-    doc = documento_repository.create(
-        nombre_original=file.filename,
-        nombre_sistema=ruta_relativa_sistema,
-        peso_bytes=file.size or 0,
-        mimetype=file.content_type or "application/octet-stream",
-        categoria=categoria,
-        banco=banco if banco else None,
-        numero_atm=numero_atm if numero_atm else None,
-        subido_por_id=creador_id
-    )
-    
-    return DocumentoRead(
-        id=doc.id,
-        nombre_original=doc.nombre_original,
-        nombre_sistema=doc.nombre_sistema,
-        peso_bytes=doc.peso_bytes,
-        mimetype=doc.mimetype,
-        categoria=doc.categoria,
-        banco=doc.banco,
-        numero_atm=doc.numero_atm,
-        subido_por_id=doc.subido_por_id,
-        created_at=doc.created_at,
-        deleted_at=doc.deleted_at,
-        deleted_by_id=doc.deleted_by_id
-    )
+        print(f"Error crítico en subida de biblioteca: {exc}")
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Error interno del servidor al procesar el archivo: {str(exc)}"},
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "*",
+                "Access-Control-Allow-Headers": "*"
+            }
+        )
 
 
 @app.get("/biblioteca/documentos", response_model=list[DocumentoRead])

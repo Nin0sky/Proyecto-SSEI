@@ -35,7 +35,7 @@ export class BibliotecaService {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('categoria', categoria);
-    
+
     if (banco) formData.append('banco', banco);
     if (numeroAtm) formData.append('numero_atm', numeroAtm);
 
@@ -101,4 +101,8 @@ export class BibliotecaService {
       deletedById: d.deleted_by_id
     };
   }
+  obtenerBlobParaExplorar(id: number): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/biblioteca/download/${id}`, { responseType: 'blob' });
+  }
+
 }
