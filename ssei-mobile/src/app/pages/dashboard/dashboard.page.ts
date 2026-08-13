@@ -36,30 +36,69 @@ export class DashboardPage {
 
   ionViewWillEnter(): void {
     this.authService.obtenerOtsServidor().subscribe({
-      next: (ots: any[]) => { // ✔️ Corregido: Tipado explícito de ots
-        // Mapeamos los datos de snake_case (FastAPI) a camelCase (Ionic) segun copilot-instructions.md
-        this.workOrders = ots.map((ot: any) => ({ // ✔️ Corregido: Tipado explícito de ot Enlace al modelo
-          id: ot.id.toString(),
-          cliente: ot.banco,
-          estado: this.mapearEstadoServidor(ot.estado), // ✔️ Corregido: Mapeo de estados estrictos
-          comuna: ot.comuna,
-          direccion: ot.direccion,
-          atms: ot.atms.map((a: any) => ({
-            etiqueta: a.etiqueta,
-            tipoServicio: a.tipo_servicio,
-            numeroAtm: a.numero_atm,
-            serieCajero: a.serie_cajero,
-            serieMmbb: a.serie_mmbb,
-            detallesServicio: a.detalles_servicio,
-            observaciones: a.observaciones
-          })),
-          fotos: [],
-          fechaCreacion: ot.fecha_creacion,
-          origenServidor: true,
-          ubicacion: ''
-        }));
+      next: (ots: any[]) => {
+        // 1. Mapeamos las OTs que traemos del Servidor
+        const otsMapeadas: OtTrabajo[] = ots.map((ot: any) => {
+          return {
+            id: ot.id.toString(),
+            cliente: ot.banco,
+            estado: this.mapearEstadoServidor(ot.estado),
+            comuna: ot.comuna,
+            direccion: ot.direccion,
+            origenServidor: true,
+            ubicacion: ot.ubicacion || '',
+            fotos: [],
+            fechaCreacion: ot.fecha_creacion,
+            // Procesamos los ATMs de cada orden para la visualización del técnico
+            atms: ot.atms ? ot.atms.map((a: any) => {
+              // Normalizamos el tipo de servicio (Ej: "Servicio Tecnico" -> "serviciotecnico")
+              const tipoNormalizado = (a.tipo_servicio ?? '')
+                .toString()
+                .trim()
+                .toLowerCase()
+                .replace(/\s+/g, '');
+
+              return {
+                etiqueta: a.etiqueta || 'ATM 1',
+                tipoServicio: tipoNormalizado,
+                numeroAtm: a.numero_atm || '',
+                serieCajero: a.serie_cajero || '',
+                serieMmbb: a.serie_mmbb || '',
+                detallesServicio: a.detalles_servicio || '',
+                observaciones: a.observaciones || ''
+              };
+            }) : []
+          };
+        });
+
+        // 2. Sincronizamos las OTs mapeadas en el Contexto Local
+        // Reemplazar o añadir las órdenes descargadas en la caché para no duplicar ni perder avances
+        otsMapeadas.forEach(otServidor => {
+          const indexIndex = this.otContextService.trabajos.findIndex(t => t.id === otServidor.id);
+          if (indexIndex !== -1) {
+            const localOt = this.otContextService.trabajos[indexIndex];
+            // Si la OT local ya se empezó a editar ('en_progreso'), conservamos los cambios locales
+            if (localOt.estado !== 'asignado') {
+              otServidor.estado = localOt.estado;
+              otServidor.atms = localOt.atms;
+              otServidor.fotos = localOt.fotos;
+              otServidor.nombreTecnico = localOt.nombreTecnico;
+              otServidor.nombreETV = localOt.nombreETV;
+              otServidor.nombreAlarma = localOt.nombreAlarma;
+            }
+            this.otContextService.trabajos[indexIndex] = otServidor;
+          } else {
+            this.otContextService.trabajos.push(otServidor);
+          }
+        });
+
+        // Guardamos los trabajos en el localStorage de la app
+        this.otContextService.setAtms(this.otContextService.atms);
+
+        // 3. Mostramos las órdenes del técnico en la interfaz
+        this.workOrders = otsMapeadas;
       },
-      error: (err: any) => { // ✔️ Corregido: Tipado explícito del error
+      error: (err: any) => {
         console.error('Error al sincronizar OTs con el servidor:', err);
       }
     });

@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import JSZip from 'jszip';
 import { Component, ViewChildren, QueryList, ChangeDetectorRef } from '@angular/core';
@@ -9,8 +9,10 @@ import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { recognize } from 'tesseract.js'
 import { addIcons } from 'ionicons';
 import { cameraOutline, shareSocial, download, documentAttach, arrowBackOutline, arrowForwardOutline } from 'ionicons/icons';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Share } from '@capacitor/share';
+import { ToastController, LoadingController } from '@ionic/angular/standalone';
+import { firstValueFrom } from 'rxjs';
 import { IonCol, IonGrid, IonRow, IonToggle } from '@ionic/angular/standalone';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import {
@@ -34,10 +36,10 @@ import {
   IonButtons,
   IonFooter,
   IonIcon,
+  IonSpinner,
 } from '@ionic/angular/standalone';
 import { OtAtmDetalle, OtContextService, MedicionElectrica } from '../../ot-context.service';
 import { SignaturePadComponent } from '../../components/signature-pad/signature-pad.component';
-
 
 @Component({
   selector: 'app-formulario-ot',
@@ -73,6 +75,7 @@ import { SignaturePadComponent } from '../../components/signature-pad/signature-
     IonGrid,
     IonCol,
     IonRow,
+    IonSpinner,
   ]
 })
 export class FormularioOtPage {
@@ -83,6 +86,7 @@ export class FormularioOtPage {
   nombreTecnico = '';
   nombreETV = '';
   nombreAlarma = '';
+  guardando = false; // Controla el estado del spinner del botón Enviar
 
   // DataURL PNG de cada firma (‘’ = sin firma)
   firmaTecnico = '';
@@ -94,10 +98,11 @@ export class FormularioOtPage {
     private readonly otContextService: OtContextService,
     private readonly http: HttpClient, // Inyecta HttpClient para leer el asset de plantilla
     private readonly cdr: ChangeDetectorRef,
+    private readonly toastController: ToastController,
+    private readonly loadingController: LoadingController,
+    private readonly router: Router // Inyecta Router si no está declarado
   ) {
     addIcons({ cameraOutline, shareSocial, download, documentAttach, arrowBackOutline, arrowForwardOutline });
-
-
     const atmsGuardados = this.otContextService.getAtms();
     this.atms = this.migrarMediciones(atmsGuardados.length > 0 ? atmsGuardados : [this.crearAtm(1)]);
   }
@@ -452,6 +457,96 @@ export class FormularioOtPage {
     } catch (error) {
       console.error('Error generando el archivo PDF:', error);
       return null;
+    }
+  }
+  /**
+   * Consolida la información total de la OT en local, compila el ZIP y lo sube al backend
+   */
+  async enviarTrabajoCompleto(): Promise<void> {
+    if (this.guardando) return;
+    this.guardando = true;
+
+    // Crear un spinner circular nativo de Ionic en pantalla para guiar al usuario
+    const loading = await this.loadingController.create({
+      message: 'Comprimiendo y transmitiendo paquete de terreno...',
+      backdropDismiss: false,
+    });
+    await loading.present();
+
+    try {
+      // 1. Salvaguardar los datos actuales del formulario en el contexto singleton
+      this.sincronizarAtms();
+      this.otContextService.nombreTecnico = this.nombreTecnico;
+      this.otContextService.nombreETV = this.nombreETV;
+      this.otContextService.nombreAlarma = this.nombreAlarma;
+
+      // Guardar de manera persistente en SQLite o almacenamiento del dispositivo
+      this.otContextService.guardarTrabajoActivo();
+
+      // 2. Generar el paquete ZIP estructurado en memoria
+      const paquete = await this.generarZipPaquete();
+      if (!paquete) {
+        throw new Error('No se pudo empaquetar el reporte de terreno en ZIP.');
+      }
+
+      const { nombreRaiz, zipBlob } = paquete;
+      const otIdActiva = this.otContextService.trabajoActivoId;
+
+      // 3. Obtener token de autenticación del almacenamiento local
+      // Intentamos extraer el token usando las claves más comunes del sistema (ssei-token, token, o auth-token)
+      const token = localStorage.getItem('ssei-token') ||
+        localStorage.getItem('token') ||
+        localStorage.getItem('auth-token') || '';
+      const headers = new HttpHeaders({
+        'Authorization': `Bearer ${token}`
+      });
+
+      // Sincronizar archivo físico ZIP al repositorio web usando FormData y cargando el header de seguridad
+      const formData = new FormData();
+      formData.append('file', zipBlob, `${nombreRaiz}.zip`);
+      formData.append('categoria', 'respaldo_terreno');
+      formData.append('banco', this.otContextService.cliente || 'Otros');
+      if (this.atms.length > 0) {
+        formData.append('numero_atm', this.atms[0].numeroAtm || '');
+      }
+
+      // Subir el archivo de terreno a la API de biblioteca adjuntando las credenciales (headers)
+      const uploadUrl = 'http://localhost:8000/biblioteca/upload';
+      await firstValueFrom(this.http.post(uploadUrl, formData, { headers }));
+
+      // 4. Si la OT pertenece originalmente al Servidor, actualizamos su estado a "sincronizada"
+      if (otIdActiva && !otIdActiva.startsWith('local-')) {
+        const updateStateUrl = `http://localhost:8000/ots/${otIdActiva}/estado`;
+        await firstValueFrom(this.http.patch(updateStateUrl, { estado: 'sincronizada' }, { headers }));
+      }
+
+      // 5. Notificación de éxito y retorno seguro al Dashboard
+      await loading.dismiss();
+      const toast = await this.toastController.create({
+        message: '¡Orden de trabajo sincronizada exitosamente con la oficina central!',
+        duration: 4000,
+        color: 'success',
+        position: 'bottom'
+      });
+      await toast.present();
+
+      // Marcar el trabajo actual como guardado y limpiar el ID de edición para liberar RAM
+      this.otContextService.trabajoActivoId = null;
+      this.router.navigate(['/dashboard']);
+
+    } catch (error) {
+      console.error('Error al sincronizar la orden:', error);
+      await loading.dismiss();
+
+      const toastError = await this.toastController.create({
+        message: 'Error de red en terreno. Los datos se mantendrán guardados en tu dispositivo.',
+        duration: 5000,
+        color: 'danger',
+        position: 'bottom'
+      });
+      await toastError.present();
+    } finally {
+      this.guardando = false;
     }
   }
 

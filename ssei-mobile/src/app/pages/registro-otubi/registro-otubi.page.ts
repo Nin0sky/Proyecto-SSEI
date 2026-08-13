@@ -179,7 +179,7 @@ export class RegistroOTUBIPage {
       if (!file.type.startsWith('image/')) {
         continue;
       }
-      const dataUrl = await this.convertirArchivoADataUrl(file);
+      const dataUrl = await this.comprimirImagen(file);
       fotosNuevas.push({
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         atmNumero: atm.numeroAtm.trim(),
@@ -203,6 +203,46 @@ export class RegistroOTUBIPage {
     this.refrescarFotosAtm(indiceAtm);
   }
 
+  private comprimirImagen(file: File, maxAnchoAlto = 1200, calidad = 0.75): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          // Mantener proporción de aspecto
+          if (width > height) {
+            if (width > maxAnchoAlto) {
+              height *= maxAnchoAlto / width;
+              width = maxAnchoAlto;
+            }
+          } else {
+            if (height > maxAnchoAlto) {
+              width *= maxAnchoAlto / height;
+              height = maxAnchoAlto;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+
+          // Convertir a JPEG con calidad optimizada (pesará de 150KB a 400KB)
+          const dataUrl = canvas.toDataURL('image/jpeg', calidad);
+          resolve(dataUrl);
+        };
+        img.onerror = (err) => reject(err);
+      };
+      reader.onerror = (err) => reject(err);
+    });
+  }
   private crearAtm(numero: number): OtAtmDetalle {
     return {
       etiqueta: `ATM ${numero}`,

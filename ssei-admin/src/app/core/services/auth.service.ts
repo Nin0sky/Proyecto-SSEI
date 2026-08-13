@@ -2,7 +2,7 @@ import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, tap, map } from 'rxjs';
 import { TokenResponse, Usuario } from '../models/user.model';
-import { environment } from '../../../environments/environment'; // O usar la url estática si no está configurada aún
+//import { environment } from '../../../environments/environment'; // O usar la url estática si no está configurada aún
 // Elimina esta línea si no vas a configurar environments aún:
 //import { environment } from '../../../environments/environment'; // O usar la url estática si no está configurada aún
 

@@ -337,9 +337,11 @@
         </ion-button>
       </ion-col>
       <ion-col size="6">
-        <ion-button expand="block" color="primary" [routerLink]="['/registro-otubi']">
-          Siguiente
-          <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
+        <!-- Cambiado de routerLink a llamada de función (click)="enviarTrabajoCompleto()" con deshabilitación por carga -->
+        <ion-button expand="block" color="success" (click)="enviarTrabajoCompleto()" [disabled]="guardando">
+          <ion-spinner *ngIf="guardando" name="crescent" slot="start"></ion-spinner>
+          {{ guardando ? 'Enviando...' : 'Sincronizar y Enviar' }}
+          <ion-icon *ngIf="!guardando" name="cloud-upload-outline" slot="end"></ion-icon>
         </ion-button>
       </ion-col>
     </ion-row>

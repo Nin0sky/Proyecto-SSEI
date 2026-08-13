@@ -79,28 +79,48 @@ export class OtFormComponent implements OnInit {
       region: [null, Validators.required] // Asegúrate de tenerlo validado en el controlador si lo deseas
     });
 
-    // Cargar regiones desde el backend
+    // 1. Cargamos primero las regiones desde el backend
     this.otService.listarRegiones().subscribe({
-      next: (data) => this.region = data,
-      error: () => this.snackBar.open('Error al cargar las regiones', 'OK', { duration: 3000 })
-    });
+      next: (regionesData) => {
+        this.region = regionesData;
 
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id && id !== 'nueva') {
-      this.editando = true;
-      this.otId = Number(id);
-      this.loadingOt = true;
-      this.otService.obtener(this.otId).subscribe({
-        next: (ot) => { this.cargarOt(ot); this.loadingOt = false; },
-        error: () => { this.loadingOt = false; }
-      });
-    }
+
+        // 2. Una vez que las regiones están cargadas, verificamos si estamos editando para cargar la OT
+        const id = this.route.snapshot.paramMap.get('id');
+        if (id && id !== 'nueva') {
+          this.editando = true;
+          this.otId = Number(id);
+          this.loadingOt = true;
+          this.otService.obtener(this.otId).subscribe({
+            next: (ot) => {
+              this.cargarOt(ot);
+              this.loadingOt = false;
+            },
+            error: () => {
+              this.loadingOt = false;
+              this.snackBar.open('Error al cargar los datos de la OT', 'OK', { duration: 3000 });
+            }
+          });
+        }
+      },
+      error: () => {
+        this.snackBar.open('Error al cargar las regiones', 'OK', { duration: 3000 });
+      }
+    });
   }
 
   private cargarOt(ot: OtTrabajo) {
     const parsedDate = ot.hora_programada ? new Date(ot.hora_programada) : null;
     const primerAtm = ot.atms && ot.atms.length > 0 ? ot.atms[0] : null;
 
+    // 3. BLOQUE DE LA REGIÓN (Mapear texto "ot.region" al "id" numérico correspondiente)
+    let regionIdAsociado: number | null = null;
+    if (ot.region) {
+      const encontrada = this.region.find(r => r.nombre.toLowerCase().trim() === ot.region?.toLowerCase().trim());
+      if (encontrada) {
+        regionIdAsociado = encontrada.id;
+      }
+    }
     this.form.patchValue({
       banco: ot.banco,
       numero_atm: primerAtm ? primerAtm.numero_atm : '',
@@ -110,14 +130,20 @@ export class OtFormComponent implements OnInit {
       tecnico_id: ot.tecnico_id,
       comuna: ot.comuna,
       direccion: ot.direccion,
-      ubicacion: primerAtm ? primerAtm.ubicacion : '', 
+      region: regionIdAsociado, // <-- Seteamos el ID numérico para que el mat-select se active correctamente
+      ubicacion: primerAtm ? primerAtm.observaciones : '', // <-- Recuperamos la ubicación persistida en observaciones
     });
   }
 
   guardar() {
-    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
     this.loading = true;
     const data = this.form.getRawValue();
+
+    // Obtenemos el nombre en string de la región para enviarlo al backend
     const regionSeleccionada = this.region.find(r => r.id === Number(data.region));
     const regionNombre = regionSeleccionada ? regionSeleccionada.nombre : '';
 
@@ -133,7 +159,6 @@ export class OtFormComponent implements OnInit {
       );
 
       const pad = (n: number) => String(n).padStart(2, '0');
-      // Produce una cadena en formato local "YYYY-MM-DDTHH:MM:SS"
       horaProgramadaStr = `${combinedDate.getFullYear()}-${pad(combinedDate.getMonth() + 1)}-${pad(combinedDate.getDate())}T${pad(combinedDate.getHours())}:${pad(combinedDate.getMinutes())}:00`;
     }
 
@@ -146,7 +171,7 @@ export class OtFormComponent implements OnInit {
       direccion: data.direccion,
       nombre_tecnico: '',
       nombre_etv: '',
-      ubicacion: '',
+      ubicacion: data.ubicacion,
       region: regionNombre,
       atms: [
         {
@@ -156,8 +181,8 @@ export class OtFormComponent implements OnInit {
           serie_cajero: '',
           serie_mmbb: '',
           detalles_servicio: '',
-          observaciones: '',
-          ubicacion: '',
+          observaciones: data.ubicacion, // <-- Guardamos la ubicación en observaciones para asegurar persistencia
+          ubicacion: data.ubicacion,
         }
       ],
     };

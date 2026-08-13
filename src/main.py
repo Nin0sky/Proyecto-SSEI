@@ -570,7 +570,7 @@ def upload_documento(
     banco: str | None = Form(None),
     numero_atm: str | None = Form(None),
     file: UploadFile = File(...),
-    token_data: dict = Depends(verificar_rol(["admin", "coordinador"]))
+    token_data: dict = Depends(verificar_rol(["admin", "coordinador", "tecnico"]))
 ):
     try:
         # 1. Definir rutas relativas seguras basadas en Año/Mes

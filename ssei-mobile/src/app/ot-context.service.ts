@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core';
-
+import { inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { retry, timer, throwError } from 'rxjs';
 export interface MedicionElectrica {
   faseNeutro: string;
   neutroTierra: string;
@@ -55,6 +57,25 @@ export interface OtTrabajo {
 })
 export class OtContextService {
   private readonly storageKey = 'ssei-ot-context';
+  private http = inject(HttpClient);
+  private readonly apiBase = 'http://localhost:8000'; // Usa tu IP local del servidor en producción
+
+  sincronizarOTServidor(idTrabajo: string, zipBlob: Blob, nombreArchivoZip: string) {
+    const formData = new FormData();
+    formData.append('file', zipBlob, nombreArchivoZip);
+    formData.append('categoria', 'respaldo_terreno');
+    // Enviar el archivo ZIP a la biblioteca
+    return this.http.post(`${this.apiBase}/biblioteca/upload`, formData).pipe(
+      retry({
+        count: 3, // Reitenta hasta 3 veces automáticamente
+        delay: (error, retryCount) => {
+          console.warn(`Intento de reenvío número ${retryCount} por caída de señal...`);
+          return timer(retryCount * 2000); // Backoff: Espera 2s, luego 4s, luego 6s antes de fallar
+        }
+      })
+    );
+  }
+
 
   // Estado activo del trabajo en edición
   cliente = '';
@@ -154,15 +175,31 @@ export class OtContextService {
     }
     this.trabajoActivoId = id;
     this.cliente = trabajo.cliente;
-    this.atms = trabajo.atms.map(a => ({ ...a }));
-    this.fotos = trabajo.fotos.map(f => ({ ...f }));
     this.comuna = trabajo.comuna;
     this.direccion = trabajo.direccion;
     this.nombreTecnico = trabajo.nombreTecnico ?? '';
     this.nombreETV = trabajo.nombreETV ?? '';
     this.nombreAlarma = trabajo.nombreAlarma ?? '';
-    this.guardar();
     this.ubicacion = trabajo.ubicacion ?? '';
+
+    // Al cargar los ATMs de un trabajo real, instanciamos vacías sus mediciones si no existen
+    this.atms = trabajo.atms.map(a => {
+      const tipoNormalizado = (a.tipoServicio ?? '').toString().trim().toLowerCase().replace(/\s+/g, '');
+
+      return {
+        ...a,
+        tipoServicio: tipoNormalizado, // Asegura que 'Servicio Tecnico' de la API calce con el selector 'serviciotecnico'
+        medicionesElectricas: a.medicionesElectricas ?? {
+          tablero: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
+          upsAntigua: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
+          upsNueva: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
+          tieneUpsNueva: false,
+        }
+      };
+    });
+
+    this.fotos = trabajo.fotos ? trabajo.fotos.map(f => ({ ...f })) : [];
+    this.guardar();
   }
 
   guardarTrabajoActivo(): void {
