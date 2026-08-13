@@ -23,6 +23,12 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/ot-lista/ot-lista.component').then(m => m.OtListaComponent),
     canActivate: [authGuard]
   },
+    {
+    path: 'ots/nueva',
+    loadComponent: () => import('./pages/ot-form/ot-form.component').then(m => m.OtFormComponent),
+    canActivate: [authGuard],
+    data: { roles: ['admin', 'coordinador'] }
+  },
   {
     path: 'ots/:id',
     loadComponent: () => import('./pages/ot-detalle/ot-detalle.component').then(m => m.OtDetalleComponent),
@@ -30,12 +36,7 @@ export const routes: Routes = [
   },
 
   // Rutas protegidas con RBAC (Solo Administradores o Coordinadores pueden crear/editar)
-  {
-    path: 'ots/nueva',
-    loadComponent: () => import('./pages/ot-form/ot-form.component').then(m => m.OtFormComponent),
-    canActivate: [authGuard],
-    data: { roles: ['admin', 'coordinador'] }
-  },
+
   {
     path: 'ots/:id/editar',
     loadComponent: () => import('./pages/ot-form/ot-form.component').then(m => m.OtFormComponent),

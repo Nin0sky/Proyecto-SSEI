@@ -1,7 +1,8 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, tap, map } from 'rxjs';
 import { TokenResponse, Usuario } from '../models/user.model';
+import { environment } from '../../../environments/environment'; // O usar la url estática si no está configurada aún
 // Elimina esta línea si no vas a configurar environments aún:
 //import { environment } from '../../../environments/environment'; // O usar la url estática si no está configurada aún
 
@@ -10,7 +11,7 @@ import { TokenResponse, Usuario } from '../models/user.model';
 })
 export class AuthService {
   private http = inject(HttpClient);
-  
+
   // URL base consumida de la configuración de Angular
   private readonly baseUrl = 'http://localhost:8000'; // Puedes reemplazar por tu variable de entorno
 
@@ -53,6 +54,14 @@ export class AuthService {
         this.guardarSesion(authData.accessToken, authData.user);
       })
     );
+  }
+  obtenerOtsServidor(): Observable<any[]> {
+    const token = localStorage.getItem('ssei_auth_token');
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`
+    });
+
+    return this.http.get<any[]>(`${this.baseUrl}/ots`, { headers });
   }
 
   /**

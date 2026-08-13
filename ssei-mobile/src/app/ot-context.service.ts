@@ -73,9 +73,6 @@ export class OtContextService {
 
   constructor() {
     this.cargar();
-    if (this.trabajos.length === 0) {
-      this.seedDatosDemostracion();
-    }
   }
 
   // --- Estado activo ---
@@ -193,7 +190,7 @@ export class OtContextService {
     this.guardar();
   }
 
-  private seedDatosDemostracion(): void {
+  /*private seedDatosDemostracion(): void {
     const atm = (numero: string, etiqueta = 'ATM 1'): OtAtmDetalle => ({
       etiqueta,
       tipoServicio: 'instalacion',
@@ -208,7 +205,7 @@ export class OtContextService {
       { id: '1025', cliente: 'Banco Estado', atms: [atm('8841')], fotos: [], estado: 'sincronizado', fechaCreacion: new Date().toISOString(), comuna: 'Las Condes', direccion: '', ubicacion: '', origenServidor: true },
     ];
     this.guardar();
-  }
+  }*/
 
   private cargar(): void {
     const raw = localStorage.getItem(this.storageKey);
