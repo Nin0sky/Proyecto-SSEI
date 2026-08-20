@@ -494,7 +494,7 @@ export class FormularioOtPage {
 
       // 3. Obtener token de autenticación del almacenamiento local
       // Intentamos extraer el token usando las claves más comunes del sistema (ssei-token, token, o auth-token)
-      const token = localStorage.getItem('ssei-token') ||
+      const token = localStorage.getItem('token') ||
         localStorage.getItem('token') ||
         localStorage.getItem('auth-token') || '';
       const headers = new HttpHeaders({

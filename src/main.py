@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import IntegrityError
 
 #IMPORTACIONES DE SEGURIDAD
-from src.infrastructure.security import verificar_password, crear_access_token, obtener_usuario_actual, verificar_rol
+from src.infrastructure.security import verificar_password, crear_access_token, obtener_usuario_actual, verificar_rol, generar_hash_password
 from src.interfaces.schemas import LoginRequest, TokenResponse, DocumentoRead
 #############################
 
@@ -114,11 +114,6 @@ traceability_service = TraceabilityService(repository=traceability_repository)
 ot_service = OtService(ot_repo=ot_repository, atm_repo=ot_atm_repository)
 
 
-@app.on_event("startup")
-def startup_event() -> None:
-    init_db()
-    init_admin_db()
-    seed_tecnicos()
     
 @app.on_event("startup")
 def startup_event() -> None:
@@ -483,10 +478,8 @@ def seed_tecnicos() -> None:
     
     for tec in tecnicos_por_defecto:
         try:
-            # Generamos una contraseña por defecto (ej: 'password123') usando el mismo hash del backend
-            salt = token_hex(16)
-            password_hash = pbkdf2_hmac("sha256", "password123".encode("utf-8"), bytes.fromhex(salt), 390000).hex()
-            stored_hash = f"pbkdf2_sha256${salt}${password_hash}"
+            # 🔑 Generación limpia y alineada de la contraseña usando el hash oficial del sistema
+            stored_hash = generar_hash_password("password123")
             
             user_repository.create(
                 email=tec["email"],
@@ -497,7 +490,6 @@ def seed_tecnicos() -> None:
             )
             print(f"Técnico registrado exitosamente: {tec['full_name']}")
         except IntegrityError:
-            # Si el correo ya existe, SQLite capturará la violación de la restricción UNIQUE y continuará
             pass
         
 def seed_admin() -> None:
@@ -508,11 +500,7 @@ def seed_admin() -> None:
         "role": "admin"
     }
     try:
-        # Contraseña segura inicial: Administrador123* o Asd12345*
-        salt = token_hex(16)
-        password_hash = pbkdf2_hmac("sha256", "Asd12345*".encode("utf-8"), bytes.fromhex(salt), 390000).hex()
-        stored_hash = f"pbkdf2_sha256${salt}${password_hash}"
-        
+        stored_hash = generar_hash_password("Asd12345*")
         user_repository.create(
             email=admin_default["email"],
             hashed_password=stored_hash,
@@ -520,9 +508,8 @@ def seed_admin() -> None:
             role=admin_default["role"],
             is_active=True
         )
-        print(f"Administrador semilla registrado con éxito: {admin_default['email']}")
+        print(f"Administrador semilla registrado: {admin_default['email']}")
     except IntegrityError:
-        # Ya existe registrado en la base de datos
         pass
 
 def seed_regiones() -> None:
