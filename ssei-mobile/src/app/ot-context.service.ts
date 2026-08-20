@@ -180,15 +180,16 @@ export class OtContextService {
     this.nombreTecnico = trabajo.nombreTecnico ?? '';
     this.nombreETV = trabajo.nombreETV ?? '';
     this.nombreAlarma = trabajo.nombreAlarma ?? '';
-    this.ubicacion = trabajo.ubicacion ?? '';
+    this.ubicacion = trabajo.ubicacion || (trabajo.atms && trabajo.atms[0]?.observaciones) || '';
 
     // Al cargar los ATMs de un trabajo real, instanciamos vacías sus mediciones si no existen
-    this.atms = trabajo.atms.map(a => {
+    this.atms = trabajo.atms.map((a, index) => {
       const tipoNormalizado = (a.tipoServicio ?? '').toString().trim().toLowerCase().replace(/\s+/g, '');
 
       return {
         ...a,
         tipoServicio: tipoNormalizado, // Asegura que 'Servicio Tecnico' de la API calce con el selector 'serviciotecnico'
+        numeroAtm: a.numeroAtm || '',
         medicionesElectricas: a.medicionesElectricas ?? {
           tablero: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
           upsAntigua: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
@@ -197,6 +198,20 @@ export class OtContextService {
         }
       };
     });
+    // Si la OT no tiene ATMs inicializados (por ejemplo, primer inicio), creamos uno precargado
+    if (this.atms.length === 0) {
+      this.atms = [
+        {
+          etiqueta: 'ATM 1',
+          tipoServicio: 'instalacion',
+          numeroAtm: '',
+          serieCajero: '',
+          serieMmbb: '',
+          detallesServicio: '',
+          observaciones: this.ubicacion,
+        }
+      ];
+    }
 
     this.fotos = trabajo.fotos ? trabajo.fotos.map(f => ({ ...f })) : [];
     this.guardar();

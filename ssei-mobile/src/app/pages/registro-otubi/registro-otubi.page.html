@@ -20,6 +20,7 @@
           <ion-select-option value="Banco Estado">Banco Estado</ion-select-option>
           <ion-select-option value="Banco de Chile">Banco de Chile</ion-select-option>
           <ion-select-option value="Banco Itau">Banco Itau</ion-select-option>
+          <ion-select-option value="Banco Falabella">Banco Falabella</ion-select-option>
           <ion-select-option value="Loomis">Loomis</ion-select-option>
           <ion-select-option value="Banco BCI">Banco BCI</ion-select-option>
           <ion-select-option value="Santander">Santander</ion-select-option>
@@ -43,13 +44,9 @@
       <div class="ubicacion-search">
         <ion-item>
           <ion-label position="stacked">Buscar dirección</ion-label>
-          <ion-input
-            [(ngModel)]="busquedaDireccion"
-            (ionInput)="onBusquedaChange()"
-            (ionFocus)="mostrarSugerencias = sugerencias.length > 0"
-            (ionBlur)="cerrarSugerencias()"
-            placeholder="Ej: Av. Apoquindo 4501, Las Condes"
-            clearInput="true">
+          <ion-input [(ngModel)]="busquedaDireccion" (ionInput)="onBusquedaChange()"
+            (ionFocus)="mostrarSugerencias = sugerencias.length > 0" (ionBlur)="cerrarSugerencias()"
+            placeholder="Ej: Av. Apoquindo 4501, Las Condes" clearInput="true">
           </ion-input>
           <ion-button slot="end" fill="clear" [disabled]="buscandoGps" (click)="obtenerUbicacionGps()">
             <ion-spinner *ngIf="buscandoGps" name="crescent" slot="icon-only"></ion-spinner>
@@ -59,10 +56,7 @@
 
         <!-- Dropdown de sugerencias -->
         <div class="sugerencias-lista" *ngIf="mostrarSugerencias && sugerencias.length > 0">
-          <div
-            class="sugerencia-item"
-            *ngFor="let s of sugerencias"
-            (mousedown)="seleccionarSugerencia(s)">
+          <div class="sugerencia-item" *ngFor="let s of sugerencias" (mousedown)="seleccionarSugerencia(s)">
             <ion-icon name="location-outline"></ion-icon>
             <span>{{ s.display_name }}</span>
           </div>
@@ -97,10 +91,7 @@
     <ion-card-content>
       <ion-item>
         <ion-label position="stacked">Número de ATM</ion-label>
-        <ion-input
-          [(ngModel)]="atmActivo.numeroAtm"
-          (ionBlur)="sincronizarAtms()"
-          placeholder="Ej: 2134">
+        <ion-input [(ngModel)]="atmActivo.numeroAtm" (ionBlur)="sincronizarAtms()" placeholder="Ej: 2134">
         </ion-input>
       </ion-item>
     </ion-card-content>
@@ -113,11 +104,7 @@
     </ion-card-header>
     <ion-card-content>
       <label class="upload-control" [class.disabled]="!atmActivo.numeroAtm.trim()">
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          [disabled]="!atmActivo.numeroAtm.trim()"
+        <input type="file" accept="image/*" multiple [disabled]="!atmActivo.numeroAtm.trim()"
           (change)="onSeleccionFotos($event, indiceAtmActivo)" />
         <span>
           {{ atmActivo.numeroAtm.trim() ? 'Seleccionar fotos' : 'Ingrese número de ATM para cargar fotos' }}

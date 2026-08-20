@@ -98,9 +98,18 @@ export class RegistroOTUBIPage {
   ionViewWillEnter(): void {
     const atmsGuardados = this.otContextService.getAtms();
     this.atms = atmsGuardados.length > 0 ? atmsGuardados : [this.crearAtm(1)];
+
+    // Sincronizar todos los datos geográficos y banco de cabecera
     this.comuna = this.otContextService.comuna;
     this.direccion = this.otContextService.direccion;
     this.busquedaDireccion = this.direccion;
+    this.ubicacion = this.otContextService.ubicacion; // 👈 Enlazar la ubicación
+
+    // Si existe ATM inicializado pero tiene campo número de ATM vacío y ya lo guardamos en el contexto anterior:
+    if (this.atms.length > 0 && !this.atms[0].numeroAtm && atmsGuardados[0]?.numeroAtm) {
+      this.atms[0].numeroAtm = atmsGuardados[0].numeroAtm;
+    }
+
     this.refrescarTodasLasFotos();
   }
 

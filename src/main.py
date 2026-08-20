@@ -321,7 +321,7 @@ def update_ot(
 def update_ot_estado(
     ot_id: int,
     payload: OtEstadoUpdate,
-    token_data: dict = Depends(verificar_rol(["admin", "coordinador"]))  # Solo Admin o Coordinador
+    token_data: dict = Depends(verificar_rol(["admin", "coordinador", "tecnico"]))  # Solo Admin o Coordinador
 ) -> OtRead:
     ot = ot_service.update_estado(ot_id=ot_id, estado=payload.estado)
     if ot is None:
