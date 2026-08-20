@@ -1,14 +1,13 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import JSZip from 'jszip';
-import { Component, ViewChildren, QueryList, ChangeDetectorRef } from '@angular/core';
+import { Component, ViewChildren, QueryList, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
-// import { Component, ChangeDetectorRef } from '@angular/core';
-import { recognize } from 'tesseract.js'
+import { recognize } from 'tesseract.js';
 import { addIcons } from 'ionicons';
-import { cameraOutline, shareSocial, download, documentAttach, arrowBackOutline, arrowForwardOutline } from 'ionicons/icons';
+import { cameraOutline, shareSocial, download, documentAttach, arrowBackOutline, arrowForwardOutline, logOutOutline } from 'ionicons/icons';
 import { Router, RouterLink } from '@angular/router';
 import { Share } from '@capacitor/share';
 import { ToastController, LoadingController } from '@ionic/angular/standalone';
@@ -34,11 +33,13 @@ import {
   IonTextarea,
   IonButton,
   IonButtons,
-  IonFooter,
   IonIcon,
   IonSpinner,
+  IonList,   // 👈 Agregado para habilitar ion-list
+  IonFooter, // 👈 Agregado para habilitar ion-footer
 } from '@ionic/angular/standalone';
 import { OtAtmDetalle, OtContextService, MedicionElectrica } from '../../ot-context.service';
+import { AuthService } from '../../services/auth.service';
 import { SignaturePadComponent } from '../../components/signature-pad/signature-pad.component';
 
 @Component({
@@ -68,14 +69,15 @@ import { SignaturePadComponent } from '../../components/signature-pad/signature-
     IonTextarea,
     IonButton,
     IonButtons,
-    IonFooter,
-    SignaturePadComponent,
     IonIcon,
     IonToggle,
     IonGrid,
     IonCol,
     IonRow,
     IonSpinner,
+    IonList,           // 👈 Declarado en Imports
+    IonFooter,         // 👈 Declarado en Imports
+    SignaturePadComponent,
   ]
 })
 export class FormularioOtPage {
@@ -86,422 +88,248 @@ export class FormularioOtPage {
   nombreTecnico = '';
   nombreETV = '';
   nombreAlarma = '';
-  guardando = false; // Controla el estado del spinner del botón Enviar
+  guardando = false;
 
-  // DataURL PNG de cada firma (‘’ = sin firma)
+  // Guardadores activos para firmas
   firmaTecnico = '';
   firmaETV = '';
   firmaAlarma = '';
   ubicacion = '';
 
+  @ViewChildren('padTecnico, padETV, padAlarma') pads!: QueryList<SignaturePadComponent>;
+
+  private readonly authService = inject(AuthService);
+
   constructor(
     private readonly otContextService: OtContextService,
-    private readonly http: HttpClient, // Inyecta HttpClient para leer el asset de plantilla
+    private readonly http: HttpClient,
     private readonly cdr: ChangeDetectorRef,
     private readonly toastController: ToastController,
     private readonly loadingController: LoadingController,
-    private readonly router: Router // Inyecta Router si no está declarado
+    private readonly router: Router
   ) {
-    addIcons({ cameraOutline, shareSocial, download, documentAttach, arrowBackOutline, arrowForwardOutline });
-    const atmsGuardados = this.otContextService.getAtms();
-    this.atms = this.migrarMediciones(atmsGuardados.length > 0 ? atmsGuardados : [this.crearAtm(1)]);
-  }
-
-  ionViewWillEnter(): void {
-    const atmsGuardados = this.otContextService.getAtms();
-    this.atms = this.migrarMediciones(atmsGuardados.length > 0 ? atmsGuardados : [this.crearAtm(1)]);
-    this.nombreTecnico = this.otContextService.nombreTecnico;
-    this.nombreETV = this.otContextService.nombreETV;
-    this.nombreAlarma = this.otContextService.nombreAlarma;
-    this.ubicacion = this.otContextService.ubicacion;
+    addIcons({ cameraOutline, shareSocial, download, documentAttach, arrowBackOutline, arrowForwardOutline, logOutOutline });
   }
 
   get atmActivo(): OtAtmDetalle {
     return this.atms[this.indiceAtmActivo];
   }
 
-  private migrarMediciones(atms: OtAtmDetalle[]): OtAtmDetalle[] {
-    return atms.map(atm => {
-      if (atm.medicionesElectricas) return atm;
-      return {
-        ...atm,
-        medicionesElectricas: {
-          tablero: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
-          upsAntigua: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
-          upsNueva: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
-          tieneUpsNueva: false,
-        },
-      };
-    });
-  }
-  private readonly tiposSinSeries = new Set([
-    'serviciotecnico',
-    'servicioelectrico',
-    'grafica',
-    'pintura',
-    'asistencia',
-  ]);
-
-  get esServicioElectrico(): boolean {
-    return this.normalizarTipoServicio(this.atmActivo?.tipoServicio) === 'servicioelectrico';
-  }
-  get mostrarCamposSeries(): boolean {
-    const tipo = this.normalizarTipoServicio(this.atmActivo?.tipoServicio);
-    return !this.tiposSinSeries.has(tipo);
+  get fotosAtmActivo() {
+    return this.otContextService.getFotosPorAtm(this.atmActivo?.numeroAtm || '');
   }
 
-  private normalizarTipoServicio(tipo: string | null | undefined): string {
-    return (tipo ?? '')
-      .toString()
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, '');
-  }
+  ionViewWillEnter(): void {
+    this.atms = this.otContextService.getAtms();
 
-  private readonly tiposSeriesOpcionalesPdf = new Set([
-    'serviciotecnico',
-    'grafica',
-    'transporte',
-  ]);
+    this.nombreTecnico = this.otContextService.nombreTecnico || localStorage.getItem('tecnico_nombre') || '';
+    this.nombreETV = this.otContextService.nombreETV;
+    this.nombreAlarma = this.otContextService.nombreAlarma;
+    this.ubicacion = this.otContextService.ubicacion;
 
-  agregarAtm(): void {
-    this.atms.push(this.crearAtm(this.atms.length + 1));
-    this.indiceAtmActivo = this.atms.length - 1;
-    this.sincronizarAtms();
-  }
-
-  eliminarAtm(): void {
-    if (this.atms.length === 1) {
-      return;
-    }
-
-    this.atms.splice(this.indiceAtmActivo, 1);
-    this.reenumerarAtms();
-    this.indiceAtmActivo = Math.max(0, this.indiceAtmActivo - 1);
-    this.sincronizarAtms();
-  }
-
-  cambiarAtm(event: CustomEvent): void {
-    const nuevoIndice = Number(event.detail.value);
-
-    if (!Number.isNaN(nuevoIndice) && this.atms[nuevoIndice]) {
-      this.indiceAtmActivo = nuevoIndice;
+    const key = `ssei-firmas-temp-${this.otContextService.trabajoActivoId}`;
+    const cargo = localStorage.getItem(key);
+    if (cargo) {
+      try {
+        const parsed = JSON.parse(cargo);
+        this.firmaTecnico = parsed.firmaTecnico || '';
+        this.firmaETV = parsed.firmaETV || '';
+        this.firmaAlarma = parsed.firmaAlarma || '';
+      } catch (e) {
+        console.error('Error al restaurar firmas temporales:', e);
+      }
     }
   }
 
-  ionViewWillLeave(): void {
-    this.sincronizarAtms();
+  cerrarSesionTecnico(): void {
+    this.authService.presentarConfirmacionLogout();
+  }
+
+  cambiarAtm(event: any): void {
+    this.indiceAtmActivo = parseInt(event.detail.value, 10);
+  }
+
+  onFirmaTecnicoGuardada(base64: string): void {
+    this.firmaTecnico = base64;
+    this.guardarFirmaTemporal();
+  }
+
+  onFirmaETVGuardada(base64: string): void {
+    this.firmaETV = base64;
+    this.guardarFirmaTemporal();
+  }
+
+  onFirmaAlarmaGuardada(base64: string): void {
+    this.firmaAlarma = base64;
+    this.guardarFirmaTemporal();
+  }
+
+  guardarFirmaTemporal(): void {
     this.otContextService.nombreTecnico = this.nombreTecnico;
     this.otContextService.nombreETV = this.nombreETV;
     this.otContextService.nombreAlarma = this.nombreAlarma;
-    this.otContextService.ubicacion = this.ubicacion;
-  }
-
-  sincronizarAtms(): void {
     this.otContextService.setAtms(this.atms);
-  }
-  private normalizarVoltaje(valor: string): string {
-    const limpio = valor.trim();
-    if (!limpio) return '';
-    if (/v$/i.test(limpio)) return limpio.slice(0, -1).trim() + 'V';
-    if (/^[\d.,]+$/.test(limpio)) return limpio + 'V';
-    return limpio;
-  }
+    this.otContextService.guardarTrabajoActivo();
 
-  normalizarVoltajeBlur(event: Event, medicion: MedicionElectrica, campo: keyof MedicionElectrica): void {
-    const valorNormalizado = this.normalizarVoltaje(medicion[campo]);
-    medicion[campo] = valorNormalizado;
-    // Actualiza directamente el valor en el elemento ion-input
-    (event.target as any).value = valorNormalizado;
-    this.sincronizarAtms();
-  }
-
-  private readonly etiquetasTipoServicio: Record<string, string> = {
-    serviciotecnico: 'Servicio Técnico',
-    servicioelectrico: 'Servicio Eléctrico',
-    instalacion: 'Instalación',
-    desanclaje: 'Desanclaje',
-    movimientointerno: 'Movimiento Interno',
-    transporte: 'Transporte',
-    grafica: 'Gráfica',
-    pintura: 'Pintura',
-    asistencia: 'Asistencia',
-  };
-
-  private etiquetaTipoServicio(tipo: string): string {
-    return this.etiquetasTipoServicio[this.normalizarTipoServicio(tipo)] ?? tipo;
-  }
-
-  private crearAtm(numero: number): OtAtmDetalle {
-    return {
-      etiqueta: `ATM ${numero}`,
-      tipoServicio: 'instalacion',
-      numeroAtm: '',
-      serieCajero: '',
-      serieMmbb: '',
-      detallesServicio: '',
-      observaciones: '',
-      medicionesElectricas: {
-        tablero: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
-        upsAntigua: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
-        upsNueva: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
-        tieneUpsNueva: false,
-      }
-    };
-  }
-
-  private reenumerarAtms(): void {
-    this.atms = this.atms.map((atm, index) => ({
-      ...atm,
-      etiqueta: `ATM ${index + 1}`,
+    const key = `ssei-firmas-temp-${this.otContextService.trabajoActivoId}`;
+    localStorage.setItem(key, JSON.stringify({
+      firmaTecnico: this.firmaTecnico,
+      firmaETV: this.firmaETV,
+      firmaAlarma: this.firmaAlarma
     }));
   }
 
-  // 1. Agrega el prefijo 'async' para admitir los 'await' en el interior
-  private async generarPdf(): Promise<Blob | null> {
+  async procesarOcrEnLote(base64String: string, callback: (texto: string) => void) {
     try {
-      // Obtener el archivo base PDF verdadero desde los assets de Ionic
-      const urlPlantilla = 'assets/icon/templates/OT_base (5).pdf';
-      const arrayBufferBase = await this.http.get(urlPlantilla, { responseType: 'arraybuffer' }).toPromise();
-
-      if (!arrayBufferBase) {
-        throw new Error('No se pudo cargar la plantilla PDF.');
-      }
-
-      // Cargar el PDF en pdf-lib
-      const pdfDoc = await PDFDocument.load(arrayBufferBase);
-
-      // CARGAR FUENTE COURIER (Monoespaciada)
-      const courierFont = await pdfDoc.embedFont(StandardFonts.Courier);
-
-      // Obtener el formulario interactivo si el PDF tiene campos programables (AcroForm)
-      const form = pdfDoc.getForm();
-      const camposDisponibles = form.getFields().map(f => f.getName());
-      console.log('Campos interactivos encontrados en la plantilla:', camposDisponibles);
-
-      const titleCase = (t: string): string =>
-        t.toLowerCase().split(' ').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
-      const capitalizarPrimera = (t: string): string =>
-        t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
-
-      if (camposDisponibles.length > 0) {
-        // --- CASO A: Rellenar si el PDF es interactivo (tiene inputs nativos) ---
-        // Helper para escribir en un campo eliminando su maxLength primero
-        const escribir = (nombre: string, valor: string): void => {
-          const campo = form.getTextField(nombre);
-          if (campo) {
-            campo.setMaxLength(10000);
-            campo.setText(valor);
-          }
-        };
-
-        // 1. Datos estáticos / generales
-        escribir('Text1', this.otContextService.cliente || '');
-        escribir('Text8', this.nombreTecnico ? titleCase(this.nombreTecnico) : '');
-        escribir('Text13', this.nombreETV ? titleCase(this.nombreETV) : '');
-        escribir('Text12', this.nombreAlarma ? titleCase(this.nombreAlarma) : '');
-        escribir('Text10', this.validacionZonas || '');
-        // Formatear fecha del trabajo actual
-        const hoy = new Date().toLocaleDateString('es-CL');
-        escribir('Text5', hoy);
-        escribir('Text11', '');
-        escribir('Text9', '');
-
-        // Cantidad de cajeros
-        const todosLosNumeros = this.atms
-          .map(a => a.numeroAtm.trim())
-          .filter(n => n.length > 0)
-          .join('-');
-        escribir('Text7', todosLosNumeros ? `${todosLosNumeros}` : '');
-
-        // 2. Resolver dirección, comuna y ubicación
-        if (this.atms.length > 0) {
-          const primerAtmNum = this.atms[0].numeroAtm.trim();
-          const comunaDetectada = primerAtmNum.length >= 4 ? 'Santiago' : '';
-          const direccionCompleta = primerAtmNum.length >= 4 ? "Av. Libertador Bernardo O'Higgins 1234" : '';
-
-          escribir('Text6', this.otContextService.comuna || '');
-          escribir('Text3', this.otContextService.direccion || '');
-          escribir('Text2', this.otContextService.ubicacion || '');
-
-        }
-        // 3. Consolidar el detalle de todos los cajeros (ATMs) en el gran campo de detalleServicio (Text4)
-        let detalleCompilado = '';
-        this.atms.forEach((atm) => {
-          const tipoNormalizado = this.normalizarTipoServicio(atm.tipoServicio);
-          const seriesOpcionales = this.tiposSeriesOpcionalesPdf.has(tipoNormalizado);
-          const serieCajero = atm.serieCajero.trim().toUpperCase();
-          const serieMmbb = atm.serieMmbb.trim().toUpperCase();
-
-          detalleCompilado += `${this.etiquetaTipoServicio(atm.tipoServicio)}\n`;
-
-          if (tipoNormalizado === 'servicioelectrico' && atm.medicionesElectricas) {
-            const med = atm.medicionesElectricas;
-
-            // Definimos anchos rígidos idénticos para el encabezado y las filas
-            const labelWidth = 18;
-            const colWidth = 15;
-
-            // Función generadora de filas simétricas con la misma base
-            const fila = (label: string, tableroVal: string, upsAntiguaVal: string, upsNuevaVal?: string) => {
-              const lRef = label.padEnd(labelWidth, ' ');
-              const tRef = tableroVal.padEnd(colWidth, ' ');
-              const aRef = upsAntiguaVal.padEnd(colWidth, ' ');
-              const nRef = med.tieneUpsNueva && upsNuevaVal ? upsNuevaVal.padEnd(colWidth, ' ') : '';
-              return `${lRef}${tRef}${aRef}${nRef}\n`;
-            };
-
-            // Construir encabezado usando exactamente las mismas constantes
-            const headerLabel = ''.padEnd(labelWidth, ' ');
-            const headerTablero = 'Tablero'.padEnd(colWidth, ' ');
-            const headerAntigua = 'UPS Antigua'.padEnd(colWidth, ' ');
-            const headerNueva = med.tieneUpsNueva ? 'UPS Nueva'.padEnd(colWidth, ' ') : '';
-
-            detalleCompilado += `${headerLabel}${headerTablero}${headerAntigua}${headerNueva}\n`;
-
-            // Construir las filas de datos con los parámetros alineados matemáticamente
-            detalleCompilado += fila('Fase-Neutro:', med.tablero.faseNeutro, med.upsAntigua.faseNeutro, med.upsNueva.faseNeutro);
-            // Añadimos espacios manuales por delante (ej: '   ') para centrar el valor con el encabezado de arriba
-            detalleCompilado += fila(
-              'Neutro-Tierra:',
-              '   ' + med.tablero.neutroTierra,
-              '   ' + med.upsAntigua.neutroTierra,
-              med.upsNueva.neutroTierra ? '   ' + med.upsNueva.neutroTierra : ''
-            ); detalleCompilado += fila('Fase-Tierra:', med.tablero.faseTierra, med.upsAntigua.faseTierra, med.upsNueva.faseTierra);
-
-          } else if (seriesOpcionales) {
-            if (serieCajero) detalleCompilado += `Serie Cajero: ${serieCajero}\n`;
-            if (serieMmbb) detalleCompilado += `Serie MMBB: ${serieMmbb}\n`;
-          } else {
-            detalleCompilado += `Serie Cajero: ${serieCajero || 'S/N'}\n`;
-            detalleCompilado += `Serie MMBB: ${serieMmbb || 'S/N'}\n`;
-          }
-
-          if (atm.detallesServicio) detalleCompilado += `${atm.detallesServicio}\n`;
-          if (atm.observaciones) detalleCompilado += `Observaciones: ${atm.observaciones}\n`;
-        });
-
-        // Escribir el detalle compilado en Text4, DESPUÉS de terminar el loop
-        const campoDetalle = form.getTextField('Text4');
-        if (campoDetalle) {
-          campoDetalle.setMaxLength(10000);
-          const longitud = detalleCompilado.length;
-          campoDetalle.setFontSize(longitud > 900 ? 5 : longitud > 600 ? 6 : longitud > 300 ? 8 : 10);
-
-          // ESTA LÍNEA APLICA LA FUENTE MONOESPACIADA DE MANERA DEFINITIVA Y SEGURA
-          campoDetalle.updateAppearances(courierFont);
-
-          campoDetalle.setText(detalleCompilado);
-        }
-        const limpiarBordesCampos = (): void => {
-          for (const field of form.getFields()) {
-            const acroField = (field as any).acroField;
-            const widgets = acroField?.getWidgets?.() ?? [];
-            for (const widget of widgets) {
-              const bs = widget.getOrCreateBorderStyle?.();
-              bs?.setWidth?.(0);
-
-              const mk = widget.getOrCreateAppearanceCharacteristics?.();
-              mk?.setBorderColor?.([1, 1, 1]); // blanco
-              // Opcional: fondo transparente/neutral según viewer
-              // mk?.setBackgroundColor?.([1, 1, 1]);
-            }
-          }
-        };
-
-        limpiarBordesCampos();
-
-        // Asegura que los campos queden visualmente planos y no reactivos
-        form.flatten();
-
-        // --- Incrustar firmas como imágenes PNG ---
-        // TODO: ajustar x, y, width, height a las coordenadas exactas del PDF
-        // una vez que se identifiquen los campos de firma en la plantilla.
-        // Las coordenadas son en puntos (pt) desde la esquina inferior-izquierda.
-        await this.incrustarFirma(pdfDoc, pdfDoc.getPages()[0], this.firmaTecnico,
-          { x: 3, y: 3, width: 130, height: 33 });  // TODO: campo firma técnico
-        await this.incrustarFirma(pdfDoc, pdfDoc.getPages()[0], this.firmaETV,
-          { x: 70, y: 3, width: 130, height: 33 });  // TODO: campo firma ETV
-        await this.incrustarFirma(pdfDoc, pdfDoc.getPages()[0], this.firmaAlarma,
-          { x: 168, y: 3, width: 130, height: 33 });  // TODO: campo firma Alarma
+      const { data: { text } } = await recognize(base64String, 'eng', {
+        logger: m => console.log('OCR logging:', m)
+      });
+      const numerosValidos = text.replace(/[^a-zA-Z0-9]/g, ' ').toUpperCase();
+      const match = numerosValidos.match(/[A-Z0-9]{5,15}/g);
+      if (match && match.length > 0) {
+        callback(match[0]);
       } else {
-        // --- CASO B: Dibujar texto por Coordenadas (si el PDF es estático) ---
-        const paginas = pdfDoc.getPages();
-        const primeraPagina = paginas[0];
-
-        // Coordenadas fijas donde situar la información estática
-        primeraPagina.drawText(this.nombreTecnico, { x: 100, y: 700, size: 10, color: rgb(0, 0, 0) });
-        primeraPagina.drawText(this.nombreETV, { x: 100, y: 680, size: 10 });
-        primeraPagina.drawText(this.nombreAlarma, { x: 100, y: 660, size: 10 });
-        primeraPagina.drawText(this.validacionZonas, { x: 100, y: 600, size: 9 });
-
-        // Iterar y dibujar los cajeros usando una proyección lineal decreciente
-        const yInicial = 500;
-        const pasoY = 40;
-        this.atms.forEach((atm, i) => {
-          const yActual = yInicial - (i * pasoY);
-          primeraPagina.drawText(atm.numeroAtm, { x: 80, y: yActual, size: 10 });
-          primeraPagina.drawText(atm.tipoServicio, { x: 180, y: yActual, size: 10 });
-          primeraPagina.drawText(atm.serieCajero, { x: 280, y: yActual, size: 10 });
-          primeraPagina.drawText(atm.serieMmbb, { x: 380, y: yActual, size: 10 });
-        });
+        callback(text.trim().substring(0, 15));
       }
-
-      // Salvar y compilar el documento rellenado
-      const pdfBytesBytes = await pdfDoc.save();
-
-      // Utilizar la propiedad .buffer forzada explícitamente a un ArrayBuffer estándar
-      const blob = new Blob([pdfBytesBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
-      return blob;
-
-    } catch (error) {
-      console.error('Error generando el archivo PDF:', error);
-      return null;
+    } catch (e) {
+      console.error('Error OCR en terreno:', e);
     }
   }
-  /**
-   * Consolida la información total de la OT en local, compila el ZIP y lo sube al backend
-   */
-  async enviarTrabajoCompleto(): Promise<void> {
-    if (this.guardando) return;
+
+  async escanearSerieCajero() {
+    try {
+      const image = await Camera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Camera
+      });
+      if (image && image.dataUrl) {
+        this.procesarOcrEnLote(image.dataUrl, (txt) => {
+          this.atmActivo.serieCajero = txt;
+          this.cdr.detectChanges();
+          this.guardarFirmaTemporal();
+        });
+      }
+    } catch (e) {
+      console.error('Cámara cancelada', e);
+    }
+  }
+
+  async escanearSerieMmbb() {
+    try {
+      const image = await Camera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Camera
+      });
+      if (image && image.dataUrl) {
+        this.procesarOcrEnLote(image.dataUrl, (txt) => {
+          this.atmActivo.serieMmbb = txt;
+          this.cdr.detectChanges();
+          this.guardarFirmaTemporal();
+        });
+      }
+    } catch (e) {
+      console.error('Cámara cancelada', e);
+    }
+  }
+
+  async finalizarOT() {
     this.guardando = true;
 
-    // Crear un spinner circular nativo de Ionic en pantalla para guiar al usuario
+    // Recubrimos las firmas leyendo del método getDataUrl() presente en el canvas
+    this.pads.forEach((pad, index) => {
+      const url = pad.getDataUrl();
+      if (index === 0) this.firmaTecnico = url;
+      if (index === 1) this.firmaETV = url;
+      if (index === 2) this.firmaAlarma = url;
+    });
+
+    this.otContextService.nombreTecnico = this.nombreTecnico;
+    this.otContextService.nombreETV = this.nombreETV;
+    this.otContextService.nombreAlarma = this.nombreAlarma;
+    this.otContextService.setAtms(this.atms);
+    this.otContextService.guardarTrabajoActivo();
+
     const loading = await this.loadingController.create({
-      message: 'Comprimiendo y transmitiendo paquete de terreno...',
-      backdropDismiss: false,
+      message: 'Compilando fotos, firmas y generando reporte digital ZIP...',
     });
     await loading.present();
 
     try {
-      // 1. Salvaguardar los datos actuales del formulario en el contexto singleton
-      this.sincronizarAtms();
-      this.otContextService.nombreTecnico = this.nombreTecnico;
-      this.otContextService.nombreETV = this.nombreETV;
-      this.otContextService.nombreAlarma = this.nombreAlarma;
+      const timestamp = new Date().toISOString().replace(/[-:T]/g, '').substring(0, 14);
+      const clienteNombre = this.otContextService.cliente.replace(/\s+/g, '_') || 'Otros';
+      const atmLabel = this.atms.length > 0 ? this.atms[0].numeroAtm.trim() : '0000';
+      const nombreRaiz = `REPORTE_${clienteNombre}_ATM_${atmLabel}_${timestamp}`;
 
-      // Guardar de manera persistente en SQLite o almacenamiento del dispositivo
-      this.otContextService.guardarTrabajoActivo();
+      const pdfReporteBlob = await this.generarPdf();
 
-      // 2. Generar el paquete ZIP estructurado en memoria
-      const paquete = await this.generarZipPaquete();
-      if (!paquete) {
-        throw new Error('No se pudo empaquetar el reporte de terreno en ZIP.');
+      const zip = new JSZip();
+      zip.file(`${nombreRaiz}.pdf`, pdfReporteBlob);
+
+      const carpetaFotos = zip.folder('fotos');
+      if (carpetaFotos) {
+        let fotoIndex = 1;
+        for (const atm of this.atms) {
+          const fotos = this.otContextService.getFotosPorAtm(atm.numeroAtm);
+          for (const f of fotos) {
+            const extension = f.mimeType.split('/')[1] || 'jpg';
+            const base64Data = f.previewDataUrl.split(',')[1];
+            if (base64Data) {
+              carpetaFotos.file(`ATM_${atm.numeroAtm}_FOTO_${fotoIndex}.${extension}`, base64Data, { base64: true });
+              fotoIndex++;
+            }
+          }
+        }
       }
 
+      this.crearArchivoFirmasDelZip(zip);
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      await this.transmitirYGuardarZIP({ nombreRaiz, zipBlob }, loading);
+
+    } catch (e) {
+      console.error('Error al generar el paquete consolidado:', e);
+      await loading.dismiss();
+      this.guardando = false;
+
+      const toast = await this.toastController.create({
+        message: 'No se pudo generar el reporte consolidado.',
+        duration: 4000,
+        color: 'danger',
+        position: 'bottom'
+      });
+      await toast.present();
+    }
+  }
+
+  crearArchivoFirmasDelZip(zip: JSZip): void {
+    const carpetaFirmas = zip.folder('firmas');
+    if (carpetaFirmas) {
+      if (this.firmaTecnico && this.firmaTecnico.includes(',')) {
+        carpetaFirmas.file('firma_tecnico.png', this.firmaTecnico.split(',')[1], { base64: true });
+      }
+      if (this.firmaETV && this.firmaETV.includes(',')) {
+        carpetaFirmas.file('firma_etv.png', this.firmaETV.split(',')[1], { base64: true });
+      }
+      if (this.firmaAlarma && this.firmaAlarma.includes(',')) {
+        carpetaFirmas.file('firma_alarma.png', this.firmaAlarma.split(',')[1], { base64: true });
+      }
+    }
+  }
+
+  async transmitirYGuardarZIP(paquete: { nombreRaiz: string; zipBlob: Blob }, loading: any) {
+    try {
       const { nombreRaiz, zipBlob } = paquete;
       const otIdActiva = this.otContextService.trabajoActivoId;
 
-      // 3. Obtener token de autenticación del almacenamiento local
-      // Intentamos extraer el token usando las claves más comunes del sistema (ssei-token, token, o auth-token)
-      const token = localStorage.getItem('token') ||
-        localStorage.getItem('token') ||
-        localStorage.getItem('auth-token') || '';
+      const token = localStorage.getItem('token') || localStorage.getItem('auth-token') || '';
       const headers = new HttpHeaders({
         'Authorization': `Bearer ${token}`
       });
 
-      // Sincronizar archivo físico ZIP al repositorio web usando FormData y cargando el header de seguridad
       const formData = new FormData();
       formData.append('file', zipBlob, `${nombreRaiz}.zip`);
       formData.append('categoria', 'respaldo_terreno');
@@ -510,18 +338,17 @@ export class FormularioOtPage {
         formData.append('numero_atm', this.atms[0].numeroAtm || '');
       }
 
-      // Subir el archivo de terreno a la API de biblioteca adjuntando las credenciales (headers)
       const uploadUrl = 'http://localhost:8000/biblioteca/upload';
       await firstValueFrom(this.http.post(uploadUrl, formData, { headers }));
 
-      // 4. Si la OT pertenece originalmente al Servidor, actualizamos su estado a "sincronizada"
       if (otIdActiva && !otIdActiva.startsWith('local-')) {
         const updateStateUrl = `http://localhost:8000/ots/${otIdActiva}/estado`;
         await firstValueFrom(this.http.patch(updateStateUrl, { estado: 'sincronizada' }, { headers }));
       }
 
-      // 5. Notificación de éxito y retorno seguro al Dashboard
       await loading.dismiss();
+      this.guardando = false;
+
       const toast = await this.toastController.create({
         message: '¡Orden de trabajo sincronizada exitosamente con la oficina central!',
         duration: 4000,
@@ -530,13 +357,16 @@ export class FormularioOtPage {
       });
       await toast.present();
 
-      // Marcar el trabajo actual como guardado y limpiar el ID de edición para liberar RAM
+      const keyFirmas = `ssei-firmas-temp-${this.otContextService.trabajoActivoId}`;
+      localStorage.removeItem(keyFirmas);
+
       this.otContextService.trabajoActivoId = null;
       this.router.navigate(['/dashboard']);
 
     } catch (error) {
       console.error('Error al sincronizar la orden:', error);
       await loading.dismiss();
+      this.guardando = false;
 
       const toastError = await this.toastController.create({
         message: 'Error de red en terreno. Los datos se mantendrán guardados en tu dispositivo.',
@@ -545,251 +375,84 @@ export class FormularioOtPage {
         position: 'bottom'
       });
       await toastError.present();
-    } finally {
-      this.guardando = false;
     }
   }
 
-  async descargarPdf(): Promise<void> {
-    const blob = await this.generarPdf();
-    if (blob) {
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `OT_Tecnico_${this.nombreTecnico || 'Sin_Nombre'}.pdf`;
-      link.click();
-      window.URL.revokeObjectURL(url);
-    }
+  async generarPdf(): Promise<Blob> {
+    const arrayBuffer = await firstValueFrom(
+      this.http.get('assets/icon/templates/plantilla.pdf', { responseType: 'arraybuffer' })
+    );
+
+    const pdfDoc = await PDFDocument.load(arrayBuffer);
+    const paginas = pdfDoc.getPages();
+    const paginaPrincipal = paginas[0];
+
+    const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+    const xIzquierda = 51;
+    const xDerecha = 312;
+
+    paginaPrincipal.drawText(this.otContextService.cliente || 'Sin Cliente', { x: xIzquierda + 55, y: 641, size: 10, font: helveticaBold, color: rgb(0.12, 0.12, 0.12) });
+    paginaPrincipal.drawText(this.otContextService.comuna || 'Metropolitana', { x: xIzquierda + 55, y: 618, size: 9, font: helvetica, color: rgb(0.12, 0.12, 0.12) });
+    paginaPrincipal.drawText(this.otContextService.direccion || 'Santiago', { x: xIzquierda + 55, y: 597, size: 9, font: helvetica, color: rgb(0.12, 0.12, 0.12) });
+    paginaPrincipal.drawText(this.otContextService.ubicacion || 'Punto sucursal', { x: xIzquierda + 55, y: 576, size: 8, font: helvetica, color: rgb(0.24, 0.24, 0.24) });
+
+    const numAtm = this.atmActivo.numeroAtm || '';
+    paginaPrincipal.drawText(numAtm, { x: xDerecha + 72, y: 641, size: 10, font: helveticaBold, color: rgb(0.12, 0.12, 0.12) });
+    paginaPrincipal.drawText(this.atmActivo.tipoServicio.toUpperCase(), { x: xDerecha + 72, y: 618, size: 10, font: helveticaBold, color: rgb(0.01, 0.44, 0.8) });
+    paginaPrincipal.drawText(this.atmActivo.serieCajero || 'N/A', { x: xDerecha + 72, y: 597, size: 9, font: helvetica, color: rgb(0.12, 0.12, 0.12) });
+    paginaPrincipal.drawText(this.atmActivo.serieMmbb || 'N/A', { x: xDerecha + 72, y: 576, size: 9, font: helvetica, color: rgb(0.12, 0.12, 0.12) });
+
+    const med = this.atmActivo.medicionesElectricas || {
+      tablero: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
+      upsAntigua: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
+      upsNueva: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
+      tieneUpsNueva: false
+    };
+
+    paginaPrincipal.drawText(`${med.tablero.faseNeutro || '0'} V`, { x: 196, y: 494, size: 9, font: helvetica });
+    paginaPrincipal.drawText(`${med.tablero.neutroTierra || '0'} V`, { x: 196, y: 477, size: 9, font: helvetica });
+    paginaPrincipal.drawText(`${med.tablero.faseTierra || '0'} V`, { x: 196, y: 461, size: 9, font: helvetica });
+
+    paginaPrincipal.drawText(`${med.upsAntigua.faseNeutro || '0'} V`, { x: 308, y: 494, size: 9, font: helvetica });
+    paginaPrincipal.drawText(`${med.upsAntigua.neutroTierra || '0'} V`, { x: 308, y: 477, size: 9, font: helvetica });
+    paginaPrincipal.drawText(`${med.upsAntigua.faseTierra || '0'} V`, { x: 308, y: 461, size: 9, font: helvetica });
+
+    const tieneNueva = med.tieneUpsNueva ? 'SI' : 'NO';
+    paginaPrincipal.drawText(tieneNueva, { x: 426, y: 494, size: 9, font: helveticaBold, color: rgb(0.01, 0.44, 0.8) });
+
+    paginaPrincipal.drawText(`${med.upsNueva.faseNeutro || '0'} V`, { x: 508, y: 494, size: 9, font: helvetica });
+    paginaPrincipal.drawText(`${med.upsNueva.neutroTierra || '0'} V`, { x: 508, y: 477, size: 9, font: helvetica });
+    paginaPrincipal.drawText(`${med.upsNueva.faseTierra || '0'} V`, { x: 508, y: 461, size: 9, font: helvetica });
+
+    paginaPrincipal.drawText(this.atmActivo.detallesServicio || '', { x: 51, y: 410, size: 9, font: helvetica, maxWidth: 510, lineHeight: 12 });
+    paginaPrincipal.drawText(this.atmActivo.observaciones || 'Sin observaciones.', { x: 51, y: 228, size: 9, font: helvetica, maxWidth: 510, lineHeight: 12 });
+
+    paginaPrincipal.drawText(this.nombreTecnico, { x: 53, y: 77, size: 9, font: helveticaBold });
+    paginaPrincipal.drawText(this.nombreETV, { x: 232, y: 77, size: 9, font: helveticaBold });
+    paginaPrincipal.drawText(this.nombreAlarma, { x: 412, y: 77, size: 9, font: helveticaBold });
+
+    await this.incrustarFirma(pdfDoc, paginaPrincipal, this.firmaTecnico, 53, 91);
+    await this.incrustarFirma(pdfDoc, paginaPrincipal, this.firmaETV, 232, 91);
+    await this.incrustarFirma(pdfDoc, paginaPrincipal, this.firmaAlarma, 412, 91);
+
+    const pdfBytes = await pdfDoc.save();
+    return new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
   }
 
-  async descargarPaquete(): Promise<void> {
-    const paquete = await this.generarZipPaquete();
-    if (!paquete) {
-      return;
-    }
-
-    const { nombreRaiz, zipBlob } = paquete;
-    const url = window.URL.createObjectURL(zipBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${nombreRaiz}.zip`;
-    link.click();
-    window.URL.revokeObjectURL(url);
-  }
-
-  async compartirPaquete(): Promise<void> {
-    try {
-      const paquete = await this.generarZipPaquete();
-      if (!paquete) {
-        return;
-      }
-
-      const { nombreRaiz, zipBlob } = paquete;
-      const zipBase64 = await this.blobToBase64(zipBlob);
-
-      const resultado = await Filesystem.writeFile({
-        path: `${nombreRaiz}.zip`,
-        data: zipBase64,
-        directory: Directory.Cache,
-        recursive: true,
-      });
-
-      await Share.share({
-        title: 'Compartir paquete OT',
-        text: `Paquete OT ${nombreRaiz}`,
-        url: resultado.uri,
-        dialogTitle: 'Compartir paquete OT',
-      });
-    } catch (error) {
-      console.error('Error al compartir paquete:', error);
-    }
-  }
-
-  private async blobToBase64(blob: Blob): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const resultado = reader.result as string;
-        resolve(resultado.split(',')[1] ?? '');
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  }
-
-  private formatearFechaArchivo(fecha = new Date()): string {
-    const yyyy = fecha.getFullYear();
-    const mm = String(fecha.getMonth() + 1).padStart(2, '0');
-    const dd = String(fecha.getDate()).padStart(2, '0');
-    return `${yyyy}${mm}${dd}`;
-  }
-
-  private normalizarNombreArchivo(texto: string): string {
-    return texto
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-zA-Z0-9_-]+/g, '_')
-      .replace(/_+/g, '_')
-      .replace(/^_|_$/g, '');
-  }
-
-  private construirNombrePaquete(): string {
-    const numerosAtm = this.atms
-      .map((a) => a.numeroAtm.trim())
-      .filter(Boolean)
-      .join('-') || 'SIN_ATM';
-
-    const tiposServicio = Array.from(
-      new Set(
-        this.atms
-          .map((a) => a.tipoServicio?.trim())
-          .filter(Boolean)
-      )
-    ).join('-') || 'sin-servicio';
-
-    const fecha = this.formatearFechaArchivo();
-
-    return this.normalizarNombreArchivo(`${numerosAtm}_${fecha}_${tiposServicio}`);
-  }
-
-  private async generarZipPaquete(): Promise<{ nombreRaiz: string; zipBlob: Blob } | null> {
-    const nombreRaiz = this.construirNombrePaquete();
-    const zip = new JSZip();
-    const carpetaRaiz = zip.folder(nombreRaiz);
-
-    if (!carpetaRaiz) {
-      return null;
-    }
-
-    const pdfBlob = await this.generarPdf();
-    if (pdfBlob) {
-      const pdfBuffer = await pdfBlob.arrayBuffer();
-      carpetaRaiz.file(`OT_${nombreRaiz}.pdf`, pdfBuffer);
-    }
-
-    for (const atm of this.atms) {
-      const numeroAtm = atm.numeroAtm.trim();
-      if (!numeroAtm) {
-        continue;
-      }
-
-      const fotos = this.otContextService.getFotosPorAtm(numeroAtm);
-      if (fotos.length === 0) {
-        continue;
-      }
-
-      const tipoServicio = this.normalizarNombreArchivo(atm.tipoServicio || 'sin-servicio');
-      const carpetaAtm = carpetaRaiz.folder(`ATM_${numeroAtm}_${tipoServicio}`);
-
-      for (const foto of fotos) {
-        const base64Data = foto.previewDataUrl.split(',')[1] ?? '';
-        if (!base64Data) {
-          continue;
-        }
-        carpetaAtm?.file(foto.nombreArchivo, base64Data, { base64: true });
-      }
-    }
-
-    const zipBlob = await zip.generateAsync({ type: 'blob' });
-    return { nombreRaiz, zipBlob };
-  }
-
-  async enviarPdf(): Promise<void> {
-    const blob = await this.generarPdf();
-    if (!blob) {
-      return;
-    }
-
-    console.log('PDF listo para envío:', blob);
-  }
-
-
-  // -------------------------------------------------------------------------
-  // Helpers de firma
-  // -------------------------------------------------------------------------
-
-  private async incrustarFirma(
-    pdfDoc: PDFDocument,
-    page: ReturnType<PDFDocument['getPages']>[number],
-    dataUrl: string,
-    pos: { x: number; y: number; width: number; height: number },
-  ): Promise<void> {
-    if (!dataUrl) {
+  async incrustarFirma(pdfDoc: PDFDocument, paginaPrincipal: any, dataUrl: string, x: number, y: number) {
+    if (!dataUrl || !dataUrl.includes(',')) {
+      paginaPrincipal.drawText('FIRMA NO DISPONIBLE', { x, y: y + 20, size: 7, font: await pdfDoc.embedFont(StandardFonts.HelveticaBold), color: rgb(0.7, 0.7, 0.7) });
       return;
     }
     try {
       const base64 = dataUrl.split(',')[1];
-      const pngBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-      const img = await pdfDoc.embedPng(pngBytes);
-      page.drawImage(img, pos);
-    } catch {
-      // Si la imagen falla no interrumpir la generación del PDF
+      const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+      const imageEmbed = await pdfDoc.embedPng(bytes);
+      paginaPrincipal.drawImage(imageEmbed, { x, y, width: 154, height: 49 });
+    } catch (e) {
+      console.error('Error al incrustar firma en el PDF:', e);
     }
   }
-  // Metodos para escaneo de series
-  escaneandoSerieCajero = false;
-  escaneandoSerieMmbb = false;
-
-  private normalizarSerie(texto: string): string {
-    return texto
-      .toUpperCase()
-      .replace(/[^A-Z0-9-]/g, '')
-      .trim();
-  }
-
-  private extraerSerie(texto: string): string {
-    const candidatos = (texto.toUpperCase().match(/[A-Z0-9-]{4,}/g) ?? [])
-      .map((c) => this.normalizarSerie(c))
-      .filter((c) => c.length >= 4);
-    return candidatos[0] ?? '';
-  }
-
-  async escanearSerie(campo: 'serieCajero' | 'serieMmbb'): Promise<void> {
-    if (!this.atmActivo) {
-      return;
-    }
-
-    if (campo === 'serieCajero') {
-      this.escaneandoSerieCajero = true;
-    } else {
-      this.escaneandoSerieMmbb = true;
-    }
-
-    try {
-      const foto = await Camera.getPhoto({
-        resultType: CameraResultType.Base64,
-        source: CameraSource.Camera,
-        quality: 75,
-      });
-
-      if (!foto.base64String) {
-        return;
-      }
-
-      const dataUrl = 'data:image/jpeg;base64,' + foto.base64String;
-      const resultado = await recognize(dataUrl, 'eng');
-      const serie = this.extraerSerie(resultado.data.text);
-
-      if (!serie) {
-        return;
-      }
-
-      if (campo === 'serieCajero') {
-        this.atmActivo.serieCajero = serie;
-      } else {
-        this.atmActivo.serieMmbb = serie;
-      }
-
-      this.sincronizarAtms();
-    } catch (error) {
-      console.error('Error OCR de serie:', error);
-    } finally {
-      if (campo === 'serieCajero') {
-        this.escaneandoSerieCajero = false;
-      } else {
-        this.escaneandoSerieMmbb = false;
-      }
-    }
-  }
-
 }

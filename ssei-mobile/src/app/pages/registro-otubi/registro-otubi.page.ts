@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, Router } from '@angular/router';
@@ -21,11 +21,27 @@ import {
   IonSegment,
   IonSegmentButton,
   IonSpinner,
+  IonButtons,
 } from '@ionic/angular/standalone';
 import { OtAtmDetalle, OtContextService, OtFotoReporte } from '../../ot-context.service';
+import { AuthService } from '../../services/auth.service'; // 👈 Inyectado
 import { addIcons } from 'ionicons';
-import { cloudUploadOutline, addOutline, trashOutline, arrowForwardOutline, locationOutline } from 'ionicons/icons';
+import { cloudUploadOutline, addOutline, trashOutline, arrowForwardOutline, locationOutline, logOutOutline, arrowBackOutline } from 'ionicons/icons';
 import { Geolocation } from '@capacitor/geolocation';
+
+interface NominatimResultado {
+  display_name: string;
+  lat: string;
+  lon: string;
+  address: {
+    road?: string;
+    house_number?: string;
+    city?: string;
+    town?: string;
+    suburb?: string;
+    county?: string;
+  };
+}
 
 @Component({
   selector: 'app-registro-otubi',
@@ -54,6 +70,7 @@ import { Geolocation } from '@capacitor/geolocation';
     IonSegment,
     IonSegmentButton,
     IonSpinner,
+    IonButtons,
   ]
 })
 export class RegistroOTUBIPage {
@@ -72,11 +89,14 @@ export class RegistroOTUBIPage {
 
   private fotosMap = new Map<number, OtFotoReporte[]>();
 
+  // Inyectamos AuthService y dependencias nativas
+  private readonly authService = inject(AuthService);
+
   constructor(
     private readonly otContextService: OtContextService,
     private readonly router: Router,
   ) {
-    addIcons({ cloudUploadOutline, addOutline, trashOutline, arrowForwardOutline, locationOutline });
+    addIcons({ cloudUploadOutline, addOutline, trashOutline, arrowForwardOutline, locationOutline, logOutOutline, arrowBackOutline });
   }
 
   get cliente(): string {
@@ -99,13 +119,11 @@ export class RegistroOTUBIPage {
     const atmsGuardados = this.otContextService.getAtms();
     this.atms = atmsGuardados.length > 0 ? atmsGuardados : [this.crearAtm(1)];
 
-    // Sincronizar todos los datos geográficos y banco de cabecera
     this.comuna = this.otContextService.comuna;
     this.direccion = this.otContextService.direccion;
     this.busquedaDireccion = this.direccion;
-    this.ubicacion = this.otContextService.ubicacion; // 👈 Enlazar la ubicación
+    this.ubicacion = this.otContextService.ubicacion;
 
-    // Si existe ATM inicializado pero tiene campo número de ATM vacío y ya lo guardamos en el contexto anterior:
     if (this.atms.length > 0 && !this.atms[0].numeroAtm && atmsGuardados[0]?.numeroAtm) {
       this.atms[0].numeroAtm = atmsGuardados[0].numeroAtm;
     }
@@ -118,143 +136,30 @@ export class RegistroOTUBIPage {
     this.direccion = direccionFinal;
     this.otContextService.direccion = direccionFinal;
     this.otContextService.comuna = this.comuna;
-    this.otContextService.direccion = this.direccion;
-    this.ubicacion = this.normalizarPrimeraPalabra(this.ubicacion);
     this.otContextService.ubicacion = this.ubicacion;
-    this.sincronizarAtms();
   }
 
-  guardar(): void {
-    const direccionFinal = this.direccion.trim() || this.busquedaDireccion.trim();
-    this.direccion = direccionFinal;
-    this.otContextService.direccion = direccionFinal;
-    this.otContextService.comuna = this.comuna;
-    this.otContextService.direccion = this.direccion;
-    this.ubicacion = this.normalizarPrimeraPalabra(this.ubicacion);
-    this.otContextService.ubicacion = this.ubicacion;
-    this.sincronizarAtms();
-    this.otContextService.guardarTrabajoActivo();
-    this.router.navigate(['/dashboard']);
+  cerrarSesionTecnico(): void {
+    this.authService.presentarConfirmacionLogout();
   }
 
   onClienteChange(): void {
     this.otContextService.setCliente(this.cliente);
   }
 
-  agregarAtm(): void {
-    this.atms.push(this.crearAtm(this.atms.length + 1));
-    this.indiceAtmActivo = this.atms.length - 1;
-    this.sincronizarAtms();
-  }
-
-  eliminarAtm(): void {
-    if (this.atms.length === 1) {
-      return;
-    }
-    this.atms.splice(this.indiceAtmActivo, 1);
-    this.reenumerarAtms();
-    this.indiceAtmActivo = Math.max(0, this.indiceAtmActivo - 1);
-    this.sincronizarAtms();
-    this.refrescarTodasLasFotos();
-  }
-
-  cambiarAtm(event: CustomEvent): void {
-    const nuevoIndice = Number(event.detail.value);
-    if (!Number.isNaN(nuevoIndice) && this.atms[nuevoIndice]) {
-      this.indiceAtmActivo = nuevoIndice;
-    }
+  onUbicacionBlur(): void {
+    this.otContextService.ubicacion = this.ubicacion;
+    this.otContextService.guardarTrabajoActivo();
   }
 
   sincronizarAtms(): void {
     this.otContextService.setAtms(this.atms);
+    this.otContextService.guardarTrabajoActivo();
   }
 
-  onUbicacionBlur(): void {
-    this.ubicacion = this.normalizarPrimeraPalabra(this.ubicacion);
-  }
-
-  async onSeleccionFotos(event: Event, indiceAtm: number): Promise<void> {
-    const input = event.target as HTMLInputElement;
-    const files = input.files;
-    const atm = this.atms[indiceAtm];
-
-    if (!files || files.length === 0 || !atm?.numeroAtm.trim()) {
-      return;
-    }
-
-    const fotosNuevas: OtFotoReporte[] = [];
-
-    for (const file of Array.from(files)) {
-      if (!file.type.startsWith('image/')) {
-        continue;
-      }
-      const dataUrl = await this.comprimirImagen(file);
-      fotosNuevas.push({
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        atmNumero: atm.numeroAtm.trim(),
-        nombreArchivo: file.name,
-        mimeType: file.type,
-        fechaRegistro: new Date().toISOString(),
-        previewDataUrl: dataUrl,
-      });
-    }
-
-    if (fotosNuevas.length > 0) {
-      this.otContextService.agregarFotos(fotosNuevas);
-      this.refrescarFotosAtm(indiceAtm);
-    }
-
-    input.value = '';
-  }
-
-  eliminarFoto(idFoto: string, indiceAtm: number): void {
-    this.otContextService.eliminarFoto(idFoto);
-    this.refrescarFotosAtm(indiceAtm);
-  }
-
-  private comprimirImagen(file: File, maxAnchoAlto = 1200, calidad = 0.75): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-
-          // Mantener proporción de aspecto
-          if (width > height) {
-            if (width > maxAnchoAlto) {
-              height *= maxAnchoAlto / width;
-              width = maxAnchoAlto;
-            }
-          } else {
-            if (height > maxAnchoAlto) {
-              width *= maxAnchoAlto / height;
-              height = maxAnchoAlto;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-
-          // Convertir a JPEG con calidad optimizada (pesará de 150KB a 400KB)
-          const dataUrl = canvas.toDataURL('image/jpeg', calidad);
-          resolve(dataUrl);
-        };
-        img.onerror = (err) => reject(err);
-      };
-      reader.onerror = (err) => reject(err);
-    });
-  }
-  private crearAtm(numero: number): OtAtmDetalle {
+  crearAtm(indice: number): OtAtmDetalle {
     return {
-      etiqueta: `ATM ${numero}`,
+      etiqueta: `ATM ${indice}`,
       tipoServicio: 'instalacion',
       numeroAtm: '',
       serieCajero: '',
@@ -264,149 +169,149 @@ export class RegistroOTUBIPage {
     };
   }
 
-  private reenumerarAtms(): void {
-    this.atms = this.atms.map((atm, index) => ({
-      ...atm,
-      etiqueta: `ATM ${index + 1}`,
-    }));
+  agregarAtm(): void {
+    const nuevoIndice = this.atms.length + 1;
+    this.atms.push(this.crearAtm(nuevoIndice));
+    this.indiceAtmActivo = this.atms.length - 1;
+    this.sincronizarAtms();
   }
 
-  private refrescarTodasLasFotos(): void {
-    this.fotosMap = new Map();
-    this.atms.forEach((_, i) => this.refrescarFotosAtm(i));
+  eliminarAtm(): void {
+    if (this.atms.length <= 1) return;
+    this.atms.splice(this.indiceAtmActivo, 1);
+    this.atms.forEach((atm, index) => {
+      atm.etiqueta = `ATM ${index + 1}`;
+    });
+    this.indiceAtmActivo = Math.max(0, this.indiceAtmActivo - 1);
+    this.sincronizarAtms();
   }
 
-  private refrescarFotosAtm(indiceAtm: number): void {
-    const atm = this.atms[indiceAtm];
-    if (!atm?.numeroAtm.trim()) {
-      this.fotosMap.set(indiceAtm, []);
-      return;
-    }
-    this.fotosMap.set(indiceAtm, this.otContextService.getFotosPorAtm(atm.numeroAtm));
+  cambiarAtm(event: any): void {
+    this.indiceAtmActivo = parseInt(event.detail.value, 10);
   }
 
-  private convertirArchivoADataUrl(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result ?? ''));
-      reader.onerror = () => reject(new Error('No se pudo leer la imagen'));
-      reader.readAsDataURL(file);
+  refrescarTodasLasFotos(): void {
+    this.fotosMap.clear();
+    this.atms.forEach((atm, index) => {
+      const fotosAtm = this.otContextService.getFotosPorAtm(atm.numeroAtm);
+      this.fotosMap.set(index, fotosAtm);
     });
   }
 
-  private normalizarPrimeraPalabra(texto: string): string {
-    const limpio = texto.trim();
-    if (!limpio) {
-      return '';
-    }
+  onSeleccionFotos(event: any, atmIndice: number): void {
+    const files = event.target.files as FileList;
+    if (!files || files.length === 0) return;
 
-    const partes = limpio.split(/\s+/);
-    const primera = partes[0];
-    const primeraNormalizada =
-      primera.charAt(0).toUpperCase() + primera.slice(1).toLowerCase();
-    return [primeraNormalizada, ...partes.slice(1)].join(' ');
+    const atmNumero = this.atms[atmIndice].numeroAtm.trim();
+    if (!atmNumero) return;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        const base64 = e.target.result as string;
+        const foto: OtFotoReporte = {
+          id: `${Date.now()}-${Math.random()}`,
+          atmNumero,
+          nombreArchivo: file.name,
+          mimeType: file.type,
+          fechaRegistro: new Date().toISOString(),
+          previewDataUrl: base64,
+        };
+        this.otContextService.agregarFotos([foto]);
+        this.refrescarTodasLasFotos();
+      };
+      reader.readAsDataURL(file);
+    }
   }
 
-  // -------------------------------------------------------------------------
-  // GPS + búsqueda de dirección (Nominatim / OpenStreetMap)
-  // -------------------------------------------------------------------------
+  eliminarFoto(idFoto: string, atmIndice: number): void {
+    this.otContextService.eliminarFoto(idFoto);
+    this.refrescarTodasLasFotos();
+  }
+
+  guardar(): void {
+    this.otContextService.comuna = this.comuna;
+    this.otContextService.direccion = this.direccion;
+    this.otContextService.ubicacion = this.ubicacion;
+    this.otContextService.setAtms(this.atms);
+    this.otContextService.guardarTrabajoActivo();
+  }
 
   async obtenerUbicacionGps(): Promise<void> {
     this.buscandoGps = true;
-    this.sugerencias = [];
-    this.mostrarSugerencias = false;
     try {
-      const permiso = await Geolocation.checkPermissions();
-      if (permiso.location === 'denied') {
-        await Geolocation.requestPermissions();
+      const position = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 10000,
+      });
+
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`;
+      const res = await fetch(url, { headers: { 'User-Agent': 'SSEI-Mobile-App' } });
+      const data = await res.json();
+
+      if (data) {
+        const address = data.address;
+        const calle = address.road || address.pedestrian || '';
+        const numero = address.house_number || '';
+        this.comuna = address.city || address.town || address.suburb || address.county || '';
+        this.direccion = `${calle} ${numero}`.trim();
+        this.busquedaDireccion = this.direccion;
+
+        this.otContextService.comuna = this.comuna;
+        this.otContextService.direccion = this.direccion;
+        this.otContextService.guardarTrabajoActivo();
       }
-      const pos = await Geolocation.getCurrentPosition({ timeout: 10000, enableHighAccuracy: true });
-      await this.reverseGeocode(pos.coords.latitude, pos.coords.longitude);
-      this.busquedaDireccion = this.direccion;
-    } catch (err) {
-      console.error('GPS no disponible:', err);
+    } catch (e) {
+      console.error('Error de Geolocalización:', e);
     } finally {
       this.buscandoGps = false;
     }
   }
 
   onBusquedaChange(): void {
-    if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer);
-    }
-
-    const raw = this.busquedaDireccion;
-    const query = raw.trim();
-
-    this.direccion = query;
-
-    if (query.length < 3) {
+    if (this.debounceTimer) clearTimeout(this.debounceTimer);
+    const text = this.busquedaDireccion.trim();
+    if (text.length < 4) {
       this.sugerencias = [];
       this.mostrarSugerencias = false;
       return;
     }
 
-    this.debounceTimer = setTimeout(() => this.buscarNominatim(query), 400);
+    this.debounceTimer = setTimeout(async () => {
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(text)}&limit=5&addressdetails=1&countrycodes=cl`;
+        const res = await fetch(url, { headers: { 'User-Agent': 'SSEI-Mobile-App' } });
+        const list = await res.json() as NominatimResultado[];
+        this.sugerencias = list || [];
+        this.mostrarSugerencias = this.sugerencias.length > 0;
+      } catch (e) {
+        console.error('Error de autocompletado:', e);
+      }
+    }, 600);
   }
 
   seleccionarSugerencia(s: NominatimResultado): void {
-    const addr = s.address;
-    const calle = addr.road ?? addr.pedestrian ?? '';
-    const numero = addr.house_number ? ` ${addr.house_number}` : '';
-    this.direccion = `${calle}${numero}`.trim() || s.display_name.split(',')[0].trim();
+    const isRoad = s.address && s.address.road;
+    const calle = s.address.road || '';
+    const numero = s.address.house_number || '';
+    this.comuna = s.address.city || s.address.town || s.address.suburb || s.address.county || '';
+    this.direccion = isRoad ? `${calle} ${numero}`.trim() : s.display_name;
     this.busquedaDireccion = this.direccion;
-    this.comuna = addr.suburb ?? addr.city_district ?? addr.quarter
-      ?? addr.city ?? addr.town ?? addr.municipality ?? '';
-    this.sugerencias = [];
     this.mostrarSugerencias = false;
+    this.sugerencias = [];
+
+    this.otContextService.comuna = this.comuna;
+    this.otContextService.direccion = this.direccion;
+    this.otContextService.guardarTrabajoActivo();
   }
 
   cerrarSugerencias(): void {
-    // Pequeño delay para que el click en una sugerencia se procese antes
-    setTimeout(() => { this.mostrarSugerencias = false; }, 200);
-  }
-
-  private async buscarNominatim(query: string): Promise<void> {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&countrycodes=cl&limit=5&accept-language=es`;
-    try {
-      const res = await fetch(url, { headers: { 'Accept-Language': 'es' } });
-      this.sugerencias = await res.json() as NominatimResultado[];
-      this.mostrarSugerencias = this.sugerencias.length > 0;
-    } catch {
-      this.sugerencias = [];
+    setTimeout(() => {
       this.mostrarSugerencias = false;
-    }
+    }, 280);
   }
-
-  private async reverseGeocode(lat: number, lon: number): Promise<void> {
-    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1&accept-language=es`;
-    const res = await fetch(url);
-    const data = await res.json() as NominatimResultado;
-    const addr = data.address;
-    const calle = addr.road ?? addr.pedestrian ?? '';
-    const numero = addr.house_number ? ` ${addr.house_number}` : '';
-    this.direccion = `${calle}${numero}`.trim() || data.display_name.split(',')[0].trim();
-    this.comuna = addr.suburb ?? addr.city_district ?? addr.quarter
-      ?? addr.city ?? addr.town ?? addr.municipality ?? '';
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Tipos Nominatim
-// ---------------------------------------------------------------------------
-interface NominatimResultado {
-  place_id: number;
-  display_name: string;
-  address: {
-    road?: string;
-    pedestrian?: string;
-    house_number?: string;
-    suburb?: string;
-    city_district?: string;
-    quarter?: string;
-    city?: string;
-    town?: string;
-    municipality?: string;
-    state?: string;
-  };
 }

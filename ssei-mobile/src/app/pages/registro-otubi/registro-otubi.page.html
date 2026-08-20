@@ -1,13 +1,27 @@
 <ion-header class="ion-no-border">
-  <ion-toolbar>
-    <ion-title>Registro OT - Ubicación</ion-title>
+  <ion-toolbar id="header-toolbar">
+    <!-- Botón Volver al Dashboard -->
+    <ion-buttons slot="start">
+      <ion-button fill="clear" [routerLink]="['/dashboard']">
+        <ion-icon name="arrow-back-outline" style="font-size: 24px;"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+
+    <ion-title>Detalles de servicio</ion-title>
+
+    <!-- 👤 Botón de Cierre de Sesión Reutilizable -->
+    <ion-buttons slot="end">
+      <ion-button fill="clear" (click)="cerrarSesionTecnico()">
+        <ion-icon name="log-out-outline" style="font-size: 24px;" color="danger"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true" class="page-content">
   <section class="section">
-    <h2>Información del Punto de Atención</h2>
-    <p>Complete los datos de ubicación e ingrese los ATMs del trabajo.</p>
+    <h2>Información del punto solicitado  </h2>
+    <p>Complete los datos y agregue las fotos del trabajo.</p>
   </section>
 
   <!-- Cliente y ubicación -->

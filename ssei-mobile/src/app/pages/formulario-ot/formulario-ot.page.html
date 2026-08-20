@@ -1,6 +1,20 @@
 <ion-header class="ion-no-border">
-  <ion-toolbar>
-    <ion-title>Registro OT - Servicios</ion-title>
+  <ion-toolbar id="header-toolbar">
+    <!-- Botón volver atrás -->
+    <ion-buttons slot="start">
+      <ion-button fill="clear" [routerLink]="['/registro-otubi']">
+        <ion-icon name="arrow-back-outline" style="font-size: 24px;"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+
+    <ion-title>Detalles del servicio</ion-title>
+
+    <!-- 👤 Botón de Cierre de Sesión Reutilizable -->
+    <ion-buttons slot="end">
+      <ion-button fill="clear" (click)="cerrarSesionTecnico()">
+        <ion-icon name="log-out-outline" style="font-size: 24px;" color="danger"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
@@ -13,354 +27,191 @@
     <ion-card-content>
       <ion-grid class="ion-no-padding">
         <!-- Selector Segmentado de ATMs -->
-        <ion-row class="ion-justify-content-center" style="margin-bottom: 16px;">
-          <ion-col size="12" size-md="10" size-lg="8">
-            <ion-segment [value]="indiceAtmActivo.toString()" (ionChange)="cambiarAtm($event)">
-              <ion-segment-button *ngFor="let atm of atms; let i = index" [value]="i.toString()">
-                <ion-label>{{ atm.etiqueta }}</ion-label>
+        <ion-row>
+          <ion-col>
+            <ion-segment [value]="indiceAtmActivo" (ionChange)="cambiarAtm($event)">
+              <ion-segment-button *ngFor="let atm of atms; let i = index" [value]="i">
+                {{ atm.etiqueta }}
               </ion-segment-button>
             </ion-segment>
           </ion-col>
         </ion-row>
 
-        <!-- Datos Base del ATM -->
-        <ion-row>
-          <ion-col size="12" size-md="6">
-            <ion-item class="boxed-item">
-              <ion-label position="stacked">Tipo de Servicio</ion-label>
-              <ion-select [(ngModel)]="atmActivo.tipoServicio" (ionChange)="sincronizarAtms()" interface="popover">
-                <ion-select-option value="servicioTecnico">Servicio Técnico</ion-select-option>
-                <ion-select-option value="servicioElectrico">Servicio Eléctrico</ion-select-option>
-                <ion-select-option value="instalacion">Instalación</ion-select-option>
-                <ion-select-option value="desanclaje">Desanclaje</ion-select-option>
-                <ion-select-option value="movimientoInterno">Movimiento Interno</ion-select-option>
-                <ion-select-option value="transporte">Transporte</ion-select-option>
-                <ion-select-option value="grafica">Gráfica</ion-select-option>
-                <ion-select-option value="pintura">Pintura</ion-select-option>
-                <ion-select-option value="Asistencia">Asistencia</ion-select-option>
-              </ion-select>
-            </ion-item>
-          </ion-col>
-          <ion-col size="12" size-md="6">
-            <ion-item class="boxed-item">
-              <ion-label position="stacked">Número de ATM</ion-label>
-              <ion-input placeholder="Ejemplo: ATM-001" (ionInput)="sincronizarAtms()"
-                [(ngModel)]="atmActivo.numeroAtm"></ion-input>
-            </ion-item>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-
-      <!-- Sección Servicio Eléctrico con Matriz Adaptiva Estructural -->
-      <ion-card class="ion-no-margin" style="margin-top: 20px;" *ngIf="esServicioElectrico">
-        <ion-card-header>
-          <ion-card-title>Mediciones Eléctricas</ion-card-title>
-        </ion-card-header>
-        <ion-card-content class="mediciones-electricas">
-          <!-- Toggle UPS Nueva -->
-          <ion-item lines="none" style="margin-bottom: 20px;">
-            <ion-label style="font-weight: 500;">Incluir UPS Nueva</ion-label>
-            <ion-toggle [(ngModel)]="atmActivo.medicionesElectricas!.tieneUpsNueva"
-              (ionChange)="sincronizarAtms()"></ion-toggle>
+        <section class="ion-margin-top" *ngIf="atmActivo">
+          <!-- Campo Solo Lectura de Número ATM -->
+          <ion-item>
+            <ion-label position="stacked">ID del ATM</ion-label>
+            <ion-input [value]="atmActivo.numeroAtm" readonly="true"></ion-input>
           </ion-item>
 
-          <ion-grid class="ion-no-padding">
-            <ion-row>
-              <!-- 1. BLOQUE DE MEDIDAS: TABLERO -->
-              <ion-col size="12" [sizeMd]="atmActivo.medicionesElectricas!.tieneUpsNueva ? '4' : '6'">
-                <div class="mediciones-section-card">
-                  <div class="mediciones-section-title">TABLERO</div>
+          <!-- Selector de Tipo de Servicio Normalizado -->
+          <ion-item>
+            <ion-label position="stacked">Tipo de Servicio</ion-label>
+            <ion-select [(ngModel)]="atmActivo.tipoServicio" (ionChange)="guardarFirmaTemporal()"
+              placeholder="Seleccione un servicio">
+              <ion-select-option value="instalacion">Instalación</ion-select-option>
+              <ion-select-option value="serviciotecnico">Servicio Técnico</ion-select-option>
+              <ion-select-option value="reunion">Reunión</ion-select-option>
+              <ion-select-option value="retiro">Retiro</ion-select-option>
+              <ion-select-option value="otro">Otro</ion-select-option>
+            </ion-select>
+          </ion-item>
 
-                  <ion-item class="boxed-item">
-                    <ion-label position="stacked">Fase-Neutro</ion-label>
-                    <ion-input type="text" placeholder="224V"
-                      [(ngModel)]="atmActivo.medicionesElectricas!.tablero.faseNeutro" (ionInput)="sincronizarAtms()"
-                      (ionBlur)="normalizarVoltajeBlur($event, atmActivo.medicionesElectricas!.tablero, 'faseNeutro')">
-                    </ion-input>
-                  </ion-item>
-
-                  <ion-item class="boxed-item">
-                    <ion-label position="stacked">Neutro-Tierra</ion-label>
-                    <ion-input type="text" placeholder="0.4V"
-                      [(ngModel)]="atmActivo.medicionesElectricas!.tablero.neutroTierra" (ionInput)="sincronizarAtms()"
-                      (ionBlur)="normalizarVoltajeBlur($event, atmActivo.medicionesElectricas!.tablero, 'neutroTierra')">
-                    </ion-input>
-                  </ion-item>
-
-                  <ion-item class="boxed-item">
-                    <ion-label position="stacked">Fase-Tierra</ion-label>
-                    <ion-input type="text" placeholder="223V"
-                      [(ngModel)]="atmActivo.medicionesElectricas!.tablero.faseTierra" (ionInput)="sincronizarAtms()"
-                      (ionBlur)="normalizarVoltajeBlur($event, atmActivo.medicionesElectricas!.tablero, 'faseTierra')">
-                    </ion-input>
-                  </ion-item>
-                </div>
-              </ion-col>
-
-              <!-- 2. BLOQUE DE MEDIDAS: UPS ANTIGUA -->
-              <ion-col size="12" [sizeMd]="atmActivo.medicionesElectricas!.tieneUpsNueva ? '4' : '6'">
-                <div class="mediciones-section-card">
-                  <div class="mediciones-section-title">UPS ANTIGUA</div>
-
-                  <ion-item class="boxed-item">
-                    <ion-label position="stacked">Fase-Neutro</ion-label>
-                    <ion-input type="text" placeholder="224V"
-                      [(ngModel)]="atmActivo.medicionesElectricas!.upsAntigua.faseNeutro" (ionInput)="sincronizarAtms()"
-                      (ionBlur)="normalizarVoltajeBlur($event, atmActivo.medicionesElectricas!.upsAntigua, 'faseNeutro')">
-                    </ion-input>
-                  </ion-item>
-
-                  <ion-item class="boxed-item">
-                    <ion-label position="stacked">Neutro-Tierra</ion-label>
-                    <ion-input type="text" placeholder="0.4V"
-                      [(ngModel)]="atmActivo.medicionesElectricas!.upsAntigua.neutroTierra"
-                      (ionInput)="sincronizarAtms()"
-                      (ionBlur)="normalizarVoltajeBlur($event, atmActivo.medicionesElectricas!.upsAntigua, 'neutroTierra')">
-                    </ion-input>
-                  </ion-item>
-
-                  <ion-item class="boxed-item">
-                    <ion-label position="stacked">Fase-Tierra</ion-label>
-                    <ion-input type="text" placeholder="223V"
-                      [(ngModel)]="atmActivo.medicionesElectricas!.upsAntigua.faseTierra" (ionInput)="sincronizarAtms()"
-                      (ionBlur)="normalizarVoltajeBlur($event, atmActivo.medicionesElectricas!.upsAntigua, 'faseTierra')">
-                    </ion-input>
-                  </ion-item>
-                </div>
-              </ion-col>
-
-              <!-- 3. BLOQUE DE MEDIDAS: UPS NUEVA (Toggle de visibilidad interactivo) -->
-              <ion-col size="12" size-md="4" *ngIf="atmActivo.medicionesElectricas!.tieneUpsNueva">
-                <div class="mediciones-section-card">
-                  <div class="mediciones-section-title">UPS NUEVA</div>
-
-                  <ion-item class="boxed-item">
-                    <ion-label position="stacked">Fase-Neutro</ion-label>
-                    <ion-input type="text" placeholder="224V"
-                      [(ngModel)]="atmActivo.medicionesElectricas!.upsNueva.faseNeutro" (ionInput)="sincronizarAtms()"
-                      (ionBlur)="normalizarVoltajeBlur($event, atmActivo.medicionesElectricas!.upsNueva, 'faseNeutro')">
-                    </ion-input>
-                  </ion-item>
-
-                  <ion-item class="boxed-item">
-                    <ion-label position="stacked">Neutro-Tierra</ion-label>
-                    <ion-input type="text" placeholder="0.4V"
-                      [(ngModel)]="atmActivo.medicionesElectricas!.upsNueva.neutroTierra" (ionInput)="sincronizarAtms()"
-                      (ionBlur)="normalizarVoltajeBlur($event, atmActivo.medicionesElectricas!.upsNueva, 'neutroTierra')">
-                    </ion-input>
-                  </ion-item>
-
-                  <ion-item class="boxed-item">
-                    <ion-label position="stacked">Fase-Tierra</ion-label>
-                    <ion-input type="text" placeholder="223V"
-                      [(ngModel)]="atmActivo.medicionesElectricas!.upsNueva.faseTierra" (ionInput)="sincronizarAtms()"
-                      (ionBlur)="normalizarVoltajeBlur($event, atmActivo.medicionesElectricas!.upsNueva, 'faseTierra')">
-                    </ion-input>
-                  </ion-item>
-                </div>
-              </ion-col>
-            </ion-row>
-          </ion-grid>
-        </ion-card-content>
-      </ion-card>
-    </ion-card-content>
-  </ion-card>
-
-  <!-- Control de Campos de Series (Cajero / MMBB) -->
-  <ion-grid class="ion-no-padding" style="margin-top: 16px;" *ngIf="mostrarCamposSeries">
-    <ion-row>
-      <ion-col size="12" size-md="6">
-        <ion-card class="inputSerie" style="margin: 0 0 16px 0;">
-          <ion-item lines="none">
+          <!-- Input de Serie de Cajero -->
+          <ion-item>
             <ion-label position="stacked">Serie Cajero</ion-label>
-            <ion-input placeholder="Ingresa serie del cajero" (ionInput)="sincronizarAtms()"
-              [(ngModel)]="atmActivo.serieCajero">
-            </ion-input>
-            <ion-button slot="end" fill="clear" [disabled]="escaneandoSerieCajero"
-              (click)="escanearSerie('serieCajero')">
-              <ion-icon name="camera-outline"></ion-icon>
+            <ion-input [(ngModel)]="atmActivo.serieCajero" (ionBlur)="guardarFirmaTemporal()"
+              placeholder="Ingrese serie"></ion-input>
+            <ion-button slot="end" fill="clear" (click)="escanearSerieCajero()">
+              <ion-icon name="camera-outline" slot="icon-only"></ion-icon>
             </ion-button>
           </ion-item>
-        </ion-card>
-      </ion-col>
-      <ion-col size="12" size-md="6">
-        <ion-card style="margin: 0 0 16px 0;">
-          <ion-item lines="none">
+
+          <!-- Input de Serie de MMBB -->
+          <ion-item>
             <ion-label position="stacked">Serie MMBB</ion-label>
-            <ion-input placeholder="Ingresa serie MMBB" (ionInput)="sincronizarAtms()"
-              [(ngModel)]="atmActivo.serieMmbb">
-            </ion-input>
-            <ion-button slot="end" fill="clear" [disabled]="escaneandoSerieMmbb" (click)="escanearSerie('serieMmbb')">
-              <ion-icon name="camera-outline"></ion-icon>
+            <ion-input [(ngModel)]="atmActivo.serieMmbb" (ionBlur)="guardarFirmaTemporal()"
+              placeholder="Ingrese serie"></ion-input>
+            <ion-button slot="end" fill="clear" (click)="escanearSerieMmbb()">
+              <ion-icon name="camera-outline" slot="icon-only"></ion-icon>
             </ion-button>
           </ion-item>
-        </ion-card>
-      </ion-col>
-    </ion-row>
-  </ion-grid>
 
-  <!-- Observaciones -->
-  <ion-card style="margin-top: 16px;">
-    <ion-card-header>
-      <ion-card-title>Observaciones</ion-card-title>
-    </ion-card-header>
-    <ion-card-content>
-      <ion-grid class="ion-no-padding">
-        <ion-row>
-          <ion-col size="12" size-md="6">
-            <ion-item style="margin-bottom: 12px;" class="boxed-item">
-              <ion-label position="stacked">Detalles de servicio</ion-label>
-              <ion-textarea rows="3" placeholder="Describe brevemente las actividades realizadas en el servicio"
-                (ionInput)="sincronizarAtms()" [(ngModel)]="atmActivo.detallesServicio"></ion-textarea>
-            </ion-item>
-          </ion-col>
-          <ion-col size="12" size-md="6">
-            <ion-item style="margin-bottom: 12px;" class="boxed-item">
-              <ion-label position="stacked">Reportar Daños</ion-label>
-              <ion-textarea rows="3" placeholder="Indica los daños detectados, ubicación y nivel de criticidad"
-                (ionInput)="sincronizarAtms()" [(ngModel)]="atmActivo.observaciones"></ion-textarea>
-            </ion-item>
-          </ion-col>
-          <ion-col size="12">
-            <ion-item class="boxed-item">
-              <ion-label position="stacked">Validación de zonas por UCENCO</ion-label>
-              <ion-textarea rows="2" placeholder="Registra el resultado de la validación de zonas realizada por UCENCO"
-                [(ngModel)]="validacionZonas"></ion-textarea>
-            </ion-item>
-          </ion-col>
-        </ion-row>
+          <!-- Input de Detalles Técnicos -->
+          <ion-item>
+            <ion-label position="stacked">Detalle de Actividades</ion-label>
+            <ion-textarea [(ngModel)]="atmActivo.detallesServicio" (ionBlur)="guardarFirmaTemporal()"
+              placeholder="Escriba aquí los detalles..." rows="4"></ion-textarea>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Observaciones</ion-label>
+            <ion-textarea [(ngModel)]="atmActivo.observaciones" (ionBlur)="guardarFirmaTemporal()"
+              placeholder="Ej: No registra llave..." rows="3"></ion-textarea>
+          </ion-item>
+        </section>
       </ion-grid>
     </ion-card-content>
   </ion-card>
 
-  <!-- Datos de Personal & Firmas -->
-  <ion-card style="margin-top: 16px;">
+  <!-- Mediciones Eléctricas Modulares del ATM Activo -->
+  <ion-card *ngIf="atmActivo">
     <ion-card-header>
-      <ion-card-title>Datos de Personal & Firmas</ion-card-title>
+      <ion-card-title>Mediciones Eléctricas</ion-card-title>
     </ion-card-header>
     <ion-card-content>
-      <ion-grid class="ion-no-padding">
-        <!-- Sección Técnico -->
-        <ion-row class="ion-align-items-center" style="margin-bottom: 16px;">
-          <ion-col size="12" size-md="6">
-            <div style="margin-bottom: 12px;">
-              <ion-item lines="none" class="boxed-item">
-                <ion-label position="stacked">Nombre del Técnico</ion-label>
-                <ion-input fill="outline" [(ngModel)]="nombreTecnico" placeholder="Ingrese nombre del técnico"
-                  style="margin-top: 8px;"></ion-input>
-              </ion-item>
-            </div>
-          </ion-col>
-          <ion-col size="12" size-md="6">
-            <div class="signature-box">
-              <app-signature-pad label="Firma Técnico" (firmaChange)="firmaTecnico = $event">
-              </app-signature-pad>
-            </div>
-          </ion-col>
-        </ion-row>
+      <ion-list lines="full">
+        <!-- Tablero Principal -->
+        <h3 class="mediciones-subtitulo">Tablero Principal</h3>
+        <ion-item>
+          <ion-label>Fase - Neutro (V)</ion-label>
+          <ion-input type="number" [(ngModel)]="atmActivo.medicionesElectricas!.tablero.faseNeutro"
+            (ionBlur)="guardarFirmaTemporal()" placeholder="Ej: 220" class="ion-text-right"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-label>Neutro - Tierra (V)</ion-label>
+          <ion-input type="number" [(ngModel)]="atmActivo.medicionesElectricas!.tablero.neutroTierra"
+            (ionBlur)="guardarFirmaTemporal()" placeholder="Ej: 1.2" class="ion-text-right"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-label>Fase - Tierra (V)</ion-label>
+          <ion-input type="number" [(ngModel)]="atmActivo.medicionesElectricas!.tablero.faseTierra"
+            (ionBlur)="guardarFirmaTemporal()" placeholder="Ej: 221" class="ion-text-right"></ion-input>
+        </ion-item>
 
-        <hr class="form-divider" />
+        <!-- UPS Antigua -->
+        <h3 class="mediciones-subtitulo ion-margin-top">UPS Existente / Retirada</h3>
+        <ion-item>
+          <ion-label>Fase - Neutro (V)</ion-label>
+          <ion-input type="number" [(ngModel)]="atmActivo.medicionesElectricas!.upsAntigua.faseNeutro"
+            (ionBlur)="guardarFirmaTemporal()" placeholder="Ej: 219" class="ion-text-right"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-label>Neutro - Tierra (V)</ion-label>
+          <ion-input type="number" [(ngModel)]="atmActivo.medicionesElectricas!.upsAntigua.neutroTierra"
+            (ionBlur)="guardarFirmaTemporal()" placeholder="Ej: 1.0" class="ion-text-right"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-label>Fase - Tierra (V)</ion-label>
+          <ion-input type="number" [(ngModel)]="atmActivo.medicionesElectricas!.upsAntigua.faseTierra"
+            (ionBlur)="guardarFirmaTemporal()" placeholder="Ej: 219" class="ion-text-right"></ion-input>
+        </ion-item>
 
-        <!-- Sección ETV -->
-        <ion-row class="ion-align-items-center" style="margin-bottom: 16px;">
-          <ion-col size="12" size-md="6">
-            <div style="margin-bottom: 12px;">
-              <ion-item lines="none" class="boxed-item">
-                <ion-label position="stacked">Nombre ETV</ion-label>
-                <ion-input fill="outline" [(ngModel)]="nombreETV" placeholder="Ingrese nombre ETV"
-                  style="margin-top: 8px;"></ion-input>
-              </ion-item>
-            </div>
-          </ion-col>
-          <ion-col size="12" size-md="6">
-            <div class="signature-box">
-              <app-signature-pad label="Firma ETV" (firmaChange)="firmaETV = $event">
-              </app-signature-pad>
-            </div>
-          </ion-col>
-        </ion-row>
+        <!-- Toggle UPS Nueva -->
+        <ion-item class="ion-margin-top">
+          <ion-label><strong>¿Se instaló UPS Nueva?</strong></ion-label>
+          <ion-toggle slot="end" [(ngModel)]="atmActivo.medicionesElectricas!.tieneUpsNueva"
+            (ionChange)="guardarFirmaTemporal()"></ion-toggle>
+        </ion-item>
 
-        <hr class="form-divider" />
-
-        <!-- Sección Alarma -->
-        <ion-row class="ion-align-items-center">
-          <ion-col size="12" size-md="6">
-            <div style="margin-bottom: 12px;">
-              <ion-item lines="none" class="boxed-item">
-                <ion-label position="stacked">Nombre Alarma</ion-label>
-                <ion-input fill="outline" [(ngModel)]="nombreAlarma" placeholder="Ingrese nombre alarma"
-                  style="margin-top: 8px;"></ion-input>
-              </ion-item>
-            </div>
-          </ion-col>
-          <ion-col size="12" size-md="6">
-            <div class="signature-box">
-              <app-signature-pad label="Firma Alarma" (firmaChange)="firmaAlarma = $event">
-              </app-signature-pad>
-            </div>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
+        <!-- Bloque UPS Nueva (Se visualiza dinámicamente si el Toggle es Verdadero) -->
+        <div *ngIf="atmActivo.medicionesElectricas!.tieneUpsNueva">
+          <h3 class="mediciones-subtitulo ion-margin-top">UPS Nueva</h3>
+          <ion-item>
+            <ion-label>Fase - Neutro (V)</ion-label>
+            <ion-input type="number" [(ngModel)]="atmActivo.medicionesElectricas!.upsNueva.faseNeutro"
+              (ionBlur)="guardarFirmaTemporal()" placeholder="Ej: 220" class="ion-text-right"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label>Neutro - Tierra (V)</ion-label>
+            <ion-input type="number" [(ngModel)]="atmActivo.medicionesElectricas!.upsNueva.neutroTierra"
+              (ionBlur)="guardarFirmaTemporal()" placeholder="Ej: 0.8" class="ion-text-right"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label>Fase - Tierra (V)</ion-label>
+            <ion-input type="number" [(ngModel)]="atmActivo.medicionesElectricas!.upsNueva.faseTierra"
+              (ionBlur)="guardarFirmaTemporal()" placeholder="Ej: 220" class="ion-text-right"></ion-input>
+          </ion-item>
+        </div>
+      </ion-list>
     </ion-card-content>
   </ion-card>
-  <!-- Fila Acciones Secundarias (Descargas e Interacción) -->
-  <ion-grid class="ion-content-center">
-    <ion-row style="margin-top: 12px;">
-      <ion-col size="4" size-sm="4">
-        <ion-button expand="block" color="success" (click)="descargarPdf()">
-          <ion-icon name="document-attach" slot="start"></ion-icon>
-          Descargar PDF
-        </ion-button>
-      </ion-col>
-      <ion-col size="4" size-sm="4">
-        <ion-button expand="block" color="success" (click)="descargarPaquete()">
-          <ion-icon name="download" slot="start"></ion-icon>
-          Descargar Paquete
-        </ion-button>
-      </ion-col>
-      <ion-col size="4" size-sm="4">
-        <ion-button expand="block" color="success" (click)="compartirPaquete()">
-          <ion-icon name="share-social" slot="start"></ion-icon>
-          Compartir
-        </ion-button>
-      </ion-col>
-    </ion-row>
-  </ion-grid>
-  <!-- Acciones del Formulario (Grid Adaptable) -->
-  <ion-grid class="ion-no-padding" style="margin-top: 24px; margin-bottom: 40px;">
-    <!-- Fila Navegación Principal -->
-    <ion-row>
-      <ion-col size="6">
-        <ion-button expand="block" color="primary" [routerLink]="['/dashboard']">
-          <ion-icon name="arrow-back-outline" slot="start"></ion-icon>
-          Atrás
-        </ion-button>
-      </ion-col>
-      <ion-col size="6">
-        <!-- Cambiado de routerLink a llamada de función (click)="enviarTrabajoCompleto()" con deshabilitación por carga -->
-        <ion-button expand="block" color="success" (click)="enviarTrabajoCompleto()" [disabled]="guardando">
-          <ion-spinner *ngIf="guardando" name="crescent" slot="start"></ion-spinner>
-          {{ guardando ? 'Enviando...' : 'Sincronizar y Enviar' }}
-          <ion-icon *ngIf="!guardando" name="cloud-upload-outline" slot="end"></ion-icon>
-        </ion-button>
-      </ion-col>
-    </ion-row>
-  </ion-grid>
-  <ion-grid>
-    <ion-row>
-      <ion-col size="12" class="ion-text-center">
-        <p class="footer-text">© 2026 Ninosky. Todos los derechos reservados.</p>
-      </ion-col>
-    </ion-row>
-  </ion-grid>
+
+  <!-- Datos y Firmas del Técnico y la Sucursal Bancaria -->
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Validación y Recepción del Servicio</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <section class="firma-tecnico-grupo">
+        <h3>Firma Digital del Técnico</h3>
+        <ion-item>
+          <ion-label position="stacked">Nombre del Técnico</ion-label>
+          <ion-input [(ngModel)]="nombreTecnico" (ionBlur)="guardarFirmaTemporal()"
+            placeholder="Ingrese nombre completo"></ion-input>
+        </ion-item>
+        <!-- ✍️ Corregido el enlace para que coincida con SignaturePadComponent -->
+        <app-signature-pad #padTecnico label="Firma de Técnico"
+          (firmaChange)="onFirmaTecnicoGuardada($event)"></app-signature-pad>
+      </section>
+
+      <!-- Recepción de Responsabilidad de la Empresa de ETV (Transporte de Valores) -->
+      <section class="firma-etv-grupo ion-margin-top">
+        <h3>Recepción de la ETV</h3>
+        <ion-item>
+          <ion-label position="stacked">Nombre del Responsable ETV</ion-label>
+          <ion-input [(ngModel)]="nombreETV" (ionBlur)="guardarFirmaTemporal()"
+            placeholder="Ingrese nombre completo"></ion-input>
+        </ion-item>
+        <app-signature-pad #padETV label="Firma de ETV" (firmaChange)="onFirmaETVGuardada($event)"></app-signature-pad>
+      </section>
+
+      <!-- Recepción de Responsabilidad de Sistema de Alarmas o Sucursal -->
+      <section class="firma-alarma-grupo ion-margin-top">
+        <h3>Recepción del Sistema de Alarma / Oficina</h3>
+        <ion-item>
+          <ion-label position="stacked">Nombre de Responsable Alarma / Banco</ion-label>
+          <ion-input [(ngModel)]="nombreAlarma" (ionBlur)="guardarFirmaTemporal()"
+            placeholder="Ingrese nombre completo"></ion-input>
+        </ion-item>
+        <app-signature-pad #padAlarma label="Firma de Alarma / Banco"
+          (firmaChange)="onFirmaAlarmaGuardada($event)"></app-signature-pad>
+      </section>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-button expand="block" shape="round" color="primary" [disabled]="guardando" (click)="finalizarOT()">
+    <ion-spinner *ngIf="guardando" name="crescent"></ion-spinner>
+    <span *ngIf="!guardando">Enviar y Guardar Trabajo</span>
+  </ion-button>
 </ion-content>
-
-<ion-footer>
-  <ion-toolbar>
-    <ion-buttons class="bottom-nav" slot="start">
-      <ion-button [routerLink]="['/dashboard']">Mis Órdenes</ion-button>
-      <ion-button [routerLink]="['/registro-otubi']">Historial</ion-button>
-      <ion-button [routerLink]="['/login']">Perfil</ion-button>
-    </ion-buttons>
-  </ion-toolbar>
-</ion-footer>
