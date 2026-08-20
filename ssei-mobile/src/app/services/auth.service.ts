@@ -37,6 +37,16 @@ export class AuthService {
     return this.http.get<any[]>(url, { headers });
   }
 
+    obternerOtsServidorSilenciado(): Observable<any[]> {
+    const token = this.obtenerTokenValue();
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`
+    });
+    
+    // Devuelve el observable de la petición limpia para el control del suscriptor en el dashboard
+    return this.http.get<any[]>(`${this.baseUrl}/ots`, { headers });
+  }
+
   obtenerTokenValue(): string | null {
     return localStorage.getItem('token');
   }

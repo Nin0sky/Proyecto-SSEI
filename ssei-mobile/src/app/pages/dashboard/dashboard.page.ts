@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { addIcons } from 'ionicons';
@@ -11,7 +11,8 @@ import {
   ToastController, LoadingController
 } from '@ionic/angular/standalone';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subscription, fromEvent, merge, of } from 'rxjs';
+import { delay, debounceTime, map } from 'rxjs/operators';
 import { OtContextService, OtTrabajo, OtEstado } from '../../ot-context.service';
 
 @Component({
@@ -25,11 +26,17 @@ import { OtContextService, OtTrabajo, OtEstado } from '../../ot-context.service'
     IonItem, IonLabel, IonBadge, IonFab, IonFabButton, IonFooter, IonImg,
   ]
 })
-export class DashboardPage {
+export class DashboardPage implements OnDestroy {
   workOrders: OtTrabajo[] = [];
   filtroEstado: OtEstado | null = null;
   isSyncing = false; // Control de estado para animación spinner y throttling
   tecnicoNombre = 'Técnico'; // Propiedad reactiva para el nombre del usuario
+
+  // Lógica Reactiva de Conectividad Decente
+  isOffline = false; 
+  offlineBannerVisible = false;
+  private networkSubscription?: Subscription;
+  private connectionRecoveryToast?: any;
 
   private readonly toastController = inject(ToastController);
   private readonly loadingController = inject(LoadingController);
@@ -41,16 +48,13 @@ export class DashboardPage {
     private readonly authService: AuthService,
   ) {
     addIcons({ addOutline, syncOutline, wifiOutline, shieldCheckmarkOutline, listOutline });
+    this.inicializarMonitoreoRed();
   }
 
   ionViewWillEnter(): void {
     // 1. Extraer nombre real guardado en el login
     const nombreGuardado = localStorage.getItem('tecnico_nombre');
-    if (nombreGuardado) {
-      this.tecnicoNombre = nombreGuardado;
-    } else {
-      this.tecnicoNombre = 'Técnico';
-    }
+    this.tecnicoNombre = nombreGuardado ? nombreGuardado : 'Técnico';
 
     // 2. Forzar al servicio de contexto a recargar OTs específicas y aisladas del nuevo técnico logueado
     this.otContextService.cargar();
@@ -60,18 +64,80 @@ export class DashboardPage {
   }
 
   /**
+   * 📡 Inicializa el monitoreo de conectividad resiliente implementando
+   * un Debounce/Histeresis de 4 segundos para evitar ruidos de avisos innecesarios.
+   */
+  private inicializarMonitoreoRed() {
+    this.isOffline = !navigator.onLine;
+    this.offlineBannerVisible = this.isOffline;
+
+    const online$ = fromEvent(window, 'online').pipe(map(() => true));
+    const offline$ = fromEvent(window, 'offline').pipe(map(() => false));
+
+    this.networkSubscription = merge(online$, offline$)
+      .pipe(
+        // Esperamos 4 segundos antes de reportar un cambio definitivo de red (Debounce de Microcortes)
+        debounceTime(4000) 
+      )
+      .subscribe((conectado) => {
+        if (conectado) {
+          this.isOffline = false;
+          this.offlineBannerVisible = false;
+          this.presentarToastConexionEstablecida();
+        } else {
+          this.isOffline = true;
+          this.offlineBannerVisible = true;
+        }
+      });
+  }
+
+  /**
+   * 🍞 Notificación sutil para avisar al técnico que la señal se restableció con éxito.
+   */
+  async presentarToastConexionEstablecida() {
+    // Cancelamos cualquier mensaje anterior activo para no superponer
+    if (this.connectionRecoveryToast) {
+      this.connectionRecoveryToast.dismiss();
+    }
+
+    this.connectionRecoveryToast = await this.toastController.create({
+      message: 'Conectado a la señal central de SSEI',
+      duration: 3000, // Desaparece discretamente a los 3 segundos
+      color: 'success',
+      position: 'top', // Ubicación no intrusiva en la cabecera
+      buttons: [
+        {
+          text: 'OK',
+          role: 'cancel'
+        }
+      ]
+    });
+    await this.connectionRecoveryToast.present();
+    
+    // Intenta sincronizar automáticamente el listado al recuperar la señal
+    this.cargarYCombinarOts();
+  }
+
+  ngOnDestroy(): void {
+    if (this.networkSubscription) {
+      this.networkSubscription.unsubscribe();
+    }
+  }
+
+  /**
    * Carga el listado desde el backend y lo sincroniza de manera segura con el contexto local.
    */
   cargarYCombinarOts(): Promise<void> {
     return new Promise((resolve) => {
-      this.authService.obtenerOtsServidor().subscribe({
+      this.authService.obternerOtsServidorSilenciado().subscribe({
         next: (ots: any[]) => {
-          // 1. Mapeamos las OTs que traemos del Servidor
+          this.isOffline = false; // Confirmación transaccional de conexión real
+          
+          // Mapeamos las OTs que traemos del Servidor
           const otsMapeadas: OtTrabajo[] = ots.map((ot: any) => {
             return {
               id: ot.id.toString(),
               cliente: ot.banco,
-              redirectUrl: '',
               estado: this.mapearEstadoServidor(ot.estado),
               comuna: ot.comuna,
               direccion: ot.direccion,
@@ -99,7 +165,7 @@ export class DashboardPage {
             };
           });
 
-          // 2. Sincronizamos las OTs mapeadas en el Contexto Local
+          // Sincronizamos las OTs mapeadas en el Contexto Local
           otsMapeadas.forEach(otServidor => {
             const indexIndex = this.otContextService.trabajos.findIndex(t => t.id === otServidor.id);
             if (indexIndex !== -1) {
@@ -119,14 +185,13 @@ export class DashboardPage {
             }
           });
 
-          // Guardamos los cambios consolidados en el almacenamiento persistente mediante el método público
           this.otContextService.setAtms(this.otContextService.atms);
           this.workOrders = [...this.otContextService.trabajos];
           resolve();
         },
         error: (err: any) => {
           console.error('Error al sincronizar OTs con el servidor:', err);
-          // Si no hay red, ocupamos el almacenamiento del dispositivo directamente
+          // Si cae el API, asumimos modo offline por precaución
           this.workOrders = [...this.otContextService.trabajos];
           resolve();
         }
@@ -135,7 +200,7 @@ export class DashboardPage {
   }
 
   /**
-   * 🔄 Acción del botón sync-outline: Actualiza el listado de OTs y re-intenta enviar 
+   * Acción del botón sync-outline: Actualiza el listado de OTs y re-intenta enviar 
    * automáticamente todos los trabajos bloqueados en la cola con el estado 'pendiente_envio'.
    */
   async sincronizarDashboard() {
@@ -143,7 +208,7 @@ export class DashboardPage {
     this.isSyncing = true;
 
     const loading = await this.loadingController.create({
-      message: 'Sincronizando información y re-enviando pendientes...',
+      message: 'Comprobando conexión y cargando datos...',
     });
     await loading.present();
 
@@ -176,7 +241,6 @@ export class DashboardPage {
           }
         }
 
-        // Para persistir los cambios, llamamos a un método público que active "guardar" internamente
         this.otContextService.setAtms(this.otContextService.atms);
 
         if (enviadosConExito > 0) {
@@ -193,16 +257,30 @@ export class DashboardPage {
       // 2. Traemos las OTs limpias y actualizadas del API
       await this.cargarYCombinarOts();
 
+      // Marcamos conexión activa tras validación exitosa del botón Sync
+      this.isOffline = false;
+      this.offlineBannerVisible = false;
+
       const toastSuccess = await this.toastController.create({
-        message: '¡Listado de órdenes actualizado correctamente!',
-        duration: 2500,
-        color: 'primary',
+        message: '¡Conexión establecida con éxito. Órdenes actualizadas!',
+        duration: 3000,
+        color: 'success',
         position: 'bottom'
       });
       await toastSuccess.present();
 
     } catch (e) {
       console.error('Error crítico durante la sincronización general:', e);
+      this.isOffline = true;
+      this.offlineBannerVisible = true;
+
+      const toastError = await this.toastController.create({
+        message: 'No se pudo contactar al servidor. Operando en modo Offline.',
+        duration: 3500,
+        color: 'danger',
+        position: 'bottom'
+      });
+      await toastError.present();
     } finally {
       this.isSyncing = false;
       await loading.dismiss();
@@ -226,7 +304,6 @@ export class DashboardPage {
     return this.workOrders.filter(ot => ot.estado === this.filtroEstado);
   }
 
-  // Getter dinámico para sumar en_progreso + pendiente_envio que componen el trabajo del día
   get totalOrdersToday(): number {
     return this.workOrders.filter(x => 
       x.estado === 'asignado' || 

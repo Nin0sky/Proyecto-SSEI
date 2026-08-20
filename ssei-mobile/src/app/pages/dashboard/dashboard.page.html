@@ -12,7 +12,8 @@
 </ion-header>
 
 <ion-content [fullscreen]="true" class="dashboard-content">
-  <div class="offline-banner">
+  <!-- 🛜 Banner offline condicional con Debounce/Histéresis -->
+  <div class="offline-banner" *ngIf="offlineBannerVisible">
     <ion-icon name="wifi-outline"></ion-icon>
     <span>Modo Offline (Almacenamiento Local)</span>
   </div>
