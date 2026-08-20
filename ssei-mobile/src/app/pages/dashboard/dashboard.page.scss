@@ -126,3 +126,16 @@ ion-fab-button:active::part(native) {
   gap: 8px;
   padding: 8px 16px;
 }
+
+.spinner {
+  animation: rotation 1.5s infinite linear;
+}
+
+@keyframes rotation {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(359deg);
+  }
+}

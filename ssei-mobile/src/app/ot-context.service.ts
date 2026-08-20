@@ -1,7 +1,7 @@
-import { Injectable } from '@angular/core';
-import { inject } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { retry, timer, throwError } from 'rxjs';
+import { retry, timer, Observable } from 'rxjs';
+
 export interface MedicionElectrica {
   faseNeutro: string;
   neutroTierra: string;
@@ -14,6 +14,7 @@ export interface MedicionesElectricas {
   upsNueva: MedicionElectrica;
   tieneUpsNueva: boolean;
 }
+
 export interface OtAtmDetalle {
   etiqueta: string;
   tipoServicio: string;
@@ -56,26 +57,8 @@ export interface OtTrabajo {
   providedIn: 'root',
 })
 export class OtContextService {
-  private readonly storageKey = 'ssei-ot-context';
   private http = inject(HttpClient);
-  private readonly apiBase = 'http://localhost:8000'; // Usa tu IP local del servidor en producción
-
-  sincronizarOTServidor(idTrabajo: string, zipBlob: Blob, nombreArchivoZip: string) {
-    const formData = new FormData();
-    formData.append('file', zipBlob, nombreArchivoZip);
-    formData.append('categoria', 'respaldo_terreno');
-    // Enviar el archivo ZIP a la biblioteca
-    return this.http.post(`${this.apiBase}/biblioteca/upload`, formData).pipe(
-      retry({
-        count: 3, // Reitenta hasta 3 veces automáticamente
-        delay: (error, retryCount) => {
-          console.warn(`Intento de reenvío número ${retryCount} por caída de señal...`);
-          return timer(retryCount * 2000); // Backoff: Espera 2s, luego 4s, luego 6s antes de fallar
-        }
-      })
-    );
-  }
-
+  private readonly apiBase = 'http://localhost:8000'; // Usa tu IP local en producción
 
   // Estado activo del trabajo en edición
   cliente = '';
@@ -94,6 +77,30 @@ export class OtContextService {
 
   constructor() {
     this.cargar();
+  }
+
+  /**
+   * Genera de forma dinámica la clave de almacenamiento exclusiva para el técnico autenticado.
+   */
+  private getStorageKey(): string {
+    const tecnicoId = localStorage.getItem('tecnico_id') || 'invitado';
+    return `ssei-ot-context-${tecnicoId}`;
+  }
+
+  sincronizarOTServidor(idTrabajo: string, zipBlob: Blob, nombreArchivoZip: string): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', zipBlob, nombreArchivoZip);
+    formData.append('categoria', 'respaldo_terreno');
+    // Enviar el archivo ZIP a la biblioteca en Backend
+    return this.http.post(`${this.apiBase}/biblioteca/upload`, formData).pipe(
+      retry({
+        count: 3,
+        delay: (error, retryCount) => {
+          console.warn(`Intento de reenvío número ${retryCount} por caída de señal...`);
+          return timer(retryCount * 2000); // Backoff exponencial: 2s, 4s, 6s...
+        }
+      })
+    );
   }
 
   // --- Estado activo ---
@@ -164,8 +171,8 @@ export class OtContextService {
     this.nombreETV = '';
     this.nombreAlarma = '';
     this.trabajoActivoId = nuevoId;
-    this.guardar();
     this.ubicacion = '';
+    this.guardar();
   }
 
   cargarTrabajo(id: string): void {
@@ -188,7 +195,7 @@ export class OtContextService {
 
       return {
         ...a,
-        tipoServicio: tipoNormalizado, // Asegura que 'Servicio Tecnico' de la API calce con el selector 'serviciotecnico'
+        tipoServicio: tipoNormalizado, // Asegura compatibilidad de tipo
         numeroAtm: a.numeroAtm || '',
         medicionesElectricas: a.medicionesElectricas ?? {
           tablero: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
@@ -198,7 +205,8 @@ export class OtContextService {
         }
       };
     });
-    // Si la OT no tiene ATMs inicializados (por ejemplo, primer inicio), creamos uno precargado
+
+    // Si la OT no tiene ATMs inicializados creamos uno precargado por defecto
     if (this.atms.length === 0) {
       this.atms = [
         {
@@ -218,7 +226,6 @@ export class OtContextService {
   }
 
   guardarTrabajoActivo(): void {
-
     if (!this.trabajoActivoId) {
       return;
     }
@@ -242,25 +249,25 @@ export class OtContextService {
     this.guardar();
   }
 
-  /*private seedDatosDemostracion(): void {
-    const atm = (numero: string, etiqueta = 'ATM 1'): OtAtmDetalle => ({
-      etiqueta,
-      tipoServicio: 'instalacion',
-      numeroAtm: numero,
-      serieCajero: '',
-      serieMmbb: '',
-      detallesServicio: '',
-      observaciones: '',
-    });
-    this.trabajos = [
-      { id: '1024', cliente: 'Banco de Chile', atms: [atm('6122')], fotos: [], estado: 'asignado', fechaCreacion: new Date().toISOString(), comuna: 'Santiago Centro', direccion: '', ubicacion: '', origenServidor: true },
-      { id: '1025', cliente: 'Banco Estado', atms: [atm('8841')], fotos: [], estado: 'sincronizado', fechaCreacion: new Date().toISOString(), comuna: 'Las Condes', direccion: '', ubicacion: '', origenServidor: true },
-    ];
-    this.guardar();
-  }*/
+  /**
+   * Carga de datos aislada utilizando la clave dinámica del técnico autenticado.
+   */
+  cargar(): void {
+    const key = this.getStorageKey();
+    const raw = localStorage.getItem(key);
 
-  private cargar(): void {
-    const raw = localStorage.getItem(this.storageKey);
+    // Reiniciar variables limpiamente para cambio de técnico libre de residuos
+    this.cliente = '';
+    this.atms = [];
+    this.fotos = [];
+    this.trabajos = [];
+    this.trabajoActivoId = null;
+    this.comuna = '';
+    this.direccion = '';
+    this.nombreTecnico = '';
+    this.nombreETV = '';
+    this.nombreAlarma = '';
+    this.ubicacion = '';
 
     if (!raw) {
       return;
@@ -278,6 +285,7 @@ export class OtContextService {
         nombreTecnico?: string;
         nombreETV?: string;
         nombreAlarma?: string;
+        ubicacion?: string;
       };
       this.cliente = parsed.cliente ?? '';
       this.atms = Array.isArray(parsed.atms) ? parsed.atms : [];
@@ -289,23 +297,19 @@ export class OtContextService {
       this.nombreTecnico = parsed.nombreTecnico ?? '';
       this.nombreETV = parsed.nombreETV ?? '';
       this.nombreAlarma = parsed.nombreAlarma ?? '';
-    } catch {
-      this.cliente = '';
-      this.atms = [];
-      this.fotos = [];
-      this.trabajos = [];
-      this.trabajoActivoId = null;
-      this.comuna = '';
-      this.direccion = '';
-      this.nombreTecnico = '';
-      this.nombreETV = '';
-      this.nombreAlarma = '';
+      this.ubicacion = parsed.ubicacion ?? '';
+    } catch (e) {
+      console.error('Error al parsear el almacenamiento del contexto:', e);
     }
   }
 
-  private guardar(): void {
+  /**
+   * Persiste la información en localStorage con la clave aislada.
+   */
+  guardar(): void {
+    const key = this.getStorageKey();
     localStorage.setItem(
-      this.storageKey,
+      key,
       JSON.stringify({
         cliente: this.cliente,
         atms: this.atms,

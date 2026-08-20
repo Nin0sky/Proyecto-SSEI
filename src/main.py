@@ -252,14 +252,28 @@ def _ot_to_read(ot) -> OtRead:
         ],
     )
 
-#-------Se aplica el decorador Depends para requerir un login válido (cualquier rol) antes de acceder a la lista de OTs. Esto asegura que solo los usuarios autenticados puedan ver las OTs, independientemente de su rol.
 @app.get("/ots", response_model=list[OtRead])
 def list_ots(
     estado: str | None = Query(default=None),
-    token_data: dict = Depends(obtener_usuario_actual)  # Requiere login válido (cualquier rol)
+    tecnico_id: int | None = Query(default=None), # Captura el parámetro de consulta opcional
+    token_data: dict = Depends(obtener_usuario_actual)
 ) -> list[OtRead]:
-    return [_ot_to_read(ot) for ot in ot_service.list_ots(estado=estado)]
+    rol = token_data.get("rol")
+    user_id = token_data.get("sub")
 
+    # Si es técnico, forzamos que filtre por su id del token, sin importar lo que pida el query param
+    if rol == "tecnico" and user_id:
+        tecnico_id_filtro = int(user_id)
+    else:
+        # Si es admin/coordinador, puede filtrar por el query param 'tecnico_id' si se envía
+        tecnico_id_filtro = tecnico_id
+
+    all_ots = ot_service.list_ots(estado=estado)
+
+    if tecnico_id_filtro is not None:
+        return [_ot_to_read(ot) for ot in all_ots if ot.tecnico_id == tecnico_id_filtro]
+
+    return [_ot_to_read(ot) for ot in all_ots]
 
 @app.post("/ots", response_model=OtRead, status_code=201)
 def create_ot(
