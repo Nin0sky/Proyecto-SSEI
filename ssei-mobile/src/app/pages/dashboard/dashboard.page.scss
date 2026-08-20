@@ -139,3 +139,64 @@ ion-fab-button:active::part(native) {
     transform: rotate(359deg);
   }
 }
+
+// Estilo del botón de cierre en el footer
+.btn-logout-footer {
+  --border-radius: 20px;
+  font-weight: 600;
+  width: 90%;
+  margin: 0 auto;
+}
+
+// Ventana Modal del Logout
+#logout-modal {
+  --height: auto;
+  --border-radius: 16px;
+  --box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  align-items: center;
+  justify-content: center;
+
+  .modal-wrapper {
+    padding: 24px;
+    background-color: var(--ion-background-color, #ffffff);
+    text-align: center;
+    border-radius: 16px;
+
+    .modal-header {
+      margin-bottom: 16px;
+
+      .logout-icon-danger {
+        font-size: 48px;
+        color: var(--ion-color-danger, #eb445a);
+      }
+
+      h2 {
+        margin: 8px 0 0 0;
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--ion-text-color, #222222);
+      }
+    }
+
+    .modal-body {
+      margin-bottom: 24px;
+      p {
+        font-size: 15px;
+        color: var(--ion-color-step-600, #666666);
+        line-height: 1.4;
+      }
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+
+      ion-button {
+        flex: 1;
+        --border-radius: 8px;
+        font-weight: 600;
+      }
+    }
+  }
+}

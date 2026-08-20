@@ -3,16 +3,45 @@
     <ion-title>SSEI</ion-title>
     <ion-img src="assets/icon/SSEI-OSCURO.png" slot="start" class="logo-SSEI"></ion-img>
     <ion-icon name="shield-checkmark-outline" slot="center">SSEI</ion-icon>
-    <ion-buttons class="btn-hoover" slot="end">
+    
+    <!-- Contenedor alineado al final de la barra superior -->
+    <ion-buttons slot="end" class="btn-hoover">
+      <!--Botón de Sincronización -->
       <ion-button fill="clear" (click)="sincronizarDashboard()" [disabled]="isSyncing">
         <ion-icon name="sync-outline" [class.spinner]="isSyncing"></ion-icon>
       </ion-button>
+
+      <!--Botón Menú Usuario (Popover Trigger) -->
+      <ion-button fill="clear" id="trigger-popover-usuario">
+        <ion-icon name="person-circle-outline" style="font-size: 26px;"></ion-icon>
+      </ion-button>
     </ion-buttons>
   </ion-toolbar>
+
+  <!--Desplegable Popover del Menú de Usuario -->
+  <ion-popover trigger="trigger-popover-usuario" triggerAction="click" dismissOnSelect="true">
+    <ng-template>
+      <ion-content class="ion-no-padding">
+        <ion-list lines="none" class="ion-no-padding">
+          <ion-item class="popover-header">
+            <ion-label>
+              <h3>{{ tecnicoNombre }}</h3>
+              <p>Técnico en Terreno</p>
+            </ion-label>
+          </ion-item>
+          <!-- Opción Cerrar Sesión -->
+          <ion-item button detail="false" (click)="abrirModalConfirmacion()" class="popover-logout-item">
+            <ion-icon name="log-out-outline" slot="start" color="danger"></ion-icon>
+            <ion-label color="danger">Cerrar Sesión</ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-content>
+    </ng-template>
+  </ion-popover>
 </ion-header>
 
 <ion-content [fullscreen]="true" class="dashboard-content">
-  <!-- 🛜 Banner offline condicional con Debounce/Histéresis -->
+  <!--Banner offline condicional con Debounce/Histéresis -->
   <div class="offline-banner" *ngIf="offlineBannerVisible">
     <ion-icon name="wifi-outline"></ion-icon>
     <span>Modo Offline (Almacenamiento Local)</span>
@@ -80,12 +109,23 @@
     </ion-fab-button>
   </ion-fab>
 
-</ion-content>
+  <!--MODAL DE CONFIRMACIÓN DE CIERRE DE SESIÓN -->
+  <ion-modal [isOpen]="mostrarModalLogout" (didDismiss)="cerrarModalConfirmacion()" id="logout-modal">
+    <ng-template>
+      <div class="modal-wrapper">
+        <div class="modal-header">
+          <ion-icon name="log-out-outline" class="logout-icon-danger"></ion-icon>
+          <h2>Cerrar Sesión</h2>
+        </div>
+        <div class="modal-body">
+          <p>¿Estás seguro de que deseas salir de tu cuenta? Se cerrará la sesión actual en este terminal.</p>
+        </div>
+        <div class="modal-footer">
+          <ion-button fill="clear" color="medium" (click)="cerrarModalConfirmacion()">Cancelar</ion-button>
+          <ion-button fill="solid" color="danger" (click)="confirmarLogout()">Cerrar Sesión</ion-button>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
 
-<ion-footer>
-  <ion-toolbar>
-    <ion-buttons class="button-group">
-      <ion-button class="btn-hoover" [routerLink]="['/login']">Perfil</ion-button>
-    </ion-buttons>
-  </ion-toolbar>
-</ion-footer>
+</ion-content>

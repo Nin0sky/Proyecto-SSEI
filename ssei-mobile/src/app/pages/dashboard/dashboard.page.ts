@@ -1,18 +1,18 @@
 import { Component, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, Router } from '@angular/router';
+import { Router } from '@angular/router';
 import { addIcons } from 'ionicons';
 import { AuthService } from '../../services/auth.service';
-import { syncOutline, wifiOutline, addOutline, shieldCheckmarkOutline, listOutline } from 'ionicons/icons';
+import { syncOutline, wifiOutline, addOutline, shieldCheckmarkOutline, listOutline, logOutOutline, personCircleOutline } from 'ionicons/icons';
 import {
   IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonIcon,
   IonContent, IonCard, IonCardContent, IonList, IonItem, IonLabel,
-  IonBadge, IonFab, IonFabButton, IonFooter, IonImg,
-  ToastController, LoadingController
+  IonBadge, IonFab, IonFabButton, IonImg,
+  IonModal, IonPopover, ToastController, LoadingController
 } from '@ionic/angular/standalone';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { firstValueFrom, Subscription, fromEvent, merge, of } from 'rxjs';
-import { delay, debounceTime, map } from 'rxjs/operators';
+import { firstValueFrom, Subscription, fromEvent, merge } from 'rxjs';
+import { debounceTime, map } from 'rxjs/operators';
 import { OtContextService, OtTrabajo, OtEstado } from '../../ot-context.service';
 
 @Component({
@@ -21,9 +21,10 @@ import { OtContextService, OtTrabajo, OtEstado } from '../../ot-context.service'
   styleUrls: ['./dashboard.page.scss'],
   standalone: true,
   imports: [
-    CommonModule, RouterLink, IonHeader, IonToolbar, IonTitle, IonButtons,
+    CommonModule, IonHeader, IonToolbar, IonTitle, IonButtons,
     IonButton, IonIcon, IonContent, IonCard, IonCardContent, IonList,
-    IonItem, IonLabel, IonBadge, IonFab, IonFabButton, IonFooter, IonImg,
+    IonItem, IonLabel, IonBadge, IonFab, IonFabButton, IonImg,
+    IonModal, IonPopover // 👈 Importados
   ]
 })
 export class DashboardPage implements OnDestroy {
@@ -31,6 +32,7 @@ export class DashboardPage implements OnDestroy {
   filtroEstado: OtEstado | null = null;
   isSyncing = false; // Control de estado para animación spinner y throttling
   tecnicoNombre = 'Técnico'; // Propiedad reactiva para el nombre del usuario
+  mostrarModalLogout = false; // Propiedad para visualizar/ocultar el Modal
 
   // Lógica Reactiva de Conectividad Decente
   isOffline = false; 
@@ -47,7 +49,7 @@ export class DashboardPage implements OnDestroy {
     private readonly router: Router,
     private readonly authService: AuthService,
   ) {
-    addIcons({ addOutline, syncOutline, wifiOutline, shieldCheckmarkOutline, listOutline });
+    addIcons({ addOutline, syncOutline, wifiOutline, shieldCheckmarkOutline, listOutline, logOutOutline, personCircleOutline });
     this.inicializarMonitoreoRed();
   }
 
@@ -64,7 +66,7 @@ export class DashboardPage implements OnDestroy {
   }
 
   /**
-   * 📡 Inicializa el monitoreo de conectividad resiliente implementando
+   * Inicializa el monitoreo de conectividad resiliente implementando
    * un Debounce/Histeresis de 4 segundos para evitar ruidos de avisos innecesarios.
    */
   private inicializarMonitoreoRed() {
@@ -76,7 +78,7 @@ export class DashboardPage implements OnDestroy {
 
     this.networkSubscription = merge(online$, offline$)
       .pipe(
-        // Esperamos 4 segundos antes de reportar un cambio definitivo de red (Debounce de Microcortes)
+        // Esperamos 4 segundos antes de reportar un cambio definitivo de red
         debounceTime(4000) 
       )
       .subscribe((conectado) => {
@@ -92,19 +94,18 @@ export class DashboardPage implements OnDestroy {
   }
 
   /**
-   * 🍞 Notificación sutil para avisar al técnico que la señal se restableció con éxito.
+   * Notificación sutil para avisar al técnico que la señal se restableció con éxito.
    */
   async presentarToastConexionEstablecida() {
-    // Cancelamos cualquier mensaje anterior activo para no superponer
     if (this.connectionRecoveryToast) {
       this.connectionRecoveryToast.dismiss();
     }
 
     this.connectionRecoveryToast = await this.toastController.create({
       message: 'Conectado a la señal central de SSEI',
-      duration: 3000, // Desaparece discretamente a los 3 segundos
+      duration: 3000, 
       color: 'success',
-      position: 'top', // Ubicación no intrusiva en la cabecera
+      position: 'top', 
       buttons: [
         {
           text: 'OK',
@@ -114,8 +115,49 @@ export class DashboardPage implements OnDestroy {
     });
     await this.connectionRecoveryToast.present();
     
-    // Intenta sincronizar automáticamente el listado al recuperar la señal
     this.cargarYCombinarOts();
+  }
+
+  // --- Controles del Modal de Cierre de Sesión ---
+
+  abrirModalConfirmacion(): void {
+    this.mostrarModalLogout = true;
+  }
+
+  cerrarModalConfirmacion(): void {
+    this.mostrarModalLogout = false;
+  }
+
+  /**
+   * Ejecuta la limpieza de sesiones local y navega de forma segura al Login
+   */
+  async confirmarLogout() {
+    this.cerrarModalConfirmacion();
+
+    const loading = await this.loadingController.create({
+      message: 'Cerrando sesión de manera segura...',
+    });
+    await loading.present();
+
+    setTimeout(async () => {
+      // Remover tokens y variables persistibles locales de sesión
+      localStorage.removeItem('token');
+      localStorage.removeItem('tecnico_id');
+      localStorage.removeItem('tecnico_nombre');
+
+      await loading.dismiss();
+
+      const toast = await this.toastController.create({
+        message: 'Sesión finalizada. ¡Buen turno!',
+        duration: 3000,
+        color: 'primary',
+        position: 'bottom'
+      });
+      await toast.present();
+
+      // Redirigir al técnico al Home de Login
+      this.router.navigate(['/login']);
+    }, 1200);
   }
 
   ngOnDestroy(): void {
@@ -131,9 +173,8 @@ export class DashboardPage implements OnDestroy {
     return new Promise((resolve) => {
       this.authService.obternerOtsServidorSilenciado().subscribe({
         next: (ots: any[]) => {
-          this.isOffline = false; // Confirmación transaccional de conexión real
+          this.isOffline = false;
           
-          // Mapeamos las OTs que traemos del Servidor
           const otsMapeadas: OtTrabajo[] = ots.map((ot: any) => {
             return {
               id: ot.id.toString(),
@@ -165,12 +206,10 @@ export class DashboardPage implements OnDestroy {
             };
           });
 
-          // Sincronizamos las OTs mapeadas en el Contexto Local
           otsMapeadas.forEach(otServidor => {
             const indexIndex = this.otContextService.trabajos.findIndex(t => t.id === otServidor.id);
             if (indexIndex !== -1) {
               const localOt = this.otContextService.trabajos[indexIndex];
-              // Si la OT local ya se empezó a editar ('en_progreso'), conservamos los cambios locales
               if (localOt.estado !== 'asignado') {
                 otServidor.estado = localOt.estado;
                 otServidor.atms = localOt.atms;
@@ -191,7 +230,6 @@ export class DashboardPage implements OnDestroy {
         },
         error: (err: any) => {
           console.error('Error al sincronizar OTs con el servidor:', err);
-          // Si cae el API, asumimos modo offline por precaución
           this.workOrders = [...this.otContextService.trabajos];
           resolve();
         }
@@ -213,7 +251,6 @@ export class DashboardPage implements OnDestroy {
     await loading.present();
 
     try {
-      // 1. Buscamos registros locales en estado "pendiente_envio"
       const pendientes = this.otContextService.trabajos.filter(x => x.estado === 'pendiente_envio');
 
       if (pendientes.length > 0) {
@@ -226,11 +263,9 @@ export class DashboardPage implements OnDestroy {
 
         for (const ot of pendientes) {
           try {
-            // Actualizamos el estado de la OT atrasada en el servidor a 'sincronizada'
             const updateStateUrl = `http://localhost:8000/ots/${ot.id}/estado`;
             await firstValueFrom(this.http.patch(updateStateUrl, { estado: 'sincronizada' }, { headers }));
 
-            // Actualizamos la OT de forma segura en nuestro contexto local
             const cOt = this.otContextService.trabajos.find(t => t.id === ot.id);
             if (cOt) {
               cOt.estado = 'sincronizado';
@@ -254,10 +289,8 @@ export class DashboardPage implements OnDestroy {
         }
       }
 
-      // 2. Traemos las OTs limpias y actualizadas del API
       await this.cargarYCombinarOts();
 
-      // Marcamos conexión activa tras validación exitosa del botón Sync
       this.isOffline = false;
       this.offlineBannerVisible = false;
 
