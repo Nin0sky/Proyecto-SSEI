@@ -9,35 +9,182 @@
   h1 {
     font-size: 24px;
     font-weight: 700;
-    color: #1e3c72;
+    color: #1a237e;
     margin: 0 0 6px 0;
   }
-  p {
-    font-size: 14px;
-    color: #666;
-    margin: 0;
-  }
+  p { font-size: 14px; color: #64748b; margin: 0; }
 }
 
-.filters-panel {
+// 🌟 BARRA DE BUSCADOR Y FILTROS ESTILO GOOGLE DRIVE
+.filters-drive-bar {
   display: flex;
   gap: 16px;
   margin: 16px 0;
   flex-wrap: wrap;
 
-  .search-field {
+  .search-drive {
     flex: 1;
-    min-width: 250px;
+    min-width: 280px;
+  }
+  .filter-dropdown {
+    width: 220px;
+  }
+}
+
+// 🌟 RUTA DE NAVEGACIÓN (BREADCRUMBS) ESTILO DRIVE
+.drive-breadcrumbs {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #555;
+  background-color: #f1f5f9;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  gap: 8px;
+
+  .crumb-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+    color: #1e88e5;
+    cursor: pointer;
+    transition: color 0.15s;
+    &:hover { color: #1565c0; text-decoration: underline; }
+    mat-icon { font-size: 18px; width: 18px; height: 18px; }
   }
 
-  .filter-dropdown {
-    width: 210px;
+  .crumb-divider {
+    color: #94a3b8;
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  .crumb-txt {
+    color: #475569;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    
+    &.active-folder {
+      font-weight: 600;
+      color: #0f172a;
+      .folder-color { color: #f59e0b; }
+    }
+    mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  }
+}
+
+// 🌟 SECCIÓN DE CUADRÍCULA DE CARPETAS DE ATM
+.drive-directories-section {
+  margin-bottom: 32px;
+
+  h3 {
+    font-size: 15px;
+    color: #334155;
+    margin: 0 0 16px 0;
+    font-weight: 600;
+  }
+
+  .folders-grid {
+    display: grid;
+    grid-template-columns: repeat(sm, 2fr);
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+
+    .folder-item {
+      background: white;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s ease-in-out;
+
+      &:hover {
+        background-color: #f8fafc;
+        border-color: #94a3b8;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+
+        .folder-icon { color: #d97706; } // Animación de color de folder
+      }
+
+      .folder-icon {
+        font-size: 40px;
+        width: 40px;
+        height: 40px;
+        color: #f59e0b; // Color amarillo folder universal
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .folder-meta {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+
+        .folder-name {
+          font-weight: 600;
+          color: #1e293b;
+          font-size: 14px;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+          overflow: hidden;
+        }
+
+        .folder-count {
+          font-size: 11px;
+          color: #64748b;
+          margin-top: 2px;
+        }
+      }
+
+      .folder-banco-tag {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        font-size: 8px;
+        font-weight: bold;
+        color: #1e88e5;
+        background: #e3f2fd;
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+    }
+  }
+
+  .empty-folders-alert {
+    color: #94a3b8;
+    font-size: 13px;
+    text-align: center;
+    padding: 24px;
+    background: #f8fafc;
+    border-radius: 8px;
+  }
+}
+
+// 🌟 CONTENEDOR DE SECCIÓN DE ARCHIVOS
+.drive-files-section {
+  h3 {
+    font-size: 15px;
+    color: #334155;
+    margin: 0 0 16px 0;
+    font-weight: 600;
   }
 }
 
 .table-card {
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
   background: #ffffff;
 }
 
@@ -51,18 +198,28 @@
 
   th.mat-mdc-header-cell {
     font-size: 12px;
-    font-weight: 700;
-    color: #444444;
+    font-weight: 600;
+    color: #475569;
     text-transform: uppercase;
     background-color: #f8fafc;
     padding: 16px;
   }
 
   td.mat-mdc-cell {
-    padding: 16px;
+    padding: 14px 16px;
     font-size: 13px;
     border-bottom: 1px solid #edf2f7;
+    color: #334155;
   }
+}
+
+.category-pill {
+  font-size: 11px;
+  font-weight: 500;
+  background: #f1f5f9;
+  color: #475569;
+  padding: 4px 8px;
+  border-radius: 6px;
 }
 
 .file-name-cell {
@@ -71,10 +228,10 @@
   gap: 12px;
 
   .file-type-icon {
-    font-size: 32px;
-    width: 32px;
-    height: 32px;
-    color: #1e3c72;
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+    color: #475569;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -84,20 +241,20 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+    overflow: hidden;
 
     .file-title {
-      font-weight: 600;
+      font-weight: 500;
       color: #1e3c72;
       cursor: pointer;
-      &:hover {
-        text-decoration: underline;
-      }
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      max-width: 320px;
+      &:hover { text-decoration: underline; color: #1565c0; }
     }
 
-    .file-date {
-      font-size: 11px;
-      color: #718096;
-    }
+    .file-date { font-size: 10px; color: #94a3b8; }
   }
 }
 
@@ -110,22 +267,8 @@
   border-radius: 6px;
 }
 
-.atm-chip {
-  font-size: 11px;
-  font-weight: 600;
-  background-color: rgba(226, 116, 36, 0.08);
-  color: #e27424;
-  padding: 4px 10px;
-  border-radius: 6px;
-}
-
-.text-right {
-  text-align: right !important;
-}
-
-.text-muted {
-  color: #a0aec0 !important;
-}
+.text-right { text-align: right !important; }
+.text-muted { color: #a0aec0 !important; }
 
 .upload-tab-centered {
   display: flex;
@@ -137,7 +280,8 @@
   width: 100%;
   max-width: 500px;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
 }
 
 .upload-form-content {
@@ -156,24 +300,22 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      border: 2px dashed #1e3c72;
+      border: 2px dashed #1e88e5;
       border-radius: 12px;
       padding: 32px;
-      background-color: rgba(30, 60, 114, 0.02);
+      background-color: rgba(30, 136, 229, 0.02);
       cursor: pointer;
-      color: #1e3c72;
+      color: #1565c0;
       transition: background-color 0.2s;
 
-      &:hover {
-        background-color: rgba(30, 60, 114, 0.06);
-      }
+      &:hover { background-color: rgba(30, 136, 229, 0.06); }
 
       .picker-icon {
         font-size: 40px;
         width: 40px;
         height: 40px;
         margin-bottom: 8px;
-        color: #1e3c72;
+        color: #1e88e5;
       }
 
       span {
@@ -200,11 +342,13 @@
 
 .loading-placeholder {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   height: 200px;
-  color: #777;
+  color: #64748b;
   font-size: 13px;
+  gap: 12px;
 }
 
 .no-records-card {
@@ -214,17 +358,105 @@
   justify-content: center;
   padding: 48px;
   text-align: center;
-  color: #718096;
+  color: #94a3b8;
 
   .sad-icon {
     font-size: 48px;
     height: 48px;
     width: 48px;
     margin-bottom: 12px;
-    color: #a0aec0;
+    color: #cbd5e1;
   }
-  p {
-    margin: 0;
-    font-size: 13px;
+  p { margin: 0; font-size: 13px; }
+}
+
+// VISOR DE ZIP INTERNO
+.zip-viewer-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+
+  .zip-viewer-modal {
+    width: 90%;
+    max-width: 550px;
+    border-radius: 16px;
+    background: white;
+    padding: 20px;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+      h2 { margin: 0; font-size: 18px; color: #1e293b; }
+    }
+
+    .modal-body {
+      max-height: 50vh;
+      overflow-y: auto;
+      margin-bottom: 16px;
+
+      .loading-state {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #1e88e5;
+        padding: 24px 0;
+        span { font-size: 13px; }
+        .pulse-icon { animation: pulse 1.5s infinite; }
+      }
+
+      .zip-files-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+
+        .zip-file-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 8px 12px;
+          background: #f8fafc;
+          border-radius: 8px;
+          border: 1px solid #e2e8f0;
+
+          .file-icon { font-size: 20px; width: 20px; height: 20px; }
+          .file-name { font-size: 13px; color: #334155; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+          .badge {
+            font-size: 9px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #cbd5e1;
+            color: #475569;
+            &.badge-img { background: #fee2e2; color: #b91c1c; }
+          }
+        }
+      }
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 12px;
+    }
   }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }

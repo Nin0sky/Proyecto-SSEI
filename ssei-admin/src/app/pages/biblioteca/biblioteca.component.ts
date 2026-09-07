@@ -10,6 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'; 
 import { BibliotecaService } from '../../core/services/biblioteca.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Documento } from '../../core/models/documento.model';
@@ -30,7 +31,8 @@ import JSZip from 'jszip';
     MatButtonModule,
     MatIconModule,
     MatTabsModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MatProgressSpinnerModule
   ],
   templateUrl: './biblioteca.component.html',
   styleUrls: ['./biblioteca.component.scss']
@@ -40,6 +42,9 @@ export class BibliotecaComponent implements OnInit {
   private bibliotecaService = inject(BibliotecaService);
   protected authService = inject(AuthService);
   private snackBar = inject(MatSnackBar);
+
+  // Navegación estilo Google Drive por Carpetas de ATMs
+  atmSeleccionado = signal<string | null>(null);
 
   // Signal para clasificar la vista principal de la Biblioteca: 'documentacion' | 'respaldos' | 'todos'
   filtroSeccion = signal<string>('todos');
@@ -65,10 +70,9 @@ export class BibliotecaComponent implements OnInit {
     numeroAtm: ['']
   });
 
-  // Lista de bancos registrados para los selectores/filtros del frontend
   bancosDisponibles: string[] = ['Banco de Chile', 'Banco Santander', 'Banco Estado', 'BCI', 'Scotiabank', 'Itaú'];
 
-  displayedColumns: string[] = ['archivo', 'categoria', 'banco', 'numeroAtm', 'peso', 'createdAt', 'actions'];
+  displayedColumns: string[] = ['archivo', 'categoria', 'banco', 'peso', 'createdAt', 'actions'];
   papeleraColumns: string[] = ['archivo', 'categoria', 'peso', 'deletedAt', 'actions'];
 
   // Signals para el visor del contenido ZIP
@@ -77,21 +81,19 @@ export class BibliotecaComponent implements OnInit {
   documentoZipSeleccionado = signal<Documento | null>(null);
   mostrarModalZip = signal<boolean>(false);
 
-  // Metodo para explorar el paquete ZIP con tipados correctos para JSZip
+  // Explorar el paquete ZIP
   explorarPaqueteZip(doc: Documento): void {
     this.documentoZipSeleccionado.set(doc);
     this.zipCargando.set(true);
     this.mostrarModalZip.set(true);
     this.archivosZipAbierto.set([]);
 
-    // Descargamos el binario para decodificarlo localmente
     this.bibliotecaService.obtenerBlobParaExplorar(doc.id).subscribe({
       next: async (blob: Blob) => {
         try {
           const zip = await JSZip.loadAsync(blob);
           const listaArchivos: { nombre: string; tipo: 'imagen' | 'pdf' | 'otro' }[] = [];
 
-          // Solución a TS7006: Tipado explícito de relativePath (string) y file (JSZip.JSZipObject)
           zip.forEach((relativePath: string, file: JSZip.JSZipObject) => {
             if (!file.dir) {
               const ext = relativePath.toLowerCase().split('.').pop() || '';
@@ -126,40 +128,81 @@ export class BibliotecaComponent implements OnInit {
     this.archivosZipAbierto.set([]);
   }
 
-  // Computado Reactivo: Buscador iterativo inteligente de alta velocidad
+  // Carpetas Virtuales de ATMs disponibles computadas en base a los documentos activos
+  carpetasAtm = computed(() => {
+    const list = this.documentos();
+    const texto = this.filtroTexto().toLowerCase().trim();
+    const banco = this.filtroBanco();
+    const categoria = this.filtroCategoria();
+
+    // Filtramos ATMs únicos que posean documentos con filtros aplicados
+    const atmsMap = new Map<string, { totalDocumentos: number; banco?: string }>();
+
+    list.forEach(doc => {
+      if (doc.numeroAtm) {
+        // Validación de filtros en los documentos de la carpeta
+        const coincideText = !texto || doc.nombreOriginal.toLowerCase().includes(texto) || doc.numeroAtm.toLowerCase().includes(texto);
+        const coincideBanco = banco === 'todos' || doc.banco === banco;
+        const coincideCat = categoria === 'todas' || doc.categoria === categoria;
+
+        if (coincideText && coincideBanco && coincideCat) {
+          const entry = atmsMap.get(doc.numeroAtm);
+          if (entry) {
+            entry.totalDocumentos++;
+          } else {
+            atmsMap.set(doc.numeroAtm, { totalDocumentos: 1, banco: doc.banco || undefined });
+          }
+        }
+      }
+    });
+
+    return Array.from(atmsMap.entries()).map(([numeroAtm, data]) => ({
+      numeroAtm,
+      totalDocumentos: data.totalDocumentos,
+      banco: data.banco
+    }));
+  });
+
+  // Computado Reactivo: Filtra dinámicamente según la carpeta o nivel de navegación
   documentosFiltrados = computed(() => {
     let list = this.documentos();
     const texto = this.filtroTexto().toLowerCase().trim();
     const banco = this.filtroBanco();
     const categoria = this.filtroCategoria();
     const seccion = this.filtroSeccion();
+    const selectedAtm = this.atmSeleccionado();
 
-    // 1. Filtrar por tipo de sección (Segmentación Principal)
+    // 1. Filtrar por Carpeta de ATM Activa
+    if (selectedAtm) {
+      list = list.filter(d => d.numeroAtm === selectedAtm);
+    } else {
+      // Si estamos en la raíz (Mi unidad), solo se listan archivos que NO tienen ATM (Generales)
+      list = list.filter(d => !d.numeroAtm);
+    }
+
+    // 2. Filtrar por tipo de sección (Segmentación Principal)
     if (seccion === 'documentacion') {
-      // Manuales, planos y procedimientos operativos estáticos
       const catsDoc = ['manuales', 'planos', 'procedimientos'];
       list = list.filter(d => catsDoc.includes(d.categoria));
     } else if (seccion === 'respaldos') {
-      // Categorías de trabajo en terreno provenientes de la app-mobile
       const catsDoc = ['manuales', 'planos', 'procedimientos'];
       list = list.filter(d => !catsDoc.includes(d.categoria));
     }
 
-    // 2. Filtrar por término de búsqueda (nombre original o número de ATM o categorización)
+    // 3. Filtro interactivo de texto
     if (texto) {
       list = list.filter(d =>
         d.nombreOriginal.toLowerCase().includes(texto) ||
-        (d.numeroAtm && d.numeroAtm.toLowerCase().includes(texto)) ||
         this.obtenerNombreCategoria(d.categoria).toLowerCase().includes(texto)
       );
     }
 
-    // 3. Filtrar por Banco/Cliente
+    // 4. Filtrar por Banco/Cliente
     if (banco !== 'todos') {
       list = list.filter(d => d.banco === banco);
     }
 
-    // 4. Filtrar por Categoría específica
+    // 5. Filtrar por Categoría específica
     if (categoria !== 'todas') {
       list = list.filter(d => d.categoria === categoria);
     }
@@ -184,7 +227,6 @@ export class BibliotecaComponent implements OnInit {
       }
     });
 
-    // Si es Administrador, cargamos también la papelera de reciclaje de respaldo
     if (this.authService.hasRole(['admin'])) {
       this.bibliotecaService.listarPapelera().subscribe({
         next: (trash) => this.papelera.set(trash)
@@ -220,7 +262,6 @@ export class BibliotecaComponent implements OnInit {
         this.isUploading.set(false);
         this.mostrarMensaje('¡Documento digital subido exitosamente!');
 
-        // Limpiamos el input file de la vista
         const fileInput = document.getElementById('fileInput') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
       },
@@ -252,7 +293,6 @@ export class BibliotecaComponent implements OnInit {
 
   esCategoriaRespaldo = computed(() => {
     const catSeleccionada = this.uploadForm.get('categoria')?.value;
-    // Categorías que representan trabajos reales de la app mobile
     const categoriasTerreno = ['instalacion', 'desanclaje', 'movimientointerno', 'transporte', 'servicioelectrico', 'serviciotecnico', 'grafica'];
     return categoriasTerreno.includes(catSeleccionada);
   });
@@ -268,7 +308,6 @@ export class BibliotecaComponent implements OnInit {
     });
   }
 
-  // Helper interactivo para formatear peso de bytes a un texto legible
   formatearPeso(bytes: number): string {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -277,37 +316,32 @@ export class BibliotecaComponent implements OnInit {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
-  // Traducción lógica en el cliente del nombre de categorías
   obtenerNombreCategoria(cat: string): string {
-    const nombres: { [key: string]: string } = {
-      // Segmento A: Documentación Técnica de Referencia
-      manuales: 'Manual Técnico',
-      planos: 'Planos de Cajero (ATM)',
-      procedimientos: 'Procedimiento Operativo',
-
-      // Segmento B: Respaldos de Trabajos (App Mobile OT)
-      instalacion: 'Ficha de Instalación',
-      desanclaje: 'Ficha de Desanclaje',
-      movimientointerno: 'Movimiento Interno',
-      transporte: 'Guía de Transporte',
-      servicioelectrico: 'Servicio Eléctrico (Mediciones)',
-      serviciotecnico: 'Ficha de Servicio Técnico',
-      grafica: 'Instalación Gráfica',
-      pintura: 'Trabajos de Pintura',
-      asistencia: 'Asistencia en Terreno',
-
-      // Genérico
-      otros: 'Otros Documentos'
-
-    };
     const mapeo: { [key: string]: string } = {
-      'manuales': 'Manuales y Guias',
+      'manuales': 'Manuales y Guías',
       'planos': 'Planos Técnicos',
       'procedimientos': 'Procedimiento Operativo',
-      'respaldo_terreno': 'Respaldo Fotográfico Movil',
-      'informes': 'Informe Técnico Editado' // <-- Agrega esta línea
+      'respaldo_terreno': 'Respaldo Fotográfico Móvil',
+      'informes': 'Informe Técnico Editado',
+      'instalacion': 'Ficha de Instalación',
+      'desanclaje': 'Ficha de Desanclaje',
+      'movimientointerno': 'Movimiento Interno',
+      'transporte': 'Ficha de Transporte',
+      'servicioelectrico': 'Servicio Eléctrico',
+      'serviciotecnico': 'Servicio Técnico',
+      'grafica': 'Instalación Gráfica',
+      'otros': 'Otros Respaldos de Campo'
     };
     return mapeo[cat] || cat;
+  }
+
+  // Navegación de Carpetas
+  abrirCarpetaAtm(numAtm: string): void {
+    this.atmSeleccionado.set(numAtm);
+  }
+
+  irRaizBiblioteca(): void {
+    this.atmSeleccionado.set(null);
   }
 
   private mostrarMensaje(mensaje: string, isError: boolean = false): void {
