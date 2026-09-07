@@ -1,20 +1,30 @@
-from dataclasses import asdict
 import datetime
+import base64
+import io
+import os
+import shutil
+from dataclasses import asdict
 from datetime import timedelta
 from hashlib import pbkdf2_hmac
 from secrets import token_hex
-
-import os
-import shutil
-
 from pathlib import Path
-from fastapi import BackgroundTasks
-
+from fastapi import BackgroundTasks, Body, Depends
 from fastapi import FastAPI, HTTPException, Query, Depends, UploadFile, File, Form
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from secrets import token_hex
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import IntegrityError
+
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as RLImage, PageBreak, KeepTogether, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+from docx import Document as DocxDocument
+from docx.shared import Inches as DocxInches
+from src.infrastructure.repositories import DocumentoRepository
+
+
 
 #IMPORTACIONES DE SEGURIDAD
 from src.infrastructure.security import verificar_password, crear_access_token, obtener_usuario_actual, verificar_rol, generar_hash_password
@@ -747,3 +757,241 @@ def restore_documento(
         deleted_at=doc.deleted_at,
         deleted_by_id=doc.deleted_by_id
     )
+
+@app.post("/biblioteca/generar-informe-completo")
+def generar_y_guardar_informe_completo(
+    payload: dict = Body(...),
+    token_data: dict = Depends(verificar_rol(["admin", "coordinador"]))
+):
+    """
+    Especificación del Informe:
+    - Página 1: Imagen del Cliente + Logo Empresa + Título 'Informe Técnico'
+    - Página 2: Tipo de Solicitud + Imagen de Servicio (proporcionada por Coordinador)
+    - Detalle Técnico: Listado enumerado del informe paso a paso
+    - Informe Fotográfico: Título descriptivo + fotos del paquete ZIP
+    - Orden de trabajo: Imagen de la OT firmada adjunta
+    
+    Genera el PDF obligatorio para la biblioteca organizada del ATM y retorna 
+    el archivo seleccionado (.pdf o .docx) para su descarga local.
+    """
+    try:
+        dto_atm = payload.get("numeroAtm", "ATM_PROCESADO")
+        dto_banco = payload.get("banco", "SSEI_BANCO")
+        solicitud = payload.get("tipoSolicitud", "Mantenimiento Preventivo / Correctivo")
+        comentario_general = payload.get("comentarioGeneral", "")
+        formato = payload.get("formato", "pdf")  # 'pdf' o 'docx'
+        
+        # Elementos dinámicos en base64
+        cliente_logo_b64 = payload.get("clienteLogoBase64")  # Logo Cliente (Varia en Portada)
+        servicio_img_b64 = payload.get("servicioImgBase64")    # Imagen del Servicio
+        ot_img_b64 = payload.get("otImgBase64")                # Imagen del PDF de la OT
+        
+        detalle_tecnico_pasos = payload.get("detalleTecnico", []) # List[] de strings
+        secciones_fotos = payload.get("fotosAsignadas", [])       # List[] de {titulo, imagen_base64}
+        
+        ahora = datetime.datetime.now()
+        anio = ahora.strftime("%Y")
+        mes = ahora.strftime("%m")
+        
+        # 1. Definir subcarpeta de guardado de biblioteca agrupado por ATM
+        subcarpeta_destino = BIBLIOTECA_UPLOAD_DIR / f"{dto_atm}" / anio / mes
+        subcarpeta_destino.mkdir(parents=True, exist_ok=True)
+        
+        token_id = token_hex(8)
+        nombre_pdf = f"INFORME_{dto_atm}_{ahora.strftime('%Y%m%d')}_{token_id}.pdf"
+        nombre_docx = f"INFORME_{dto_atm}_{ahora.strftime('%Y%m%d')}_{token_id}.docx"
+        
+        ruta_pdf = subcarpeta_destino / nombre_pdf
+        ruta_docx = subcarpeta_destino / nombre_docx
+
+        # Auxiliar para convertir Base64 a Bytes para ReportLab y Docx
+        def procesar_b64_img(b64_string):
+            if not b64_string or "," not in b64_string:
+                return None
+            try:
+                header, encoded = b64_string.split(",", 1)
+                img_data = base64.b64decode(encoded)
+                return io.BytesIO(img_data)
+            except Exception:
+                return None
+
+        # ==========================================
+        # GENERACIÓN DEL ARCHIVO PDF (Compulsorio para la Biblioteca)
+        # ==========================================
+        doc_pdf = SimpleDocTemplate(str(ruta_pdf), pagesize=letter, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
+        styles = getSampleStyleSheet()
+        
+        # Estilos Customizados
+        title_style = ParagraphStyle(name='PortTitle', fontName='Helvetica-Bold', fontSize=28, leading=34, alignment=1, textColor=colors.HexColor('#1a237e'))
+        heading_style = ParagraphStyle(name='SecHeading', fontName='Helvetica-Bold', fontSize=18, leading=22, textColor=colors.HexColor('#1565c0'), spaceAfter=10)
+        sub_heading = ParagraphStyle(name='SubHeading', fontName='Helvetica-Bold', fontSize=14, leading=18, textColor=colors.HexColor('#37474f'), spaceAfter=8)
+        body_style = ParagraphStyle(name='ReportBody', fontName='Helvetica', fontSize=10, leading=14, textColor=colors.HexColor('#212121'))
+        
+        story = []
+
+        # --- PÁGINA 1: PORTADA ---
+        # Logo de la empresa (Ubicación relativa o placeholder) y Logo de Cliente lado a lado
+        img_empresa_logo = None # Si tienes logo SSEI local puedes apuntar a él
+        img_cliente_portada = None
+        
+        img_cliente_bytes = procesar_b64_img(cliente_logo_b64)
+        if img_cliente_bytes:
+            img_cliente_portada = RLImage(img_cliente_bytes, width=2.5*inch, height=1.5*inch)
+            
+        story.append(Spacer(1, 20))
+        # Crear tabla para encabezado lado a lado de marca corporativa
+        headers_data = [["LOGO CORPORATIVO SSEI", img_cliente_portada if img_cliente_portada else ""]]
+        header_table = Table(headers_data, colWidths=[3.5*inch, 3.5*inch])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('ALIGN', (0,0), (0,0), 'LEFT'),
+            ('ALIGN', (1,0), (1,0), 'RIGHT'),
+        ]))
+        story.append(header_table)
+        
+        story.append(Spacer(1, 150))
+        story.append(Paragraph("INFORME TÉCNICO", title_style))
+        story.append(Paragraph(f"ATM / PUNTO: {dto_atm}", ParagraphStyle(name='PortSubtitle', fontName='Helvetica-Bold', fontSize=16, alignment=1, textColor=colors.HexColor('#455a64'))))
+        
+        story.append(Spacer(1, 150))
+        story.append(Paragraph(f"<b>Entidad Bancaria:</b> {dto_banco}", body_style))
+        story.append(Paragraph(f"<b>Fecha de Emisión:</b> {ahora.strftime('%d-%m-%Y %H:%M')}", body_style))
+        story.append(Paragraph(f"<b>Generado por:</b> SSEI Coordinación", body_style))
+        story.append(PageBreak())
+
+        # --- PÁGINA 2: SERVICIO Y SOLICITUD ---
+        story.append(Paragraph("Detalle de la Solicitud de Servicio", heading_style))
+        story.append(Spacer(1, 10))
+        story.append(Paragraph(f"<b>Tipo de Solicitud Ingresada:</b>", sub_heading))
+        story.append(Paragraph(solicitud, body_style))
+        story.append(Spacer(1, 15))
+        
+        # Imagen de Servicio
+        img_serv_bytes = procesar_b64_img(servicio_img_b64)
+        if img_serv_bytes:
+            story.append(Paragraph("<b>Imagen de Servicio de Origen / Evidencia de Programación</b>", sub_heading))
+            story.append(Spacer(1, 5))
+            r_img_serv = RLImage(img_serv_bytes, width=5.5*inch, height=3.5*inch)
+            story.append(r_img_serv)
+            story.append(Spacer(1, 20))
+            
+        story.append(PageBreak())
+
+        # --- PÁGINA 3: DETALLE TÉCNICO PASO A PASO ---
+        story.append(Paragraph("Detalle Técnico de Ejecución", heading_style))
+        story.append(Paragraph("A continuación se describe la bitácora secuencial de los trabajos de ingeniería realizados en terreno:", body_style))
+        story.append(Spacer(1, 15))
+        
+        if detalle_tecnico_pasos:
+            for i, paso in enumerate(detalle_tecnico_pasos):
+                paso_con_formato = f"<b>Paso {i+1}:</b> {paso}"
+                story.append(Paragraph(paso_con_formato, body_style))
+                story.append(Spacer(1, 8))
+        else:
+            story.append(Paragraph("No se registraron pasos o bitácora técnica para este servicio.", body_style))
+            
+        story.append(Spacer(1, 20))
+        
+        if comentario_general:
+            story.append(Paragraph("<b>Observación General del Coordinador</b>", sub_heading))
+            story.append(Paragraph(comentario_general, body_style))
+
+        story.append(PageBreak())
+
+        # --- PÁGINA 4: INFORME FOTOGRÁFICO ---
+        story.append(Paragraph("Informe Fotográfico Estructurado", heading_style))
+        story.append(Spacer(1, 10))
+        
+        if secciones_fotos:
+            for idx, seccion in enumerate(secciones_fotos):
+                titulo_foto = seccion.get("titulo", f"Fotografía de Campo {idx + 1}")
+                img_b64 = seccion.get("imagen_base64")
+                
+                img_bytes = procesar_b64_img(img_b64)
+                if img_bytes:
+                    elements_to_keep = []
+                    elements_to_keep.append(Paragraph(f"<b>Figura {idx+1}: {titulo_foto}</b>", sub_heading))
+                    elements_to_keep.append(Spacer(1, 5))
+                    r_img = RLImage(img_bytes, width=4.5*inch, height=3*inch)
+                    elements_to_keep.append(r_img)
+                    elements_to_keep.append(Spacer(1, 15))
+                    story.append(KeepTogether(elements_to_keep))
+        else:
+            story.append(Paragraph("No se asociaron fotografías coordinadas de terreno al informe.", body_style))
+            
+        story.append(PageBreak())
+
+        # --- PÁGINA 5: RESPALDO ORDEN DE TRABAJO (OT) ---
+        story.append(Paragraph("Anexo: Validación y Cierre de Orden de Trabajo", heading_style))
+        story.append(Paragraph("A continuación se adjunta copia de respaldo físico u hoja de ruta firmada en terreno conformando la solicitud:", body_style))
+        story.append(Spacer(1, 15))
+        
+        img_ot_bytes = procesar_b64_img(ot_img_b64)
+        if img_ot_bytes:
+            r_img_ot = RLImage(img_ot_bytes, width=5*inch, height=5.5*inch)
+            story.append(r_img_ot)
+        else:
+            story.append(Paragraph("<i>No se adjuntó imagen del respaldo firmado de la Orden de Trabajo.</i>", body_style))
+            
+        # Ejecutar compilación del PDF
+        doc_pdf.build(story)
+        
+        # Registrar copia en la Base de Datos de la Biblioteca as `informes`
+        # para que se conserve en el repositorio de documentos interactivos
+        peso_bytes = ruta_pdf.stat().st_size
+        ruta_relativa_sistema = f"{dto_atm}/{anio}/{mes}/{nombre_pdf}"
+        
+        documento_repository.create(
+            nombre_original=nombre_pdf,
+            nombre_sistema=ruta_relativa_sistema,
+            peso_bytes=peso_bytes,
+            mimetype="application/pdf",
+            categoria="informes",
+            banco=dto_banco,
+            numero_atm=dto_atm,
+            subido_por_id=token_data.get("id")
+        )
+        
+        # ==========================================
+        # CONTROL DE RETORNO SEGÚN FORMATO SELECCIONADO
+        # ==========================================
+        if formato == "docx":
+            # Fabricamos dinámicamente un archivo editable DOCX estructurado
+            doc_docx = DocxDocument()
+            doc_docx.add_heading("INFORME TÉCNICO", 0)
+            doc_docx.add_paragraph(f"ATM / PUNTO: {dto_atm}")
+            doc_docx.add_paragraph(f"Cliente: {dto_banco}")
+            doc_docx.add_paragraph(f"Fecha de Creación: {ahora.strftime('%d-%m-%Y %H:%M')}")
+            doc_docx.add_paragraph(f"Tipo de Solicitud: {solicitud}")
+            
+            # Agregar Imagen Servicio al DOCX
+            if img_serv_bytes:
+                img_serv_bytes.seek(0)
+                doc_docx.add_paragraph("IMAGEN DE SERVICIO")
+                doc_docx.add_picture(img_serv_bytes, width=DocxInches(4.5))
+                
+            # Agregar Detalle Técnico Paso a Paso
+            doc_docx.add_heading("Detalle Técnico de Ejecución", level=1)
+            for idx, paso in enumerate(detalle_tecnico_pasos):
+                doc_docx.add_paragraph(f"{idx+1}. {paso}")
+                
+            # Agregar Fotos del Trabajo
+            doc_docx.add_heading("Registro Fotográfico de Soporte", level=1)
+            for seccion in secciones_fotos:
+                titulo_foto = seccion.get("titulo")
+                img_b64 = seccion.get("imagen_base64")
+                img_sec_bytes = procesar_b64_img(img_b64)
+                if img_sec_bytes:
+                    doc_docx.add_heading(titulo_foto, level=2)
+                    img_sec_bytes.seek(0)
+                    doc_docx.add_picture(img_sec_bytes, width=DocxInches(4.5))
+                    
+            # Guardamos el word
+            doc_docx.save(str(ruta_docx))
+            return FileResponse(path=str(ruta_docx), filename=nombre_docx, media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+            
+        else:
+            return FileResponse(path=str(ruta_pdf), filename=nombre_pdf, media_type="application/pdf")
+            
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Fallo en procesamiento de Reporte: {str(exc)}")

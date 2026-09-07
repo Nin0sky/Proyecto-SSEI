@@ -54,6 +54,12 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/biblioteca/biblioteca.component').then(m => m.BibliotecaComponent),
     canActivate: [authGuard] // Protegida para cualquier integrante administrativo autenticado
   },
+    {
+    path: 'informes',
+    loadComponent: () => import('./pages/informes/informes.component').then(m => m.InformesComponent),
+    canActivate: [authGuard],
+    data: { roles: ['admin', 'coordinador'] }
+  },
   // Cualquier ruta inválida redirige de vuelta al dashboard
   { path: '**', redirectTo: 'dashboard' }
 ];

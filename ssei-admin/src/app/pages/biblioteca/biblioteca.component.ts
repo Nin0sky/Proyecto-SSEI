@@ -298,8 +298,16 @@ export class BibliotecaComponent implements OnInit {
 
       // Genérico
       otros: 'Otros Documentos'
+
     };
-    return nombres[cat] || cat;
+    const mapeo: { [key: string]: string } = {
+      'manuales': 'Manuales y Guias',
+      'planos': 'Planos Técnicos',
+      'procedimientos': 'Procedimiento Operativo',
+      'respaldo_terreno': 'Respaldo Fotográfico Movil',
+      'informes': 'Informe Técnico Editado' // <-- Agrega esta línea
+    };
+    return mapeo[cat] || cat;
   }
 
   private mostrarMensaje(mensaje: string, isError: boolean = false): void {

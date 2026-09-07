@@ -380,7 +380,7 @@ export class FormularioOtPage {
 
   async generarPdf(): Promise<Blob> {
     const arrayBuffer = await firstValueFrom(
-      this.http.get('assets/icon/templates/plantilla.pdf', { responseType: 'arraybuffer' })
+      this.http.get('assets/icon/templates/OT_base.pdf', { responseType: 'arraybuffer' })
     );
 
     const pdfDoc = await PDFDocument.load(arrayBuffer);

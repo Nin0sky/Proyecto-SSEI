@@ -1,0 +1,261 @@
+<div class="informes-container">
+  <div class="header-banner">
+    <h1><mat-icon>assessment</mat-icon> Consola de Informes Técnicos</h1>
+    <p>Crea reportes interactivos, asocia imágenes firmadas y almacena el PDF automáticamente en la biblioteca del ATM.</p>
+  </div>
+
+  <div class="report-creator-layout">
+    <!-- BARRA LATERAL IZQUIERDA: Punto 1 Origen - Vista previa en miniaturas estáticas -->
+    <aside class="sidebar-source">
+      <mat-card class="sidebar-card">
+        <h2>1. Origen del Trabajo (Fotos de Terreno)</h2>
+        
+        <mat-form-field appearance="outline" class="w-100">
+          <mat-label>Seleccionar paquete ZIP</mat-label>
+          <mat-select (selectionChange)="onZipSeleccionado($event)">
+            @for (item of paquetesZip(); track item.id) {
+              <mat-option [value]="item.id">
+                {{ item.nombreOriginal }} (ATM: {{ item.numeroAtm || 'S/N' }})
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        @if (isLoadingZip()) {
+          <div class="extractor-spinner">
+            <mat-spinner diameter="30"></mat-spinner>
+            <span>Descomprimiendo fotos de terreno...</span>
+          </div>
+        }
+
+        <!-- Galería de visualización estática -->
+        @if (imagenesZip().length > 0) {
+          <div class="gallery-inner">
+            <h3 class="gallery-title">Fotos en Paquete ZIP</h3>
+            <p class="gallery-help-text">Haz clic en una miniatura para verla en tamaño grande.</p>
+            
+            <div class="thumbnails-grid">
+              @for (img of imagenesZip(); track img.nombre) {
+                <div class="thumb-item" 
+                     (click)="abrirVistaPreviaLateral(img)"
+                     title="Ver foto ampliada">
+                  <img [src]="img.base64" alt="Foto zip" />
+                  <span class="file-tag">{{ img.nombre }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        } @else {
+          <div class="no-images-banner">
+            <mat-icon class="sub-icon">photo_size_select_actual</mat-icon>
+            <p>Selecciona un paquete ZIP para visualizar las fotografías del técnico.</p>
+          </div>
+        }
+      </mat-card>
+    </aside>
+
+    <!-- FORMULARIO EDITOR PRINCIPAL (DERECHA) -->
+    <main class="editor-workspace">
+      <form [formGroup]="informeForm" (ngSubmit)="enviarInforme()">
+        
+        <!-- SECCIÓN 2: ENTRADAS DEL COORDINADOR -->
+        <mat-card class="card-section">
+          <h2>2. Encabezados y Evidencia Inicial</h2>
+          
+          <div class="inputs-grid">
+            <mat-form-field appearance="outline" class="w-100">
+              <mat-label>Número ATM / Punto</mat-label>
+              <input matInput formControlName="numeroAtm" placeholder="ATMXXXX" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="w-100">
+              <mat-label>Banco Entidad</mat-label>
+              <input matInput formControlName="banco" placeholder="Banco de Chile / Estado" />
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="w-100">
+            <mat-label>Tipo de Solicitud de Cierre</mat-label>
+            <textarea matInput formControlName="tipoSolicitud" rows="2" placeholder="Escriba el motivo agendado por el correo del cliente..."></textarea>
+          </mat-form-field>
+
+          <div class="uploaders-row">
+            <div class="upload-zone">
+              <span class="lbl-up">Logotipo Cliente Portada:</span>
+              <input type="file" id="fileClient" (change)="onFileChange($event, 'cliente')" hidden accept="image/*" />
+              <button type="button" mat-raised-button color="accent" onclick="document.getElementById('fileClient').click()">
+                <mat-icon>upload_file</mat-icon> Subir Logo Cliente
+              </button>
+              @if (previsualizacionCliente()) {
+                <div class="mini-preview"><img [src]="previsualizacionCliente()" alt="Cliente" /></div>
+              }
+            </div>
+
+            <div class="upload-zone">
+              <span class="lbl-up">Imagen del Servicio (Agenda de Correo):</span>
+              <input type="file" id="fileService" (change)="onFileChange($event, 'servicio')" hidden accept="image/*" />
+              <button type="button" mat-raised-button color="accent" onclick="document.getElementById('fileService').click()">
+                <mat-icon>assessment</mat-icon> Subir Imagen Correo
+              </button>
+              @if (previsualizacionServicio()) {
+                <div class="mini-preview"><img [src]="previsualizacionServicio()" alt="Servicio" /></div>
+              }
+            </div>
+          </div>
+        </mat-card>
+
+        <!-- DETALLE TÉCNICO COMPLETO (PASOS ENUMERADOS) -->
+        <mat-card class="card-section">
+          <div class="card-header-action">
+            <h2>3. Detalle Técnico Dinámico (Bitácora)</h2>
+            <button type="button" mat-stroked-button color="primary" (click)="agregarPasoTecnico()">
+              <mat-icon>add</mat-icon> Agregar Paso
+            </button>
+          </div>
+
+          <div formArrayName="pasosDetalle" class="pasos-array">
+            @for (control of pasosDetalle.controls; track $index; let idx = $index) {
+              <div class="paso-row">
+                <span class="paso-number">{{ idx + 1 }}.</span>
+                <mat-form-field appearance="outline" class="flex-grow w-100">
+                  <input matInput [formControlName]="idx" placeholder="Detalle la labor de soporte..." />
+                </mat-form-field>
+                <button type="button" mat-icon-button color="warn" (click)="eliminarPasoTecnico(idx)">
+                  <mat-icon>delete_forever</mat-icon>
+                </button>
+              </div>
+            }
+          </div>
+
+          <mat-form-field appearance="outline" class="w-100 margin-top-12">
+            <mat-label>Observaciones de Coordinación final</mat-label>
+            <textarea matInput formControlName="comentarioGeneral" rows="2"></textarea>
+          </mat-form-field>
+        </mat-card>
+
+        <!-- INFORME FOTOGRÁFICO INTERACTIVO (Ranura Activa abre la Ventana Modal) -->
+        <mat-card class="card-section">
+          <div class="card-header-action">
+            <h2>4. Informe Fotográfico (Asociación con Modal)</h2>
+            <button type="button" mat-stroked-button color="primary" (click)="agregarSeccionFoto()">
+              <mat-icon>add_photo_alternate</mat-icon> Crear Bloque de Foto
+            </button>
+          </div>
+
+          <div class="secciones-fotos-container">
+            @for (grupo of fotosAsignadas.controls; track $index; let idx = $index) {
+              <div [formGroupName]="idx" class="foto-target-card">
+                <div class="foto-header">
+                  <mat-form-field appearance="outline" class="flex-grow w-100">
+                    <mat-label>Título de imagen</mat-label>
+                    <input matInput formControlName="titulo" />
+                  </mat-form-field>
+                  <button type="button" mat-icon-button color="warn" (click)="eliminarSeccionFoto(idx)">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </div>
+
+                <div class="board-selector-photo">
+                  @if (grupo.value.imagen_base64) {
+                    <div class="foto-selected-ready">
+                      <img [src]="grupo.value.imagen_base64" alt="Sección cargada" />
+                      <button type="button" class="btn-clear" (click)="limpiarFotoSeccion(idx)">Quitar Foto</button>
+                    </div>
+                  } @else {
+                    <div class="unassigned-area">
+                      <mat-icon class="icon">photo</mat-icon>
+                      <button type="button" mat-raised-button color="primary" class="btn-select-visual" (click)="abrirModalDeSeleccion(idx)">
+                        <mat-icon>insert_photo</mat-icon> Asociar Foto
+                      </button>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </mat-card>
+
+        <!-- ORDEN DE TRABAJO (OT FIRMADA EXTRAIDA DEL PDF) -->
+        <mat-card class="card-section">
+          <h2>5. Orden de Trabajo Final (Firma del Técnico)</h2>
+          <div class="uploader-ot-final">
+            <p>La carátula de firmas ha sido extraída directamente del PDF del ZIP. Si no existe, puedes cargarla manualmente.</p>
+            <input type="file" id="fileOtDoc" (change)="onFileChange($event, 'ot')" hidden accept="image/*" />
+            <button type="button" mat-raised-button color="primary" onclick="document.getElementById('fileOtDoc').click()">
+              <mat-icon>assignment_turned_in</mat-icon> Forzar Carga Manual de Firma
+            </button>
+            @if (previsualizacionOt()) {
+              <div class="preview-ot-shield"><img [src]="previsualizacionOt()" alt="Respaldo Firma OT" /></div>
+            }
+          </div>
+        </mat-card>
+
+        <!-- CONSOLA DE ACCIÓN FINAL -->
+        <div class="execution-row">
+          <mat-form-field appearance="outline" class="select-out">
+            <mat-label>Formato de Descarga</mat-label>
+            <mat-select formControlName="formato">
+              <mat-option value="pdf">Documento PDF (.pdf)</mat-option>
+              <mat-option value="docx">Microsoft Word Editable (.docx)</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <button type="submit" class="btn-send-work" mat-raised-button color="accent" [disabled]="informeForm.invalid || isGenerating()">
+            @if (isGenerating()) {
+              <mat-spinner diameter="24"></mat-spinner>
+              <span>Componiendo Informe...</span>
+            } @else {
+              <ng-container>
+                <mat-icon>description</mat-icon>
+                <span>Generar e Integrar a Biblioteca</span>
+              </ng-container>
+            }
+          </button>
+        </div>
+
+      </form>
+    </main>
+  </div>
+</div>
+
+<!-- 🌟 VENTANA MODAL DIÁLOGO: SELECCIONADOR EXCLUSIVO DE IMÁGENES -->
+@if (mostrarModalSeleccion()) {
+  <div class="modal-selection-backdrop" (click)="cerrarModalDeSeleccion()">
+    <div class="modal-selection-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Selecciona una fotografía del paquete ZIP</h3>
+        <button mat-icon-button type="button" (click)="cerrarModalDeSeleccion()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      <div class="modal-body-gallery">
+        <p class="sub-alert">Haz un clic sobre la foto elegida para asignarla al bloque de la plantilla.</p>
+        <div class="gallery-inside-grid">
+          @for (img of imagenesZip(); track img.nombre) {
+            <div class="gallery-img-card" (click)="seleccionarFotoDesdeModal(img)">
+              <img [src]="img.base64" alt="Foto Trabajo" />
+              <span class="img-name-tag">{{ img.nombre }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- VISTA PREVIA FLOTANTE DE IMÁGENES AMPLIADAS (LIGHTBOX) -->
+@if (fotoPrevisualizar(); as foto) {
+  <div class="preview-backdrop" (click)="cerrarVistaPrevia()">
+    <div class="preview-modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Vista Previa Ampliada</h3>
+        <button mat-icon-button (click)="cerrarVistaPrevia()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      <div class="modal-body">
+        <img [src]="foto.base64" alt="Foto Ampliada" />
+      </div>
+    </div>
+  </div>
+}
