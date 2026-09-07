@@ -35,8 +35,8 @@ import {
   IonButtons,
   IonIcon,
   IonSpinner,
-  IonList,   // 👈 Agregado para habilitar ion-list
-  IonFooter, // 👈 Agregado para habilitar ion-footer
+  IonList,
+  IonFooter,
 } from '@ionic/angular/standalone';
 import { OtAtmDetalle, OtContextService, MedicionElectrica } from '../../ot-context.service';
 import { AuthService } from '../../services/auth.service';
@@ -75,8 +75,8 @@ import { SignaturePadComponent } from '../../components/signature-pad/signature-
     IonCol,
     IonRow,
     IonSpinner,
-    IonList,           // 👈 Declarado en Imports
-    IonFooter,         // 👈 Declarado en Imports
+    IonList,
+    IonFooter,
     SignaturePadComponent,
   ]
 })
@@ -90,7 +90,6 @@ export class FormularioOtPage {
   nombreAlarma = '';
   guardando = false;
 
-  // Guardadores activos para firmas
   firmaTecnico = '';
   firmaETV = '';
   firmaAlarma = '';
@@ -99,6 +98,22 @@ export class FormularioOtPage {
   @ViewChildren('padTecnico, padETV, padAlarma') pads!: QueryList<SignaturePadComponent>;
 
   private readonly authService = inject(AuthService);
+
+  // Categorías que NO requieren ingreso obligatorio de series
+  private readonly tiposSinSeries = new Set([
+    'serviciotecnico',
+    'servicioelectrico',
+    'grafica',
+    'pintura',
+    'asistencia',
+  ]);
+
+  // Categorías donde las series en el PDF son opcionales (sólo se imprimen si se llenaron)
+  private readonly tiposSeriesOpcionalesPdf = new Set([
+    'serviciotecnico',
+    'grafica',
+    'transporte',
+  ]);
 
   constructor(
     private readonly otContextService: OtContextService,
@@ -115,6 +130,15 @@ export class FormularioOtPage {
     return this.atms[this.indiceAtmActivo];
   }
 
+  get esServicioElectrico(): boolean {
+    return this.normalizarTipoServicio(this.atmActivo?.tipoServicio) === 'servicioelectrico';
+  }
+
+  get mostrarCamposSeries(): boolean {
+    const tipo = this.normalizarTipoServicio(this.atmActivo?.tipoServicio);
+    return !this.tiposSinSeries.has(tipo);
+  }
+
   get fotosAtmActivo() {
     return this.otContextService.getFotosPorAtm(this.atmActivo?.numeroAtm || '');
   }
@@ -123,8 +147,8 @@ export class FormularioOtPage {
     this.atms = this.otContextService.getAtms();
 
     this.nombreTecnico = this.otContextService.nombreTecnico || localStorage.getItem('tecnico_nombre') || '';
-    this.nombreETV = this.otContextService.nombreETV;
-    this.nombreAlarma = this.otContextService.nombreAlarma;
+    this.nombreETV = this.otContextService.nombreETV || '';
+    this.nombreAlarma = this.otContextService.nombreAlarma || '';
     this.ubicacion = this.otContextService.ubicacion;
 
     const key = `ssei-firmas-temp-${this.otContextService.trabajoActivoId}`;
@@ -239,7 +263,6 @@ export class FormularioOtPage {
   async finalizarOT() {
     this.guardando = true;
 
-    // Recubrimos las firmas leyendo del método getDataUrl() presente en el canvas
     this.pads.forEach((pad, index) => {
       const url = pad.getDataUrl();
       if (index === 0) this.firmaTecnico = url;
@@ -380,77 +403,171 @@ export class FormularioOtPage {
 
   async generarPdf(): Promise<Blob> {
     const arrayBuffer = await firstValueFrom(
-      this.http.get('assets/icon/templates/OT_base.pdf', { responseType: 'arraybuffer' })
+      this.http.get('assets/icon/templates/OT_base (5).pdf', { responseType: 'arraybuffer' })
     );
 
     const pdfDoc = await PDFDocument.load(arrayBuffer);
     const paginas = pdfDoc.getPages();
     const paginaPrincipal = paginas[0];
 
-    const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const courierFont = await pdfDoc.embedFont(StandardFonts.Courier);
+    const form = pdfDoc.getForm();
+    const camposDisponibles = form.getFields().map(f => f.getName());
 
-    const xIzquierda = 51;
-    const xDerecha = 312;
+    const titleCase = (t: string): string =>
+      t.toLowerCase().split(' ').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
 
-    paginaPrincipal.drawText(this.otContextService.cliente || 'Sin Cliente', { x: xIzquierda + 55, y: 641, size: 10, font: helveticaBold, color: rgb(0.12, 0.12, 0.12) });
-    paginaPrincipal.drawText(this.otContextService.comuna || 'Metropolitana', { x: xIzquierda + 55, y: 618, size: 9, font: helvetica, color: rgb(0.12, 0.12, 0.12) });
-    paginaPrincipal.drawText(this.otContextService.direccion || 'Santiago', { x: xIzquierda + 55, y: 597, size: 9, font: helvetica, color: rgb(0.12, 0.12, 0.12) });
-    paginaPrincipal.drawText(this.otContextService.ubicacion || 'Punto sucursal', { x: xIzquierda + 55, y: 576, size: 8, font: helvetica, color: rgb(0.24, 0.24, 0.24) });
+    if (camposDisponibles.length > 0) {
+      const escribir = (nombre: string, valor: string): void => {
+        const campo = form.getTextField(nombre);
+        if (campo) {
+          campo.setMaxLength(10000);
+          campo.setText(valor);
+        }
+      };
 
-    const numAtm = this.atmActivo.numeroAtm || '';
-    paginaPrincipal.drawText(numAtm, { x: xDerecha + 72, y: 641, size: 10, font: helveticaBold, color: rgb(0.12, 0.12, 0.12) });
-    paginaPrincipal.drawText(this.atmActivo.tipoServicio.toUpperCase(), { x: xDerecha + 72, y: 618, size: 10, font: helveticaBold, color: rgb(0.01, 0.44, 0.8) });
-    paginaPrincipal.drawText(this.atmActivo.serieCajero || 'N/A', { x: xDerecha + 72, y: 597, size: 9, font: helvetica, color: rgb(0.12, 0.12, 0.12) });
-    paginaPrincipal.drawText(this.atmActivo.serieMmbb || 'N/A', { x: xDerecha + 72, y: 576, size: 9, font: helvetica, color: rgb(0.12, 0.12, 0.12) });
+      // 1. Datos Generales de Cabecera y Nombres
+      escribir('Text1', this.otContextService.cliente || '');
+      escribir('Text8', this.nombreTecnico ? titleCase(this.nombreTecnico) : '');
+      escribir('Text13', this.nombreETV ? titleCase(this.nombreETV) : '');
+      escribir('Text12', this.nombreAlarma ? titleCase(this.nombreAlarma) : '');
+      escribir('Text10', this.validacionZonas || '');
 
-    const med = this.atmActivo.medicionesElectricas || {
-      tablero: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
-      upsAntigua: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
-      upsNueva: { faseNeutro: '', neutroTierra: '', faseTierra: '' },
-      tieneUpsNueva: false
-    };
+      const hoy = new Date().toLocaleDateString('es-CL');
+      escribir('Text5', hoy);
 
-    paginaPrincipal.drawText(`${med.tablero.faseNeutro || '0'} V`, { x: 196, y: 494, size: 9, font: helvetica });
-    paginaPrincipal.drawText(`${med.tablero.neutroTierra || '0'} V`, { x: 196, y: 477, size: 9, font: helvetica });
-    paginaPrincipal.drawText(`${med.tablero.faseTierra || '0'} V`, { x: 196, y: 461, size: 9, font: helvetica });
+      // Consolidar únicamente el número o código del ATM (sin el prefijo 'ATM ')
+      const todosLosNumeros = this.atms
+        .map(a => a.numeroAtm.trim())
+        .filter(n => n.length > 0)
+        .join(' - ');
+      escribir('Text7', todosLosNumeros ? todosLosNumeros : '');
 
-    paginaPrincipal.drawText(`${med.upsAntigua.faseNeutro || '0'} V`, { x: 308, y: 494, size: 9, font: helvetica });
-    paginaPrincipal.drawText(`${med.upsAntigua.neutroTierra || '0'} V`, { x: 308, y: 477, size: 9, font: helvetica });
-    paginaPrincipal.drawText(`${med.upsAntigua.faseTierra || '0'} V`, { x: 308, y: 461, size: 9, font: helvetica });
+      escribir('Text6', this.otContextService.comuna || '');
+      escribir('Text3', this.otContextService.direccion || '');
+      escribir('Text2', this.otContextService.ubicacion || '');
 
-    const tieneNueva = med.tieneUpsNueva ? 'SI' : 'NO';
-    paginaPrincipal.drawText(tieneNueva, { x: 426, y: 494, size: 9, font: helveticaBold, color: rgb(0.01, 0.44, 0.8) });
+      // 2. Compilar Detalle del Servicio (Text4) con lógica condicional exacta
+      let detalleCompilado = '';
+      this.atms.forEach((atm) => {
+        const tipoNormalizado = this.normalizarTipoServicio(atm.tipoServicio);
+        const seriesOpcionales = this.tiposSeriesOpcionalesPdf.has(tipoNormalizado);
+        const serieCajero = atm.serieCajero ? atm.serieCajero.trim().toUpperCase() : '';
+        const serieMmbb = atm.serieMmbb ? atm.serieMmbb.trim().toUpperCase() : '';
 
-    paginaPrincipal.drawText(`${med.upsNueva.faseNeutro || '0'} V`, { x: 508, y: 494, size: 9, font: helvetica });
-    paginaPrincipal.drawText(`${med.upsNueva.neutroTierra || '0'} V`, { x: 508, y: 477, size: 9, font: helvetica });
-    paginaPrincipal.drawText(`${med.upsNueva.faseTierra || '0'} V`, { x: 508, y: 461, size: 9, font: helvetica });
+        // Título del tipo de servicio en mayúsculas (sin prefijo de ATM)
+        detalleCompilado += `${this.etiquetaTipoServicio(atm.tipoServicio).toUpperCase()}\n`;
 
-    paginaPrincipal.drawText(this.atmActivo.detallesServicio || '', { x: 51, y: 410, size: 9, font: helvetica, maxWidth: 510, lineHeight: 12 });
-    paginaPrincipal.drawText(this.atmActivo.observaciones || 'Sin observaciones.', { x: 51, y: 228, size: 9, font: helvetica, maxWidth: 510, lineHeight: 12 });
+        // Si es Servicio Eléctrico: Se imprime la tabla de mediciones
+        if (tipoNormalizado === 'servicioelectrico' && atm.medicionesElectricas) {
+          const med = atm.medicionesElectricas;
+          const labelWidth = 18;
+          const colWidth = 15;
 
-    paginaPrincipal.drawText(this.nombreTecnico, { x: 53, y: 77, size: 9, font: helveticaBold });
-    paginaPrincipal.drawText(this.nombreETV, { x: 232, y: 77, size: 9, font: helveticaBold });
-    paginaPrincipal.drawText(this.nombreAlarma, { x: 412, y: 77, size: 9, font: helveticaBold });
+          const fila = (label: string, tableroVal: string, upsAntiguaVal: string, upsNuevaVal?: string) => {
+            const lRef = label.padEnd(labelWidth, ' ');
+            const tRef = tableroVal.padEnd(colWidth, ' ');
+            const aRef = upsAntiguaVal.padEnd(colWidth, ' ');
+            const nRef = med.tieneUpsNueva && upsNuevaVal ? upsNuevaVal.padEnd(colWidth, ' ') : '';
+            return `${lRef}${tRef}${aRef}${nRef}\n`;
+          };
 
-    await this.incrustarFirma(pdfDoc, paginaPrincipal, this.firmaTecnico, 53, 91);
-    await this.incrustarFirma(pdfDoc, paginaPrincipal, this.firmaETV, 232, 91);
-    await this.incrustarFirma(pdfDoc, paginaPrincipal, this.firmaAlarma, 412, 91);
+          const headerLabel = ''.padEnd(labelWidth, ' ');
+          const headerTablero = 'Tablero'.padEnd(colWidth, ' ');
+          const headerAntigua = 'UPS Antigua'.padEnd(colWidth, ' ');
+          const headerNueva = med.tieneUpsNueva ? 'UPS Nueva'.padEnd(colWidth, ' ') : '';
+
+          detalleCompilado += `${headerLabel}${headerTablero}${headerAntigua}${headerNueva}\n`;
+          detalleCompilado += `------------------------------------------------------------\n`;
+          detalleCompilado += fila('Fase-Neutro:', (med.tablero.faseNeutro || '0') + 'V', (med.upsAntigua.faseNeutro || '0') + 'V', (med.upsNueva.faseNeutro || '0') + 'V');
+          detalleCompilado += fila('Neutro-Tierra:', (med.tablero.neutroTierra || '0') + 'V', (med.upsAntigua.neutroTierra || '0') + 'V', (med.upsNueva.neutroTierra || '0') + 'V');
+          detalleCompilado += fila('Fase-Tierra:', (med.tablero.faseTierra || '0') + 'V', (med.upsAntigua.faseTierra || '0') + 'V', (med.upsNueva.faseTierra || '0') + 'V');
+          detalleCompilado += `------------------------------------------------------------\n`;
+
+        } else if (seriesOpcionales) {
+          // Si es Servicio Técnico, Gráfica, etc.: Series son opcionales, sólo se imprimen si existen
+          if (serieCajero) detalleCompilado += `Serie Cajero: ${serieCajero}\n`;
+          if (serieMmbb) detalleCompilado += `Serie MMBB: ${serieMmbb}\n`;
+        } else {
+          // Para Instalación, Desanclaje, etc.: Se imprimen con S/N por defecto si faltan
+          detalleCompilado += `Serie Cajero: ${serieCajero || 'S/N'}\n`;
+          detalleCompilado += `Serie MMBB: ${serieMmbb || 'S/N'}\n`;
+        }
+
+        if (atm.detallesServicio) {
+          detalleCompilado += `Detalles: ${atm.detallesServicio}\n`;
+        }
+        if (atm.observaciones) {
+          detalleCompilado += `Observaciones: ${atm.observaciones}\n`;
+        }
+        detalleCompilado += `\n`;
+      });
+
+      const campoDetalle = form.getTextField('Text4');
+      if (campoDetalle) {
+        campoDetalle.setMaxLength(12000);
+        const longitud = detalleCompilado.length;
+        campoDetalle.setFontSize(longitud > 900 ? 6 : longitud > 600 ? 7 : longitud > 300 ? 8 : 10);
+        campoDetalle.updateAppearances(courierFont);
+        campoDetalle.setText(detalleCompilado);
+      }
+
+      // Quitar bordes de campos
+      for (const field of form.getFields()) {
+        const acroField = (field as any).acroField;
+        const widgets = acroField?.getWidgets?.() ?? [];
+        for (const widget of widgets) {
+          const bs = widget.getOrCreateBorderStyle?.();
+          bs?.setWidth?.(0);
+          const mk = widget.getOrCreateAppearanceCharacteristics?.();
+          mk?.setBorderColor?.([1, 1, 1]);
+        }
+      }
+
+      form.flatten();
+    }
+
+    // --- Incrustación de Firmas en sus casilleros exactos de pie de página ---
+    await this.incrustarFirma(pdfDoc, paginaPrincipal, this.firmaTecnico, 3, 3);
+    await this.incrustarFirma(pdfDoc, paginaPrincipal, this.firmaETV, 70, 3);
+    await this.incrustarFirma(pdfDoc, paginaPrincipal, this.firmaAlarma, 168, 3);
 
     const pdfBytes = await pdfDoc.save();
     return new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
   }
 
+  private etiquetaTipoServicio(tipo: string): string {
+    const etiquetas: Record<string, string> = {
+      serviciotecnico: 'Servicio Técnico',
+      servicioelectrico: 'Servicio Eléctrico',
+      instalacion: 'Instalación',
+      desanclaje: 'Desanclaje',
+      movimientointerno: 'Movimiento Interno',
+      transporte: 'Transporte',
+      grafica: 'Gráfica',
+      pintura: 'Pintura',
+      asistencia: 'Asistencia',
+    };
+    return etiquetas[this.normalizarTipoServicio(tipo)] ?? tipo;
+  }
+
+  private normalizarTipoServicio(tipo: string | null | undefined): string {
+    return (tipo ?? '')
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '');
+  }
+
   async incrustarFirma(pdfDoc: PDFDocument, paginaPrincipal: any, dataUrl: string, x: number, y: number) {
     if (!dataUrl || !dataUrl.includes(',')) {
-      paginaPrincipal.drawText('FIRMA NO DISPONIBLE', { x, y: y + 20, size: 7, font: await pdfDoc.embedFont(StandardFonts.HelveticaBold), color: rgb(0.7, 0.7, 0.7) });
       return;
     }
     try {
       const base64 = dataUrl.split(',')[1];
       const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
       const imageEmbed = await pdfDoc.embedPng(bytes);
-      paginaPrincipal.drawImage(imageEmbed, { x, y, width: 154, height: 49 });
+      paginaPrincipal.drawImage(imageEmbed, { x, y, width: 130, height: 33 });
     } catch (e) {
       console.error('Error al incrustar firma en el PDF:', e);
     }

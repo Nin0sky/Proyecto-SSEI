@@ -1,6 +1,5 @@
 <ion-header class="ion-no-border">
   <ion-toolbar id="header-toolbar">
-    <!-- Botón volver atrás -->
     <ion-buttons slot="start">
       <ion-button fill="clear" [routerLink]="['/registro-otubi']">
         <ion-icon name="arrow-back-outline" style="font-size: 24px;"></ion-icon>
@@ -9,7 +8,6 @@
 
     <ion-title>Detalles del servicio</ion-title>
 
-    <!-- 👤 Botón de Cierre de Sesión Reutilizable -->
     <ion-buttons slot="end">
       <ion-button fill="clear" (click)="cerrarSesionTecnico()">
         <ion-icon name="log-out-outline" style="font-size: 24px;" color="danger"></ion-icon>
@@ -44,21 +42,28 @@
             <ion-input [value]="atmActivo.numeroAtm" readonly="true"></ion-input>
           </ion-item>
 
-          <!-- Selector de Tipo de Servicio Normalizado -->
+          <!-- Selector de Tipo de Servicio Completo -->
           <ion-item>
             <ion-label position="stacked">Tipo de Servicio</ion-label>
             <ion-select [(ngModel)]="atmActivo.tipoServicio" (ionChange)="guardarFirmaTemporal()"
               placeholder="Seleccione un servicio">
               <ion-select-option value="instalacion">Instalación</ion-select-option>
               <ion-select-option value="serviciotecnico">Servicio Técnico</ion-select-option>
+              <ion-select-option value="servicioelectrico">Servicio Eléctrico</ion-select-option>
+              <ion-select-option value="desanclaje">Desanclaje</ion-select-option>
+              <ion-select-option value="movimientointerno">Movimiento Interno</ion-select-option>
+              <ion-select-option value="transporte">Transporte</ion-select-option>
+              <ion-select-option value="grafica">Gráfica</ion-select-option>
+              <ion-select-option value="pintura">Pintura</ion-select-option>
+              <ion-select-option value="asistencia">Asistencia</ion-select-option>
               <ion-select-option value="reunion">Reunión</ion-select-option>
               <ion-select-option value="retiro">Retiro</ion-select-option>
               <ion-select-option value="otro">Otro</ion-select-option>
             </ion-select>
           </ion-item>
 
-          <!-- Input de Serie de Cajero -->
-          <ion-item>
+          <!-- Input de Serie de Cajero (Solo visible si el tipo de servicio lo requiere) -->
+          <ion-item *ngIf="mostrarCamposSeries">
             <ion-label position="stacked">Serie Cajero</ion-label>
             <ion-input [(ngModel)]="atmActivo.serieCajero" (ionBlur)="guardarFirmaTemporal()"
               placeholder="Ingrese serie"></ion-input>
@@ -67,8 +72,8 @@
             </ion-button>
           </ion-item>
 
-          <!-- Input de Serie de MMBB -->
-          <ion-item>
+          <!-- Input de Serie de MMBB (Solo visible si el tipo de servicio lo requiere) -->
+          <ion-item *ngIf="mostrarCamposSeries">
             <ion-label position="stacked">Serie MMBB</ion-label>
             <ion-input [(ngModel)]="atmActivo.serieMmbb" (ionBlur)="guardarFirmaTemporal()"
               placeholder="Ingrese serie"></ion-input>
@@ -94,8 +99,8 @@
     </ion-card-content>
   </ion-card>
 
-  <!-- Mediciones Eléctricas Modulares del ATM Activo -->
-  <ion-card *ngIf="atmActivo">
+  <!-- Mediciones Eléctricas: Solo se muestran si es SERVICIO ELÉCTRICO -->
+  <ion-card *ngIf="atmActivo && esServicioElectrico">
     <ion-card-header>
       <ion-card-title>Mediciones Eléctricas</ion-card-title>
     </ion-card-header>
@@ -144,7 +149,7 @@
             (ionChange)="guardarFirmaTemporal()"></ion-toggle>
         </ion-item>
 
-        <!-- Bloque UPS Nueva (Se visualiza dinámicamente si el Toggle es Verdadero) -->
+        <!-- Bloque UPS Nueva -->
         <div *ngIf="atmActivo.medicionesElectricas!.tieneUpsNueva">
           <h3 class="mediciones-subtitulo ion-margin-top">UPS Nueva</h3>
           <ion-item>
@@ -173,6 +178,15 @@
       <ion-card-title>Validación y Recepción del Servicio</ion-card-title>
     </ion-card-header>
     <ion-card-content>
+      <!-- 🌟 Campo de Validación Zonas / Ucenco -->
+      <section class="validacion-zonas-grupo">
+        <h3>Validación de Zonas / Ucenco</h3>
+        <ion-item>
+          <ion-label position="stacked">Nombre Operador / Ucenco</ion-label>
+          <ion-input [(ngModel)]="validacionZonas" (ionBlur)="guardarFirmaTemporal()"
+            placeholder="Ingrese nombre de operador Ucenco"></ion-input>
+        </ion-item>
+      </section>
       <section class="firma-tecnico-grupo">
         <h3>Firma Digital del Técnico</h3>
         <ion-item>
@@ -180,12 +194,11 @@
           <ion-input [(ngModel)]="nombreTecnico" (ionBlur)="guardarFirmaTemporal()"
             placeholder="Ingrese nombre completo"></ion-input>
         </ion-item>
-        <!-- ✍️ Corregido el enlace para que coincida con SignaturePadComponent -->
         <app-signature-pad #padTecnico label="Firma de Técnico"
           (firmaChange)="onFirmaTecnicoGuardada($event)"></app-signature-pad>
       </section>
 
-      <!-- Recepción de Responsabilidad de la Empresa de ETV (Transporte de Valores) -->
+      <!-- Recepción ETV -->
       <section class="firma-etv-grupo ion-margin-top">
         <h3>Recepción de la ETV</h3>
         <ion-item>
@@ -196,7 +209,7 @@
         <app-signature-pad #padETV label="Firma de ETV" (firmaChange)="onFirmaETVGuardada($event)"></app-signature-pad>
       </section>
 
-      <!-- Recepción de Responsabilidad de Sistema de Alarmas o Sucursal -->
+      <!-- Recepción Alarma -->
       <section class="firma-alarma-grupo ion-margin-top">
         <h3>Recepción del Sistema de Alarma / Oficina</h3>
         <ion-item>
