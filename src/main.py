@@ -558,13 +558,6 @@ def seed_regiones() -> None:
         ]
         region_repository.bulk_create(regiones_chile)
 
-@app.on_event("startup")
-def startup_event() -> None:
-    init_db()
-    init_admin_db()
-    seed_admin()  # <-- Añadir esta llamada
-    seed_tecnicos()
-    seed_regiones()  # <-- Añadir esta llamada
     
 @app.get("/regiones", response_model=list[RegionRead])
 def list_regiones() -> list[RegionRead]:

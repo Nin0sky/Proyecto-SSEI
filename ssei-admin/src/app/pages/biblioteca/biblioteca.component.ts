@@ -10,7 +10,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'; 
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { BibliotecaService } from '../../core/services/biblioteca.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Documento } from '../../core/models/documento.model';
@@ -70,8 +70,36 @@ export class BibliotecaComponent implements OnInit {
     numeroAtm: ['']
   });
 
-  bancosDisponibles: string[] = ['Banco de Chile', 'Banco Santander', 'Banco Estado', 'BCI', 'Scotiabank', 'Itaú'];
+  // Lista de bancos / clientes actualizada
+  bancosDisponibles: string[] = [
+    'Banco Estado',
+    'Banco de Chile',
+    'Banco Itaú',
+    'Banco Santander',
+    'Banco Scotiabank',
+    'Loomis',
+    'Banco Bci',
+    'Banco Falabella',
+    'Banco Edwards'
+  ];
 
+  // Helper para asignar la clase de estilo según el banco
+  obtenerClaseBanco(banco?: string | null): string {
+    if (!banco) return '';
+    const normalizado = banco.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+    if (normalizado.includes('estado')) return 'banco-estado';
+    if (normalizado.includes('chile')) return 'banco-chile';
+    if (normalizado.includes('itau')) return 'banco-itau';
+    if (normalizado.includes('santander')) return 'banco-santander';
+    if (normalizado.includes('scotiabank')) return 'banco-scotiabank';
+    if (normalizado.includes('loomis')) return 'banco-loomis';
+    if (normalizado.includes('bci')) return 'banco-bci';
+    if (normalizado.includes('falabella')) return 'banco-falabella';
+    if (normalizado.includes('edwards')) return 'banco-edwards';
+
+    return 'banco-generico';
+  }
   displayedColumns: string[] = ['archivo', 'categoria', 'banco', 'peso', 'createdAt', 'actions'];
   papeleraColumns: string[] = ['archivo', 'categoria', 'peso', 'deletedAt', 'actions'];
 
