@@ -2,7 +2,6 @@ import datetime
 import base64
 import io
 import os
-import shutil
 from dataclasses import asdict
 from datetime import timedelta
 from hashlib import pbkdf2_hmac
@@ -64,6 +63,12 @@ from src.interfaces.schemas import (
     RegionRead,
 )
 
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
 
 app = FastAPI(title="SSEI API", version="0.3.0")
 
@@ -591,11 +596,14 @@ def upload_documento(
         
         # 2. Leer el archivo entrante y optimizar si es imagen
         contenido = file.file.read()
+        ext_original = os.path.splitext(file.filename or "")[1].lstrip(".").lower() or "bin"
         contenido, ext_optimizada = optimize_image(contenido, file.content_type or "")
+        if ext_optimizada == "bin":
+            ext_optimizada = ext_original  # Conservar extensión real para PDF/ZIP/DOCX
 
-        # 3. Renombrar con la extensión resultante (puede pasar de .png a .jpg)
+        # 3. Renombrar con la extensión resultante
         nombre_renombrado = f"{token_hex(16)}.{ext_optimizada}"
-        ruta_archivo_fisico = directorio_destino / nombre_renombrado
+        ruta_archivo_fisico = directorio_destino / nombre_renombrado   # <-- línea faltante
 
         # 4. Guardar en disco y calcular peso real
         ruta_archivo_fisico.write_bytes(contenido)

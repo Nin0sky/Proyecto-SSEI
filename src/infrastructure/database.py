@@ -4,12 +4,13 @@ from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
+from src.infrastructure.config import DATABASE_PATH
+
 
 Base = declarative_base()
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_SQLITE_URL = f"sqlite:///{(PROJECT_ROOT / 'data' / 'ssei.db').as_posix()}"
-
+DEFAULT_SQLITE_URL = f"sqlite:///{DATABASE_PATH.as_posix()}"
 SQLITE_DATABASE_URL = os.getenv("SQLITE_DATABASE_URL", DEFAULT_SQLITE_URL)
 ORACLE_DATABASE_URL = os.getenv("ORACLE_DATABASE_URL")
 SQL_ECHO = os.getenv("SQL_ECHO", "false").lower() == "true"

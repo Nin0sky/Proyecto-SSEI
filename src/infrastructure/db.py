@@ -3,8 +3,10 @@ import sqlite3
 
 from src.infrastructure.database import admin_engine, mobile_engine
 from src.infrastructure.models import Base
+from src.infrastructure.config import DATABASE_PATH
 
-DB_PATH = Path("data") / "ssei.db"
+
+DB_PATH = DATABASE_PATH
 
 
 def get_connection() -> sqlite3.Connection:

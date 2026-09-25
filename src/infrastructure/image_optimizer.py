@@ -66,4 +66,7 @@ def _ext_from_mime(mimetype: str) -> str:
         "image/png": "png",
         "image/webp": "webp",
         "image/bmp": "bmp",
+        "application/pdf": "pdf",
+        "application/zip": "zip",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx"
     }.get(mimetype, "bin")
