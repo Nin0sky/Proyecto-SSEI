@@ -30,7 +30,8 @@ from src.infrastructure.repositories import DocumentoRepository
 from src.infrastructure.security import verificar_password, crear_access_token, obtener_usuario_actual, verificar_rol, generar_hash_password
 from src.interfaces.schemas import LoginRequest, TokenResponse, DocumentoRead
 #############################
-
+#IMPORTACIONES DE CONFIGURACIÓN DE BIBLIOTECA
+from src.infrastructure.config import BIBLIOTECA_UPLOAD_DIR, storage_report
 
 from src.application.use_cases import OtService, RequirementService, TraceabilityService, UseCaseService
 from src.infrastructure.db import init_admin_db, init_db
@@ -70,7 +71,7 @@ app = FastAPI(title="SSEI API", version="0.3.0")
 documento_repository = DocumentoRepository()
 
 # Directorio raíz del almacenamiento de archivos de la biblioteca
-BIBLIOTECA_UPLOAD_DIR = Path("data") / "biblioteca"
+#BIBLIOTECA_UPLOAD_DIR = Path("data") / "biblioteca"#
 
 def ejecutar_limpieza_papelera_30_dias() -> None:
     """
@@ -127,18 +128,18 @@ ot_service = OtService(ot_repo=ot_repository, atm_repo=ot_atm_repository)
     
 @app.on_event("startup")
 def startup_event() -> None:
-    # 1. Crea la carpeta de almacenamiento de la biblioteca si no existe
     BIBLIOTECA_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    
-    # 2. Ejecutar tareas de inicio clásicas
     init_db()
     init_admin_db()
     seed_admin()
     seed_tecnicos()
     seed_regiones()
-    
-    # 3. Disparar limpieza automática de archivos expirados en la papelera
-    print("Iniciando depuración pasiva de la papelera de reciclaje de documentos...")
+
+    # Reporte de almacenamiento visible en el log al arrancar
+    rep = storage_report()
+    print(f"[STORAGE] Raíz: {rep['storage_root']} | "
+          f"Libre: {rep['free_gb']} GB de {rep['total_gb']} GB ({rep['pct_used']}% usado)")
+
     ejecutar_limpieza_papelera_30_dias()
 
 
@@ -567,6 +568,7 @@ def list_regiones() -> list[RegionRead]:
 # Biblioteca Endpoints
 # ---------------------------------------------------------------------------
 from src.interfaces.schemas import DocumentoRead
+from src.infrastructure.image_optimizer import optimize_image
 
 @app.post("/biblioteca/upload", response_model=DocumentoRead, status_code=201)
 def upload_documento(
@@ -587,17 +589,17 @@ def upload_documento(
         directorio_destino = BIBLIOTECA_UPLOAD_DIR / subcarpeta_fecha
         directorio_destino.mkdir(parents=True, exist_ok=True)
         
-        # 2. Renombrar archivo usando un UUID o token_hex para evitar colisiones
-        ext = os.path.splitext(file.filename)[1]
-        nombre_renombrado = f"{token_hex(16)}{ext}"
+        # 2. Leer el archivo entrante y optimizar si es imagen
+        contenido = file.file.read()
+        contenido, ext_optimizada = optimize_image(contenido, file.content_type or "")
+
+        # 3. Renombrar con la extensión resultante (puede pasar de .png a .jpg)
+        nombre_renombrado = f"{token_hex(16)}.{ext_optimizada}"
         ruta_archivo_fisico = directorio_destino / nombre_renombrado
-        
-        # 3. Guardar el archivo físico en el almacenamiento de disco
-        with ruta_archivo_fisico.open("wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        
-        # 4. Obtener el peso real del archivo escrito en disco en Bytes
-        peso_bytes = ruta_archivo_fisico.stat().st_size
+
+        # 4. Guardar en disco y calcular peso real
+        ruta_archivo_fisico.write_bytes(contenido)
+        peso_bytes = len(contenido)
         
         # 5. Registrar los metadatos mapeados en la Base de Datos SQLite
         ruta_relativa_sistema = str(subcarpeta_fecha / nombre_renombrado).replace("\\", "/")
@@ -607,7 +609,7 @@ def upload_documento(
             nombre_original=file.filename,
             nombre_sistema=ruta_relativa_sistema,
             peso_bytes=peso_bytes,
-            mimetype=file.content_type or "application/octet-stream",
+            mimetype="image/jpeg" if ext_optimizada == "jpg" else (file.content_type or "application/octet-stream"),
             categoria=categoria,
             banco=banco if banco else None,
             numero_atm=numero_atm if numero_atm else None,
