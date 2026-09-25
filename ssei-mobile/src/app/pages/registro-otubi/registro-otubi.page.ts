@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink, Router } from '@angular/router';
+import { ImageCompressorService } from '../../services/image-compressor.service';
 import {
   IonHeader,
   IonToolbar,
@@ -86,7 +87,7 @@ export class RegistroOTUBIPage {
   mostrarSugerencias = false;
   buscandoGps = false;
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
-
+  private imageCompressor = inject(ImageCompressorService);
   private fotosMap = new Map<number, OtFotoReporte[]>();
 
   // Inyectamos AuthService y dependencias nativas
@@ -206,7 +207,7 @@ export class RegistroOTUBIPage {
         const originalBase64 = reader.result as string;
 
         // Comprimir en vivo antes de almacenar en el LocalStorage
-        const compressedBase64 = await this.compressImage(originalBase64);
+        const compressedBase64 = await this.imageCompressor.compress(originalBase64);
 
         // Obtener el número de ATM correspondiente al índice de la pestaña activa de firmas
         const numeroAtmAsociado = this.atms[atmIndice]?.numeroAtm || '';
@@ -317,38 +318,5 @@ export class RegistroOTUBIPage {
       this.mostrarSugerencias = false;
     }, 280);
   }
-
-  // 1. Método Helper para comprimir imágenes de alta velocidad usando HTML5 Canvas
-  compressImage(base64Str: string, maxWidth: number = 1000, quality: number = 0.7): Promise<string> {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.src = base64Str;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-
-        let width = img.width;
-        let height = img.height;
-
-        // Escalar manteniendo proporción
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          // Exprime el factor de compresión JPEG
-          const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
-          resolve(compressedBase64);
-        } else {
-          resolve(base64Str);
-        }
-      };
-      img.onerror = () => resolve(base64Str);
-    });
-  }
+  
 }
