@@ -236,24 +236,42 @@
                 <input matInput placeholder="ej: 103" formControlName="numeroAtm">
                 <mat-icon matSuffix class="select-icon">settings_input_composite</mat-icon>
               </mat-form-field>
-
               <div class="file-picker-area">
                 <input type="file" id="fileInput" (change)="onFileSelected($event)" style="display: none;"
-                  accept=".pdf,.zip,.png,.jpg,.jpeg,.mp4">
+                  accept=".pdf,.zip,.png,.jpg,.jpeg,.mp4" multiple>
                 <label for="fileInput" class="pick-file-label">
                   <mat-icon class="picker-icon">folder_zip</mat-icon>
                   <span>
-                    {{ archivoSeleccionado ? archivoSeleccionado.name : 'Seleccionar Archivo PDF, ZIP, fotos o videos
-                    (Máx 20MB)' }}
+                    {{ archivosPendientes().length > 0
+                    ? archivosPendientes().length + ' archivo(s) en cola — agregar más'
+                    : 'Seleccionar Archivos PDF, ZIP, fotos o videos (Máx 20MB c/u)' }}
                   </span>
                 </label>
               </div>
 
+              <!-- Cola de archivos pendientes agrupados antes de subir -->
+              @if (archivosPendientes().length > 0) {
+              <ul class="pending-files-list">
+                @for (f of archivosPendientes(); track f.name + f.size; let i = $index) {
+                <li class="pending-file-item">
+                  <mat-icon class="pending-icon">insert_drive_file</mat-icon>
+                  <span class="pending-name" [title]="f.name">{{ f.name }}</span>
+                  <span class="pending-size">{{ formatearPeso(f.size) }}</span>
+                  <button mat-icon-button type="button" (click)="quitarArchivoPendiente(i)" title="Quitar de la cola">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </li>
+                }
+              </ul>
+              }
+
               <!-- Botón de Envío -->
               <button mat-raised-button color="primary" class="full-width-btn" type="submit"
-                [disabled]="!archivoSeleccionado || uploadForm.invalid || isUploading()">
+                [disabled]="archivosPendientes().length === 0 || uploadForm.invalid || isUploading()">
                 <mat-icon>cloud_done</mat-icon>
-                {{ isUploading() ? 'Cargando archivo digital...' : 'Subir e Indexar Documento' }}
+                {{ isUploading()
+                ? 'Cargando archivos digitales...'
+                : 'Subir e Indexar ' + archivosPendientes().length + ' Documento(s)' }}
               </button>
             </form>
           </mat-card-content>

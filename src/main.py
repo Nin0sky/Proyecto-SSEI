@@ -807,13 +807,15 @@ def generar_y_guardar_informe_completo(
         ruta_pdf = subcarpeta_destino / nombre_pdf
         ruta_docx = subcarpeta_destino / nombre_docx
 
-        # Auxiliar para convertir Base64 a Bytes para ReportLab y Docx
+        # Auxiliar para convertir Base64 a Bytes, optimizando antes de incrustar
         def procesar_b64_img(b64_string):
             if not b64_string or "," not in b64_string:
                 return None
             try:
                 header, encoded = b64_string.split(",", 1)
                 img_data = base64.b64decode(encoded)
+                mimetype = header.replace("data:", "").replace(";base64", "")
+                img_data, _ = optimize_image(img_data, mimetype)
                 return io.BytesIO(img_data)
             except Exception:
                 return None

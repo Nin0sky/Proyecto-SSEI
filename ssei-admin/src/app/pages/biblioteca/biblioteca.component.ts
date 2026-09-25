@@ -56,7 +56,7 @@ export class BibliotecaComponent implements OnInit {
   isUploading = signal<boolean>(false);
 
   // Archivo seleccionado listo para subir
-  archivoSeleccionado: File | null = null;
+  archivosPendientes = signal<File[]>([]);
 
   // Variables para filtros de visualización interactiva (Tu Visión de Negocio)
   filtroTexto = signal<string>('');
@@ -263,41 +263,79 @@ export class BibliotecaComponent implements OnInit {
   }
 
   onFileSelected(event: any): void {
-    const file: File = event.target.files[0];
-    if (file) {
-      this.archivoSeleccionado = file;
+    const files: FileList = event.target.files;
+    if (files && files.length > 0) {
+      const nuevos = Array.from(files);
+
+      // Evitar duplicados por nombre + tamaño
+      const actuales = this.archivosPendientes();
+      const filtrados = nuevos.filter(
+        n => !actuales.some(a => a.name === n.name && a.size === n.size)
+      );
+
+      this.archivosPendientes.update(list => [...list, ...filtrados]);
+
+      // Resetear el input para permitir re-seleccionar el mismo archivo si se quitó
+      const fileInput = document.getElementById('fileInput') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
     }
   }
 
+  quitarArchivoPendiente(index: number): void {
+    this.archivosPendientes.update(list => list.filter((_, i) => i !== index));
+  }
+
   onUpload(): void {
-    if (!this.archivoSeleccionado || this.uploadForm.invalid) {
+    const pendientes = this.archivosPendientes();
+    if (pendientes.length === 0 || this.uploadForm.invalid) {
       return;
     }
 
     this.isUploading.set(true);
     const { categoria, banco, numeroAtm } = this.uploadForm.value;
 
-    this.bibliotecaService.subirDocumento(
-      this.archivoSeleccionado,
-      categoria,
-      banco || null,
-      numeroAtm || null
-    ).subscribe({
-      next: (nuevoDoc) => {
-        this.documentos.update(list => [nuevoDoc, ...list]);
-        this.archivoSeleccionado = null;
-        this.uploadForm.reset({ categoria: 'manuales' });
-        this.isUploading.set(false);
-        this.mostrarMensaje('¡Documento digital subido exitosamente!');
+    let completados = 0;
+    let fallidos = 0;
 
-        const fileInput = document.getElementById('fileInput') as HTMLInputElement;
-        if (fileInput) fileInput.value = '';
-      },
-      error: (err) => {
+    // Subida secuencial: evita saturar el servidor y mantiene orden de llegada
+    const subirSiguiente = (index: number): void => {
+      if (index >= pendientes.length) {
+        // Lote terminado
         this.isUploading.set(false);
-        this.mostrarMensaje(err.error?.detail || 'Error al intentar subir el archivo.', true);
+        this.archivosPendientes.set([]);
+        this.uploadForm.reset({ categoria: 'manuales' });
+
+        if (fallidos === 0) {
+          this.mostrarMensaje(`¡${completados} documento(s) subido(s) exitosamente!`);
+        } else {
+          this.mostrarMensaje(
+            `${completados} subidos, ${fallidos} fallaron. Revise e intente nuevamente.`,
+            true
+          );
+        }
+        return;
       }
-    });
+
+      const file = pendientes[index];
+      this.bibliotecaService.subirDocumento(
+        file,
+        categoria,
+        banco || null,
+        numeroAtm || null
+      ).subscribe({
+        next: (nuevoDoc) => {
+          this.documentos.update(list => [nuevoDoc, ...list]);
+          completados++;
+          subirSiguiente(index + 1);
+        },
+        error: () => {
+          fallidos++;
+          subirSiguiente(index + 1);
+        }
+      });
+    };
+
+    subirSiguiente(0);
   }
 
   descargar(doc: Documento): void {
