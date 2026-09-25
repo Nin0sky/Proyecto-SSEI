@@ -1,0 +1,9 @@
+services:
+  backend:
+    image: ssei-backend:latest
+    environment:
+      - STORAGE_ROOT=/data
+    volumes:
+      # HOY (disco 500GB):     - /opt/ssei_data:/data
+      # MAÑANA (RAID 2TB):     - /mnt/storage/ssei_data:/data
+      - /opt/ssei_data:/data
