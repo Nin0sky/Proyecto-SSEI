@@ -236,10 +236,9 @@ export class SignaturePadComponent implements AfterViewInit, OnDestroy {
   }
 
   toggleExpandir(): void {
-    // 1. Respaldar la firma actual antes del cambio de tamaño
+    // 1. Respaldar la firma antes de cualquier cambio de tamaño
     const firmaGuardada = this.obtenerDataUrlActual();
 
-    // 2. Pausar el ResizeObserver para que no borre el canvas durante la animación/transición CSS
     this.pausarResizeObserver = true;
     this.expandido = !this.expandido;
 
@@ -249,7 +248,6 @@ export class SignaturePadComponent implements AfterViewInit, OnDestroy {
       this.restaurarOrientacion();
     }
 
-    // 3. Esperar que el navegador complete la reestructuración del DOM
     setTimeout(() => {
       this.ajustarCanvas();
 
@@ -258,7 +256,6 @@ export class SignaturePadComponent implements AfterViewInit, OnDestroy {
       }
 
       this.pausarResizeObserver = false;
-      this.emitirFirma();
     }, 200);
   }
 
@@ -269,22 +266,38 @@ export class SignaturePadComponent implements AfterViewInit, OnDestroy {
     this.firmaChange.emit('');
   }
 
-  /** Devuelve el dataURL actual o '' si está vacío. */
+  /** Devuelve el dataURL actual o '' si está vacío. Garantiza exportar la firma real del canvas. */
   getDataUrl(): string {
     return this.obtenerDataUrlActual();
   }
 
   private obtenerDataUrlActual(): string {
-    if (this.pad && !this.pad.isEmpty()) {
-      return this.pad.toDataURL('image/png');
+    // Si la firma no está vacía, extraemos directamente el contenido del canvas
+    if (!this.vacia && this.canvasRef?.nativeElement) {
+      const data = this.canvasRef.nativeElement.toDataURL('image/png');
+      if (data && data.length > 100) {
+        this.ultimoDataUrl = data;
+        return data;
+      }
     }
     return this.ultimoDataUrl || '';
   }
 
   private emitirFirma(): void {
-    const data = this.pad.isEmpty() ? '' : this.pad.toDataURL('image/png');
+    const canvas = this.canvasRef?.nativeElement;
+    if (!canvas) return;
+
+    if (this.pad.isEmpty() && !this.ultimoDataUrl) {
+      this.vacia = true;
+      this.ultimoDataUrl = '';
+      this.firmaChange.emit('');
+      return;
+    }
+
+    // Obtenemos el PNG directo del canvas
+    const data = canvas.toDataURL('image/png');
     this.ultimoDataUrl = data;
-    this.vacia = !data;
+    this.vacia = false;
     this.firmaChange.emit(data);
   }
 
@@ -301,6 +314,8 @@ export class SignaturePadComponent implements AfterViewInit, OnDestroy {
 
     const ctx = canvas.getContext('2d');
     if (ctx) {
+      // Reiniciar transformación previa y aplicar la escala exacta
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.scale(ratio, ratio);
     }
   }
@@ -318,16 +333,14 @@ export class SignaturePadComponent implements AfterViewInit, OnDestroy {
       const canvasWidth = canvas.width / ratio;
       const canvasHeight = canvas.height / ratio;
 
-      // Limpiamos el canvas antes de dibujar
+      // Limpiar canvas
       ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
-      // Si está en modo reducido, dejamos un margen (85% del tamaño) para que respire y no toque los bordes
-      const factorEscala = this.expandido ? 0.95 : 0.91;
-
+      // Proporción y centrado
+      const factorEscala = this.expandido ? 0.95 : 0.85;
       const imgWidth = img.naturalWidth || img.width;
       const imgHeight = img.naturalHeight || img.height;
 
-      // Calcular proporción conservando el aspecto (aspect ratio) sin deformar
       const escalaX = (canvasWidth * factorEscala) / imgWidth;
       const escalaY = (canvasHeight * factorEscala) / imgHeight;
       const escalaFinal = Math.min(escalaX, escalaY);
@@ -335,14 +348,15 @@ export class SignaturePadComponent implements AfterViewInit, OnDestroy {
       const anchoFinal = imgWidth * escalaFinal;
       const altoFinal = imgHeight * escalaFinal;
 
-      // Centrar exactamente en X e Y
       const posX = (canvasWidth - anchoFinal) / 2;
       const posY = (canvasHeight - altoFinal) / 2;
 
       ctx.drawImage(img, posX, posY, anchoFinal, altoFinal);
 
+      // Marcamos como no vacía y consolidamos el último dataURL
       this.vacia = false;
-      this.ultimoDataUrl = dataUrl;
+      this.ultimoDataUrl = canvas.toDataURL('image/png');
+      this.firmaChange.emit(this.ultimoDataUrl);
     };
     img.src = dataUrl;
   }
