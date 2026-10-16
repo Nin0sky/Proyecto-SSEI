@@ -600,7 +600,7 @@ export class FormularioOtPage {
         }
 
         if (atm.detallesServicio) {
-          detalleCompilado += `Detalles: ${atm.detallesServicio}\n`;
+          detalleCompilado += `${atm.detallesServicio}\n`;
         }
         if (atm.observaciones) {
           detalleCompilado += `Observaciones: ${atm.observaciones}\n`;
