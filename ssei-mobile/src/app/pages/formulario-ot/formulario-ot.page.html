@@ -223,8 +223,20 @@
     </ion-card-content>
   </ion-card>
 
-  <ion-button expand="block" shape="round" color="primary" [disabled]="guardando" (click)="finalizarOT()">
+  <!-- Botón Principal: Enviar y Guardar -->
+  <ion-button expand="block" shape="round" color="primary" [disabled]="guardando || compartiendo"
+    (click)="finalizarOT()">
     <ion-spinner *ngIf="guardando" name="crescent"></ion-spinner>
     <span *ngIf="!guardando">Enviar y Guardar Trabajo</span>
+  </ion-button>
+
+  <!-- Botón Secundario: Compartir Respaldo ZIP (Estilo WhatsApp) -->
+  <ion-button expand="block" shape="round" class="btn-whatsapp-share ion-margin-top"
+    [disabled]="guardando || compartiendo" (click)="compartirRespaldoZip()">
+    <ion-spinner *ngIf="compartiendo" name="crescent"></ion-spinner>
+    <ng-container *ngIf="!compartiendo">
+      <ion-icon name="logo-whatsapp" slot="start"></ion-icon>
+      <span>Compartir Respaldo (ZIP)</span>
+    </ng-container>
   </ion-button>
 </ion-content>

@@ -7,7 +7,7 @@ import { FormsModule } from '@angular/forms';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { recognize } from 'tesseract.js';
 import { addIcons } from 'ionicons';
-import { cameraOutline, shareSocial, download, documentAttach, arrowBackOutline, arrowForwardOutline, logOutOutline } from 'ionicons/icons';
+import { cameraOutline, shareSocial, download, documentAttach, arrowBackOutline, arrowForwardOutline, logOutOutline, logoWhatsapp } from 'ionicons/icons';
 import { Router, RouterLink } from '@angular/router';
 import { Share } from '@capacitor/share';
 import { ToastController, LoadingController } from '@ionic/angular/standalone';
@@ -36,11 +36,11 @@ import {
   IonIcon,
   IonSpinner,
   IonList,
-  IonFooter,
 } from '@ionic/angular/standalone';
 import { OtAtmDetalle, OtContextService, MedicionElectrica } from '../../ot-context.service';
 import { AuthService } from '../../services/auth.service';
 import { SignaturePadComponent } from '../../components/signature-pad/signature-pad.component';
+import { ImageCompressorService } from '../../services/image-compressor.service';
 
 @Component({
   selector: 'app-formulario-ot',
@@ -76,7 +76,6 @@ import { SignaturePadComponent } from '../../components/signature-pad/signature-
     IonRow,
     IonSpinner,
     IonList,
-    IonFooter,
     SignaturePadComponent,
   ]
 })
@@ -98,7 +97,7 @@ export class FormularioOtPage {
   @ViewChildren('padTecnico, padETV, padAlarma') pads!: QueryList<SignaturePadComponent>;
 
   private readonly authService = inject(AuthService);
-
+  private imageCompressor = inject(ImageCompressorService);
   // Categorías que NO requieren ingreso obligatorio de series
   private readonly tiposSinSeries = new Set([
     'serviciotecnico',
@@ -123,7 +122,7 @@ export class FormularioOtPage {
     private readonly loadingController: LoadingController,
     private readonly router: Router
   ) {
-    addIcons({ cameraOutline, shareSocial, download, documentAttach, arrowBackOutline, arrowForwardOutline, logOutOutline });
+    addIcons({ cameraOutline, shareSocial, download, documentAttach, arrowBackOutline, arrowForwardOutline, logOutOutline, logoWhatsapp });
   }
 
   get atmActivo(): OtAtmDetalle {
@@ -229,7 +228,9 @@ export class FormularioOtPage {
         source: CameraSource.Camera
       });
       if (image && image.dataUrl) {
-        this.procesarOcrEnLote(image.dataUrl, (txt) => {
+        // Comprimir antes de procesar/guardar (OCR funciona igual a 1920px)
+        const compressed = await this.imageCompressor.compress(image.dataUrl);
+        this.procesarOcrEnLote(compressed, (txt) => {
           this.atmActivo.serieCajero = txt;
           this.cdr.detectChanges();
           this.guardarFirmaTemporal();
@@ -260,6 +261,110 @@ export class FormularioOtPage {
     }
   }
 
+  compartiendo = false;
+
+  /**
+   * Genera el archivo ZIP con el PDF, fotos y firmas
+   */
+  async construirPaqueteZip(): Promise<{ nombreRaiz: string; zipBlob: Blob }> {
+    const timestamp = new Date().toISOString().replace(/[-:T]/g, '').substring(0, 14);
+    const clienteNombre = this.otContextService.cliente.replace(/\s+/g, '_') || 'Otros';
+    const atmLabel = this.atms.length > 0 ? this.atms[0].numeroAtm.trim() : '0000';
+    const nombreRaiz = `REPORTE_${clienteNombre}_ATM_${atmLabel}_${timestamp}`;
+
+    const pdfReporteBlob = await this.generarPdf();
+    const zip = new JSZip();
+    zip.file(`${nombreRaiz}.pdf`, pdfReporteBlob);
+
+    const carpetaFotos = zip.folder('fotos');
+    if (carpetaFotos) {
+      let fotoIndex = 1;
+      for (const atm of this.atms) {
+        const fotos = this.otContextService.getFotosPorAtm(atm.numeroAtm);
+        for (const f of fotos) {
+          const extension = f.mimeType.split('/')[1] || 'jpg';
+          const base64Data = f.previewDataUrl.split(',')[1];
+          if (base64Data) {
+            carpetaFotos.file(`ATM_${atm.numeroAtm}_FOTO_${fotoIndex}.${extension}`, base64Data, { base64: true });
+            fotoIndex++;
+          }
+        }
+      }
+    }
+
+    this.crearArchivoFirmasDelZip(zip);
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    return { nombreRaiz, zipBlob };
+  }
+  async compartirRespaldoZip(): Promise<void> {
+    if (this.guardando || this.compartiendo) return;
+
+    this.compartiendo = true;
+    const loading = await this.loadingController.create({
+      message: 'Preparando archivo ZIP para compartir...',
+    });
+    await loading.present();
+
+    try {
+      // 1. Asegurar guardado de firmas actuales en memoria usando la lógica original
+      this.pads?.forEach((pad, index) => {
+        const url = pad.getDataUrl();
+        if (index === 0) this.firmaTecnico = url;
+        if (index === 1) this.firmaETV = url;
+        if (index === 2) this.firmaAlarma = url;
+      });
+
+      // 2. Construir el paquete ZIP
+      const { nombreRaiz, zipBlob } = await this.construirPaqueteZip();
+      const nombreArchivo = `${nombreRaiz}.zip`;
+
+      // 3. Convertir Blob a Base64 para escribirlo con Capacitor Filesystem
+      const reader = new FileReader();
+      const base64DataPromise = new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => {
+          const res = reader.result as string;
+          resolve(res.split(',')[1]);
+        };
+        reader.onerror = reject;
+      });
+      reader.readAsDataURL(zipBlob);
+      const base64Data = await base64DataPromise;
+
+      // 4. Guardar archivo en el almacenamiento local del dispositivo (Caché accesible)
+      const fileResult = await Filesystem.writeFile({
+        path: nombreArchivo,
+        data: base64Data,
+        directory: Directory.Cache
+      });
+
+      await loading.dismiss();
+
+      // 5. Abrir la hoja nativa de compartir del celular (WhatsApp, Drive, Gmail, Guardar en archivos, etc.)
+      await Share.share({
+        title: `Respaldo OT - ${this.otContextService.cliente || 'SSEI'}`,
+        text: `Adjunto respaldo digital de la Orden de Trabajo (${nombreArchivo}).`,
+        url: fileResult.uri,
+        dialogTitle: 'Compartir o guardar respaldo ZIP'
+      });
+
+    } catch (error: any) {
+      console.error('Error al compartir archivo ZIP:', error);
+      await loading.dismiss();
+
+      // Si el usuario simplemente canceló el diálogo de compartir, no mostramos error
+      if (error?.message && !error.message.includes('canceled') && !error.message.includes('dismissed')) {
+        const toast = await this.toastController.create({
+          message: 'No se pudo compartir el archivo.',
+          duration: 3000,
+          color: 'danger',
+          position: 'bottom'
+        });
+        await toast.present();
+      }
+    } finally {
+      this.compartiendo = false;
+    }
+  }
   async finalizarOT() {
     this.guardando = true;
 

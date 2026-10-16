@@ -100,3 +100,17 @@ ion-label {
   border-top: 1px solid var(--ion-color-step-150, #dcdcdc); 
   margin: 24px 0;
 }
+
+.btn-whatsapp-share {
+  --background: #25D366;
+  --background-hover: #20ba5a;
+  --background-activated: #1ea952;
+  --color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.35);
+
+  ion-icon {
+    font-size: 22px;
+    margin-right: 6px;
+  }
+}
