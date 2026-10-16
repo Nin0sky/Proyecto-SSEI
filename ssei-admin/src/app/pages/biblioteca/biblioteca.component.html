@@ -58,25 +58,27 @@
         <mat-icon class="crumb-divider">keyboard_arrow_right</mat-icon>
         <span class="crumb-txt">Biblioteca</span>
 
-        @if (atmSeleccionado(); as atm) {
+        @if (atmSeleccionado(); as punto) {
         <mat-icon class="crumb-divider">keyboard_arrow_right</mat-icon>
         <span class="crumb-txt active-folder">
-          <mat-icon class="folder-color">folder_open</mat-icon> ATM {{ atm }}
+          <mat-icon class="folder-color">folder_open</mat-icon> {{ formatearIdentificadorEquipo(punto) }}
         </span>
         }
       </nav>
 
-      <!-- SECCIÓN GENERAL DE CARPETAS DE ATM (Solo visibles en nivel Raíz) -->
+      <!-- SECCIÓN GENERAL DE CARPETAS (Solo visibles en nivel Raíz) -->
       @if (!atmSeleccionado()) {
       <div class="drive-directories-section">
-        <h3>Carpetas de ATMs ({{ carpetasAtm().length }})</h3>
+        <h3>Carpetas por Equipo / Punto ({{ carpetasAtm().length }})</h3>
 
         <div class="folders-grid">
           @for (folder of carpetasAtm(); track folder.numeroAtm) {
           <div class="folder-item" (click)="abrirCarpetaAtm(folder.numeroAtm)">
             <mat-icon class="folder-icon">folder</mat-icon>
             <div class="folder-meta">
-              <span class="folder-name" title="ATM {{ folder.numeroAtm }}">ATM {{ folder.numeroAtm }}</span>
+              <span class="folder-name" [title]="formatearIdentificadorEquipo(folder.numeroAtm, folder.banco)">
+                {{ formatearIdentificadorEquipo(folder.numeroAtm, folder.banco) }}
+              </span>
               <span class="folder-count">{{ folder.totalDocumentos }} archivos</span>
             </div>
             @if (folder.banco) {
@@ -87,15 +89,16 @@
         </div>
 
         @if (carpetasAtm().length === 0) {
-        <p class="empty-folders-alert">No hay carpetas de Cajeros disponibles con los filtros aplicados.</p>
+        <p class="empty-folders-alert">No hay carpetas de equipos disponibles con los filtros aplicados.</p>
         }
       </div>
       }
 
-      <!-- SECCIÓN DE ARCHIVOS (TABLA FLUIDA) -->
+      <!-- SECCIÓN DE ARCHIVOS -->
       <div class="drive-files-section">
         <h3>
-          {{ atmSeleccionado() ? 'Documentos de este ATM' : 'Archivos Generales / Administrativos' }}
+          {{ atmSeleccionado() ? 'Documentos de: ' + formatearIdentificadorEquipo(atmSeleccionado()) : 'Archivos
+          Generales / Administrativos' }}
           ({{ documentosFiltrados().length }})
         </h3>
 
@@ -232,8 +235,8 @@
               </mat-form-field>
 
               <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Asociar a Número ATM (Opcional)</mat-label>
-                <input matInput placeholder="ej: 103" formControlName="numeroAtm">
+                <mat-label>N° Equipo / ATM / Identificador (Opcional)</mat-label>
+                <input matInput placeholder="ej: 4120 o TSBC 3120" formControlName="numeroAtm">
                 <mat-icon matSuffix class="select-icon">settings_input_composite</mat-icon>
               </mat-form-field>
               <div class="file-picker-area">

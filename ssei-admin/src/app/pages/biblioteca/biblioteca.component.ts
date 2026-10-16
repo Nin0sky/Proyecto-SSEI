@@ -163,12 +163,10 @@ export class BibliotecaComponent implements OnInit {
     const banco = this.filtroBanco();
     const categoria = this.filtroCategoria();
 
-    // Filtramos ATMs únicos que posean documentos con filtros aplicados
     const atmsMap = new Map<string, { totalDocumentos: number; banco?: string }>();
 
     list.forEach(doc => {
       if (doc.numeroAtm) {
-        // Validación de filtros en los documentos de la carpeta
         const coincideText = !texto || doc.nombreOriginal.toLowerCase().includes(texto) || doc.numeroAtm.toLowerCase().includes(texto);
         const coincideBanco = banco === 'todos' || doc.banco === banco;
         const coincideCat = categoria === 'todas' || doc.categoria === categoria;
@@ -177,6 +175,7 @@ export class BibliotecaComponent implements OnInit {
           const entry = atmsMap.get(doc.numeroAtm);
           if (entry) {
             entry.totalDocumentos++;
+            if (!entry.banco && doc.banco) entry.banco = doc.banco;
           } else {
             atmsMap.set(doc.numeroAtm, { totalDocumentos: 1, banco: doc.banco || undefined });
           }
@@ -336,6 +335,27 @@ export class BibliotecaComponent implements OnInit {
     };
 
     subirSiguiente(0);
+  }
+  /**
+ * Formatea la etiqueta del equipo según el cliente o tipo de identificador.
+ * Evita forzar "ATM" en equipos que no son cajeros (ej: Loomis TSBC 3120).
+ */
+  formatearIdentificadorEquipo(identificador?: string | null, banco?: string | null): string {
+    if (!identificador) return '';
+    const id = identificador.trim();
+    const bancoNorm = (banco || '').toLowerCase();
+
+    // Caso Loomis o identificadores que ya traen su propio prefijo (TSBC, etc.)
+    if (bancoNorm.includes('loomis') || /^[A-Za-z]/.test(id)) {
+      return id; // ej: "TSBC 3120", "18750"
+    }
+
+    // Si son 3 o 4 dígitos y pertenece a banco tradicional:
+    if (/^\d{3,5}$/.test(id)) {
+      return `ATM ${id}`; // ej: "ATM 4120"
+    }
+
+    return id;
   }
 
   descargar(doc: Documento): void {
